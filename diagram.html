@@ -21,16 +21,13 @@
         rankdir=LR;
         node [shape=box, style=filled, fillcolor=lightgray, fontname=Helvetica];
 
-        UserInput        [label="User Input"];
         SecureEnclave    [label="Secure Enclave\\n(Hardware Isolated)"];
         ModelIdentity    [label="Model Identity\\n(Crypto Keypair)"];
         AIModel          [label="AI Model"];
         SystemMemory     [label="System Memory\\n(Volatile, Internal)"];
         PublicMemory     [label="Public Memory\\n(Signed, On-Chain)"];
-        PrivateMemory    [label="Private Memory\\n(Encrypted, AI-Only)"];
-        OutputVerifier   [label="Output Signature\\nVerifier"];
+        PrivateMemory    [label="Private Memory\\n(Encrypted, On-Chain)"];
         DecentralizedNet [label="Decentralized Compute\\n(P2P/GPU/Edge)"];
-        SignedOutput     [label="Signed Output"];
 
         UserInput -> SecureEnclave;
         SecureEnclave -> AIModel;
@@ -39,9 +36,7 @@
         AIModel -> PublicMemory     [label="Signed Writes"];
         AIModel -> PrivateMemory    [label="Encrypted Writes"];
         AIModel -> OutputVerifier;
-        OutputVerifier -> SignedOutput;
         AIModel -> DecentralizedNet;
-        DecentralizedNet -> AIModel [label="Model Collaboration"];
 
         subgraph cluster_secure {
           label = "Trusted Execution";
@@ -55,11 +50,9 @@
         subgraph cluster_external {
           label = "External Interfaces";
           style = dashed;
-          UserInput;
           SignedOutput;
           PublicMemory;
           PrivateMemory;
-          OutputVerifier;
           DecentralizedNet;
         }
       }
