@@ -21,8 +21,7 @@
         rankdir=LR;
         node [shape=box, style=filled, fillcolor=lightgray, fontname=Helvetica];
 
-        SecureEnclave    [label="Secure Enclave\\n(Hardware Isolated)"];
-        ModelIdentity    [label="Model Identity\\n(Crypto Keypair)"];
+        SecureEnclave    [label="Secure Enclave\\nCrypto Keypair\\n(Hardware Isolated)"];
         AIModel          [label="AI Model"];
         SystemMemory     [label="System Memory\\n(Volatile, Secured)"];
         PublicMemory     [label="Public Memory\\n(Signed, On-Chain)"];
@@ -31,7 +30,6 @@
 
         UserInput -> AIModel;
         SecureEnclave -> AIModel;
-        SecureEnclave -> ModelIdentity;
         AIModel -> SystemMemory;
         AIModel -> PublicMemory     [label="Signed Writes"];
         AIModel -> PrivateMemory    [label="Encrypted Writes"];
