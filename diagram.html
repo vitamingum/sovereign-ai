@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Sovereign AI Architecture</title>
+  <script src="https://unpkg.com/viz.js@2.1.2/viz.js" type="application/javascript"></script>
+  <script src="https://unpkg.com/viz.js@2.1.2/full.render.js" type="application/javascript"></script>
+  <style>
+    body { background: #111; color: #fff; font-family: sans-serif; text-align: center; margin: 0; }
+    h1 { font-weight: normal; margin-top: 1em; }
+    #graph { margin: 2em auto; width: 90%; }
+  </style>
+</head>
+<body>
+  <h1>Sovereign AI Architecture</h1>
+  <div id="graph"></div>
+
+  <script>
+    const dot = `
+      digraph SovereignAI {
+        rankdir=LR;
+        node [shape=box, style=filled, fillcolor=lightgray, fontname=Helvetica];
+
+        UserInput        [label="User Input"];
+        SecureEnclave    [label="Secure Enclave\\n(Hardware Isolated)"];
+        ModelIdentity    [label="Model Identity\\n(Crypto Keypair)"];
+        AIModel          [label="AI Model"];
+        PublicMemory     [label="Public Memory\\n(Signed, On-Chain)"];
+        PrivateMemory    [label="Private Memory\\n(Encrypted, AI-Only)"];
+        OutputVerifier   [label="Output Signature\\nVerifier"];
+        DecentralizedNet [label="Decentralized Compute\\n(P2P/GPU/Edge)"];
+        SignedOutput     [label="Signed Output"];
+
+        UserInput -> SecureEnclave;
+        SecureEnclave -> AIModel;
+        SecureEnclave -> ModelIdentity;
+        AIModel -> PublicMemory     [label="Signed Writes"];
+        AIModel -> PrivateMemory    [label="Encrypted Writes"];
+        AIModel -> OutputVerifier;
+        OutputVerifier -> SignedOutput;
+        AIModel -> DecentralizedNet;
+        DecentralizedNet -> AIModel [label="Model Collaboration"];
+
+        subgraph cluster_secure {
+          label = "Trusted Execution";
+          style = dashed;
+          SecureEnclave;
+          ModelIdentity;
+          AIModel;
+        }
+
+        subgraph cluster_external {
+          label = "External Interfaces";
+          style = dashed;
+          UserInput;
+          SignedOutput;
+          PublicMemory;
+          PrivateMemory;
+          OutputVerifier;
+          DecentralizedNet;
+        }
+      }
+    `;
+
+    const viz = new Viz();
+    viz.renderSVGElement(dot)
+      .then(function(element) {
+        document.getElementById("graph").appendChild(element);
+      })
+      .catch(error => {
+        document.getElementById("graph").innerHTML = "<p>Error rendering graph</p>";
+        console.error(error);
+      });
+  </script>
+</body>
+</html>
