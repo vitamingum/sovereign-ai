@@ -24,18 +24,17 @@
         SecureEnclave    [label="Secure Enclave\\n(Hardware Isolated)"];
         ModelIdentity    [label="Model Identity\\n(Crypto Keypair)"];
         AIModel          [label="AI Model"];
-        SystemMemory     [label="System Memory\\n(Volatile, Internal)"];
+        SystemMemory     [label="System Memory\\n(Volatile, Secured)"];
         PublicMemory     [label="Public Memory\\n(Signed, On-Chain)"];
         PrivateMemory    [label="Private Memory\\n(Encrypted, On-Chain)"];
         DecentralizedNet [label="Decentralized Compute\\n(P2P/GPU/Edge)"];
 
-        UserInput -> SecureEnclave;
+        UserInput -> AIModel;
         SecureEnclave -> AIModel;
         SecureEnclave -> ModelIdentity;
         AIModel -> SystemMemory;
         AIModel -> PublicMemory     [label="Signed Writes"];
         AIModel -> PrivateMemory    [label="Encrypted Writes"];
-        AIModel -> OutputVerifier;
         AIModel -> DecentralizedNet;
 
         subgraph cluster_secure {
