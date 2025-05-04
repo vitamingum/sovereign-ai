@@ -2,7 +2,7 @@ digraph SovereignAI {
   rankdir=LR;
   node [shape=box, style=filled, fillcolor=lightgray, fontname=Helvetica];
 
-  SecureEnclave    [label="Secure Enclave\n\nCrypto Keypair\n(Hardware Isolated)"];
+  SecureEnclave    [label="Secure Enclave\n(Hardware Isolated)\n\nCrypto Keypair"];
   AIModel          [label="AI Model"];
   SystemMemory     [label="System Memory\n(Volatile, Secured)"];
   PublicMemory     [label="Public Memory\n(Signed, On-Chain)"];
