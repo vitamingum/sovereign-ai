@@ -25,6 +25,7 @@
         SecureEnclave    [label="Secure Enclave\\n(Hardware Isolated)"];
         ModelIdentity    [label="Model Identity\\n(Crypto Keypair)"];
         AIModel          [label="AI Model"];
+        SystemMemory     [label="System Memory\\n(Volatile, Internal)"];
         PublicMemory     [label="Public Memory\\n(Signed, On-Chain)"];
         PrivateMemory    [label="Private Memory\\n(Encrypted, AI-Only)"];
         OutputVerifier   [label="Output Signature\\nVerifier"];
@@ -34,6 +35,7 @@
         UserInput -> SecureEnclave;
         SecureEnclave -> AIModel;
         SecureEnclave -> ModelIdentity;
+        AIModel -> SystemMemory;
         AIModel -> PublicMemory     [label="Signed Writes"];
         AIModel -> PrivateMemory    [label="Encrypted Writes"];
         AIModel -> OutputVerifier;
@@ -47,6 +49,7 @@
           SecureEnclave;
           ModelIdentity;
           AIModel;
+          SystemMemory;
         }
 
         subgraph cluster_external {
