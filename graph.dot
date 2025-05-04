@@ -8,15 +8,13 @@ digraph SovereignAI {
   PublicMemory     [label="Public Memory\n(Signed, On-Chain)"];
   PrivateMemory    [label="Private Memory\n(Encrypted, On-Chain)"];
   DecentralizedNet [label="Decentralized Compute\n(P2P/GPU/Edge)"];
+  UserInput        [label="User Input"];
 
   UserInput -> AIModel;
   SecureEnclave -> AIModel;
-  AIModel -> SystemMemory;
-  SystemMemory -> AIModel;
-  AIModel -> PublicMemory;
-  PublicMemory -> AIModel;
-  AIModel -> PrivateMemory;
-  PrivateMemory -> AIModel;
+  AIModel -> SystemMemory [dir=both];
+  AIModel -> PublicMemory [dir=both];
+  AIModel -> PrivateMemory [dir=both];
   AIModel -> DecentralizedNet;
   DecentralizedNet -> AIModel;
 
