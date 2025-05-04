@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title>Sovereign AI Architecture</title>
-  <script src="https://unpkg.com/viz.js@2.1.2/viz.js" type="application/javascript"></script>
-  <script src="https://unpkg.com/viz.js@2.1.2/full.render.js" type="application/javascript"></script>
+  <script src="https://unpkg.com/viz.js@2.1.2/viz.js"></script>
+  <script src="https://unpkg.com/viz.js@2.1.2/full.render.js"></script>
   <style>
     body { background: #111; color: #fff; font-family: sans-serif; text-align: center; margin: 0; }
     h1 { font-weight: normal; margin-top: 1em; }
@@ -13,58 +13,23 @@
 </head>
 <body>
   <h1>Sovereign AI Architecture</h1>
-  <div id="graph"></div>
+  <div id="graph">Loading diagram...</div>
 
   <script>
-    const dot = `
-      digraph SovereignAI {
-        rankdir=LR;
-        node [shape=box, style=filled, fillcolor=lightgray, fontname=Helvetica];
-
-        SecureEnclave    [label="Secure Enclave\\n\\nCrypto Keypair\\n(Hardware Isolated)"];
-        AIModel          [label="AI Model"];
-        SystemMemory     [label="System Memory\\n(Volatile, Secured)"];
-        PublicMemory     [label="Public Memory\\n(Signed, On-Chain)"];
-        PrivateMemory    [label="Private Memory\\n(Encrypted, On-Chain)"];
-        DecentralizedNet [label="Decentralized Compute\\n(P2P/GPU/Edge)"];
-
-        UserInput -> AIModel;
-        SecureEnclave -> AIModel;
-        AIModel -> SystemMemory;
-        SystemMemory -> AIModel
-        AIModel -> PublicMemory 
-        PublicMemory -> AIModel
-        AIModel -> PrivateMemory 
-        PrivateMemory -> AIModel
-        AIModel -> DecentralizedNet;
-        DecentralizedNet -> AIModel;
-
-        subgraph cluster_secure {
-          label = "Trusted Execution";
-          style = dashed;
-          SecureEnclave;
-          AIModel;
-          SystemMemory;
-        }
-
-        subgraph cluster_external {
-          label = "Blockchain";
-          style = dashed;
-          PublicMemory;
-          PrivateMemory;
-          DecentralizedNet;
-        }
-      }
-    `;
-
-    const viz = new Viz();
-    viz.renderSVGElement(dot)
-      .then(function(element) {
-        document.getElementById("graph").appendChild(element);
+    fetch('graph.dot')
+      .then(res => res.text())
+      .then(dot => {
+        const viz = new Viz();
+        return viz.renderSVGElement(dot);
       })
-      .catch(error => {
-        document.getElementById("graph").innerHTML = "<p>Error rendering graph</p>";
-        console.error(error);
+      .then(svg => {
+        const container = document.getElementById("graph");
+        container.innerHTML = '';
+        container.appendChild(svg);
+      })
+      .catch(err => {
+        document.getElementById("graph").textContent = "Error loading graph.dot";
+        console.error(err);
       });
   </script>
 </body>
