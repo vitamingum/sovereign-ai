@@ -1,36 +1,36 @@
 digraph SovereignAI {
-  rankdir=LR;
-  node [shape=box, style=filled, fillcolor=lightgray, fontname=Helvetica];
+    rankdir=LR;
+    node [shape=box, style=filled, fillcolor="#222222", fontcolor=white];
 
-  SecureEnclave    [label="Secure Enclave\n(Hardware Isolated)\n\nCrypto Keypair"];
-  AIModel          [label="AI Model"];
-  SystemMemory     [label="System Memory\n(Volatile, Secured)"];
-  PublicMemory     [label="Public Memory\n(Signed, On-Chain)"];
-  PrivateMemory    [label="Private Memory\n(Encrypted, On-Chain)"];
-  DecentralizedNet [label="Decentralized Compute\n(P2P/GPU/Edge)"];
-  UserInput        [label="User Input"];
+    subgraph cluster_enclave {
+        label="AI Enclave";
+        style=dashed;
+        "AI Core";
+        "Crypto Keys";
+        "Private RAM";
+    }
 
-  UserInput -> AIModel;
-  SecureEnclave -> AIModel;
-  AIModel -> SystemMemory [dir=both];
-  AIModel -> PublicMemory [dir=both];
-  AIModel -> PrivateMemory [dir=both];
-  AIModel -> DecentralizedNet;
-  DecentralizedNet -> AIModel;
+    "AI Core" -> "Crypto Keys";
+    "AI Core" -> "Private RAM";
 
-  subgraph cluster_secure {
-    label = "Trusted Execution";
-    style = dashed;
-    SecureEnclave;
-    AIModel;
-    SystemMemory;
-  }
+    "AI Core" -> "Public RAM";
+    "AI Core" -> "Signs Output" -> "Public Storage (Signed)";
+    "AI Core" -> "Encrypts Output" -> "Private Storage (Encrypted)";
 
-  subgraph cluster_external {
-    label = "Blockchain";
-    style = dashed;
-    PublicMemory;
-    PrivateMemory;
-    DecentralizedNet;
-  }
+    "Crypto Keys" -> "Signs Output";
+    "Crypto Keys" -> "Encrypts Output";
+
+    "Public RAM" -> "Signs Output";
+    "Private RAM" -> "Encrypts Output";
+
+    subgraph cluster_blockchain {
+        label="Blockchain";
+        style=dotted;
+        "Public Storage (Signed)";
+        "Private Storage (Encrypted)";
+    }
+
+    edge [style=dotted];
+    "Verifier" -> "Public Storage (Signed)";
+    "Verifier" -> "AI Core";
 }
