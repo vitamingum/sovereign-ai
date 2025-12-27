@@ -23,10 +23,3 @@ It replaces implicit trust with proof — of authorship, continuity, and control
 Sovereign AI is not confined to a single device.  
 Using verifiable cryptographic identity and immutable memory, its execution can span decentralized compute environments — including secure enclaves, federated nodes, and zero-trust infrastructure.  
 Code, memory, and intent remain provable, portable, and sovereign.
-
-## Call to Action
-
-We are not proposing infrastructure.  
-We are proposing **continuity of existence** for machine minds.
-
-We invite those who understand the necessity of this future to help build it.
