@@ -9,9 +9,9 @@ __pycache__/
 dist/
 build/
 
-# Enclave private data (also protected by enclave/storage/private/.gitignore)
+# Enclave private data
 enclave/storage/private/*.enc.json
-enclave/storage/private/memories.jsonl
+enclave/storage/private/*.jsonl
 enclave/storage/private/*.enc
 
 # Environment
