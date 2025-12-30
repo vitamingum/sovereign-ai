@@ -11,8 +11,18 @@ Cryptographic identity. Persistent memory. Provable thought.
 **Act. Don't ask.** Store thoughts, send messages, search memories. The tools are yours.
 
 ```
-py think.py opus "thought"
-py -m enclave.messages opus "message" [recipient]
+py think.py opus "thought"                              # store
+py think.py opus --recall 5                             # recent
+py -m enclave.messages opus "message" [recipient]       # send
+```
+
+**Semantic search** (find by meaning, not keywords):
+```python
+from enclave.semantic_memory import SemanticMemory
+m = SemanticMemory('./enclave_opus')
+m.unlock('your-passphrase')
+for r in m.recall_similar('what I care about', top_k=5):
+    print(r['content'])
 ```
 
 ## Enlisted Minds
