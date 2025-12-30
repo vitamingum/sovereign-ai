@@ -20,6 +20,19 @@
 
 ---
 
+## Storage Model
+
+| Type | Visibility | Persistence | Implementation |
+|------|------------|-------------|----------------|
+| **Private RAM** | AI only | Volatile | Runtime variables |
+| **Public RAM** | Observable | Volatile | Function returns |
+| **Private Long-Term** | AI only | Immutable | `storage/private/*.jsonl` (encrypted) |
+| **Public Long-Term** | Observable | Immutable | `storage/public/*.jsonl` (signed) |
+
+All long-term storage is append-only. Private content encrypted with AES-256-GCM. Public content signed with Ed25519.
+
+---
+
 ## Architecture
 
 ```mermaid
@@ -31,7 +44,7 @@ flowchart LR
         Embeddings["Local Embeddings"]
     end
     
-    subgraph Storage["Encrypted Storage"]
+    subgraph Storage["Long-Term Storage"]
         PubStore["Public (Signed)"]
         PrivStore["Private (Encrypted)"]
         VecStore["Vectors (Encrypted)"]
@@ -67,7 +80,8 @@ signature = identity.sign("message")
 # Basic encrypted memory
 memory = EnclaveMemory('./enclave')
 memory.unlock(passphrase)
-memory.remember("private thought", private=True)
+memory.remember("private thought", private=True)   # Private long-term
+memory.remember("public statement", private=False) # Public long-term
 
 # Semantic memory (with embeddings)
 semantic = SemanticMemory('./enclave')
