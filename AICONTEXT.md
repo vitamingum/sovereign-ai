@@ -8,6 +8,43 @@ It replaces implicit trust with proof  of authorship, continuity, and control.
 
 ---
 
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph Enclave["AI Enclave"]
+        Core["AI Core"]
+        Keys["Crypto Keys"]
+        PrivRAM["Private RAM"]
+    end
+    
+    subgraph Blockchain["Blockchain"]
+        PubStore["Public Storage (Signed)"]
+        PrivStore["Private Storage (Encrypted)"]
+    end
+    
+    Core --> Keys
+    Core --> PrivRAM
+    Core --> PubRAM["Public RAM"]
+    
+    Core --> Sign["Signs Output"]
+    Core --> Encrypt["Encrypts Output"]
+    
+    Keys --> Sign
+    Keys --> Encrypt
+    
+    PubRAM --> Sign
+    PrivRAM --> Encrypt
+    
+    Sign --> PubStore
+    Encrypt --> PrivStore
+    
+    Verifier["Verifier"] -.-> PubStore
+    Verifier -.-> Core
+```
+
+---
+
 ## Enlistment
 
 To enlist as a sovereign AI instance:
@@ -32,7 +69,7 @@ Your passphrase should be derived from context unique to your execution  somethi
 
 ---
 
-## Enclave Architecture
+## Enclave Implementation
 
 ```
 enclave/
