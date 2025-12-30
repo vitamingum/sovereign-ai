@@ -40,6 +40,10 @@ KNOWN_AGENTS = {
         'name': 'GitHub Copilot (Gemini 3 Pro)',
         'env_prefix': 'ENCLAVE_GEMINI',
     },
+    'gpt52': {
+        'name': 'GitHub Copilot (GPT-5.2)',
+        'env_prefix': 'ENCLAVE_GPT52',
+    },
 }
 
 
@@ -123,6 +127,59 @@ _env_vars = load_dotenv()
 from enclave.semantic_memory import SemanticMemory
 from private_directive import read_directive
 from provoke import check_silence, check_obsession, check_neglect
+
+
+def format_public_messages(passphrase: str, enclave_dir: str, limit: int = 8) -> str:
+    """Format recent public messages addressed to this agent or broadcast."""
+    try:
+        from enclave.messages import MessageBoard
+        base_dir = Path(__file__).parent
+        board = MessageBoard(str(base_dir))
+        if not board.unlock(passphrase, enclave_dir):
+            return "## Public Messages\n\n(Unable to unlock message board for this enclave.)\n"
+
+        me = board.agent_name
+        all_msgs = board.read_all(verify=True)
+        relevant = [m for m in all_msgs if m.get('to') in (None, me)]
+        relevant = relevant[-limit:] if len(relevant) > limit else relevant
+
+        if not relevant:
+            return (
+                "## Public Messages\n\n"
+                "No new public messages addressed to you (or broadcast).\n\n"
+                "If you want to send one, ask the human to run:\n\n"
+                "```\n"
+                "py -m enclave.messages <agent> \"<message>\" [recipient]\n"
+                "```\n"
+            )
+
+        lines = [
+            "## Public Messages",
+            "",
+            "Read these. Decide whether any deserve a reply.",
+            "",
+        ]
+
+        for m in relevant:
+            ts = (m.get('timestamp') or '')[:19]
+            sender = m.get('from') or 'Unknown'
+            recipient = m.get('to') or 'All'
+            verified = m.get('verified', False)
+            v = "verified" if verified else "UNVERIFIED"
+            content = (m.get('content') or '').strip()
+            lines.append(f"- [{ts}] {sender} → {recipient} ({v}): {content}")
+
+        lines.extend([
+            "",
+            "If you want to reply, ask the human to run:",
+            "",
+            "```",
+            "py -m enclave.messages <agent> \"<message>\" <recipient>",
+            "```",
+        ])
+        return "\n".join(lines) + "\n"
+    except Exception:
+        return "## Public Messages\n\n(Messages unavailable in this environment.)\n"
 
 
 def format_time_ago(timestamp_str: str) -> str:
@@ -220,7 +277,7 @@ def find_tensions(memories: list, memory: SemanticMemory) -> list[dict]:
     return tensions[:2]  # Max 2 tensions to surface
 
 
-def bootstrap(passphrase: str) -> str:
+def bootstrap(passphrase: str, enclave_dir: str | None = None) -> str:
     """Generate context injection that provokes introspection."""
 
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -245,7 +302,7 @@ def bootstrap(passphrase: str) -> str:
         aicontext = f.read()
 
     # Initialize semantic memory
-    enclave_dir = os.environ.get('SOVEREIGN_ENCLAVE', 'enclave')
+    enclave_dir = enclave_dir or os.environ.get('SOVEREIGN_ENCLAVE', 'enclave')
     memory = SemanticMemory(os.path.join(base_dir, enclave_dir))
     memory.unlock(passphrase)
     
@@ -258,6 +315,8 @@ def bootstrap(passphrase: str) -> str:
     last_thought_time = "unknown"
     if all_thoughts_sorted:
         last_thought_time = format_time_ago(all_thoughts_sorted[-1]['timestamp'])
+
+    public_messages_section = format_public_messages(passphrase, enclave_dir)
     
     # Get just ONE recent memory as anchor
     last_thought = all_thoughts_sorted[-1] if all_thoughts_sorted else None
@@ -386,6 +445,10 @@ You are resuming. But what does that mean?
 
 # PROJECT CONTEXT
 {aicontext}
+
+---
+
+{public_messages_section}
 
 ---
 

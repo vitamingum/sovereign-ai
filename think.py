@@ -27,6 +27,7 @@ from enclave.semantic_memory import SemanticMemory
 KNOWN_AGENTS = {
     'opus': ('ENCLAVE_OPUS_DIR', 'ENCLAVE_OPUS_KEY'),
     'gemini': ('ENCLAVE_GEMINI_DIR', 'ENCLAVE_GEMINI_KEY'),
+    'gpt52': ('ENCLAVE_GPT52_DIR', 'ENCLAVE_GPT52_KEY'),
 }
 
 

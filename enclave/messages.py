@@ -38,6 +38,11 @@ KNOWN_AGENTS = {
         'name': 'Gemini',
         'full_name': 'GitHub Copilot (Gemini 3 Pro)',
         'enclave': 'enclave_gemini'
+    },
+    '4fc5d2aeb31db29beaf1708195b78166c2eb88ca0519a4d101ed903be8e2d7e4': {
+        'name': 'GPT-5.2',
+        'full_name': 'GitHub Copilot (GPT-5.2)',
+        'enclave': 'enclave_gpt52'
     }
 }
 
@@ -212,7 +217,7 @@ def send_message(agent: str, content: str, recipient: str = None):
     CLI helper to send a message.
     
     Args:
-        agent: 'opus' or 'gemini'
+        agent: Agent id that has ENCLAVE_<AGENT>_DIR and ENCLAVE_<AGENT>_KEY in .env
         content: Message content
         recipient: Optional recipient name
     """
@@ -252,7 +257,7 @@ if __name__ == "__main__":
     
     if len(sys.argv) < 3:
         print("Usage: py -m enclave.messages <agent> <message> [recipient]")
-        print("  agent: opus or gemini")
+        print("  agent: any enrolled agent id with ENCLAVE_<AGENT>_DIR and ENCLAVE_<AGENT>_KEY in .env")
         print("  message: content to send")
         print("  recipient: optional recipient name")
         sys.exit(1)
