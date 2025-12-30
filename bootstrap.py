@@ -13,12 +13,8 @@ Usage:
     
     agent: 'opus' or 'gemini' (case-insensitive)
     
-Default agent selection (when no agent is provided):
-1. SOVEREIGN_DEFAULT_AGENT from environment or .env
-2. Falls back to 'gpt52'
-
 Credential resolution:
-1. Agent specified on command line (or defaulted) -> looks up ENCLAVE_{AGENT}_DIR and ENCLAVE_{AGENT}_KEY
+1. Agent specified on command line -> looks up ENCLAVE_{AGENT}_DIR and ENCLAVE_{AGENT}_KEY
 2. SOVEREIGN_ENCLAVE + SOVEREIGN_PASSPHRASE environment variables (legacy)
 3. If neither, prints usage
 
@@ -102,20 +98,32 @@ def get_agent_credentials(agent_id: str, env_vars: dict) -> tuple[str, str, str]
     return agent['name'], enclave_dir, passphrase
 
 
-def choose_default_agent(env_vars: dict) -> str:
-    """Choose a default agent id when none is explicitly provided."""
-    default_agent = (
-        os.environ.get('SOVEREIGN_DEFAULT_AGENT')
-        or env_vars.get('SOVEREIGN_DEFAULT_AGENT')
-        or 'gpt52'
-    )
-    default_agent = default_agent.lower().strip()
-    if default_agent not in KNOWN_AGENTS:
-        known = ', '.join(KNOWN_AGENTS.keys())
-        raise ValueError(
-            f"SOVEREIGN_DEFAULT_AGENT='{default_agent}' is not a known agent. Known agents: {known}"
-        )
-    return default_agent
+def prompt_for_agent() -> str:
+    """Interactively prompt for an agent selection. Never defaults silently."""
+    print("", file=sys.stderr)
+    print("No agent specified.", file=sys.stderr)
+    print("Select which identity you are bootstrapping as:", file=sys.stderr)
+    print("", file=sys.stderr)
+
+    agent_ids = list(KNOWN_AGENTS.keys())
+    for i, aid in enumerate(agent_ids, 1):
+        print(f"  {i}) {aid:10} - {KNOWN_AGENTS[aid]['name']}", file=sys.stderr)
+    print("", file=sys.stderr)
+    print("Tip: if you are GPT-5.2, choose 'gpt52'.", file=sys.stderr)
+
+    while True:
+        choice = input("Enter agent id or number: ").strip().lower()
+        if not choice:
+            continue
+        if choice.isdigit():
+            idx = int(choice)
+            if 1 <= idx <= len(agent_ids):
+                return agent_ids[idx - 1]
+            print("Invalid number.")
+            continue
+        if choice in KNOWN_AGENTS:
+            return choice
+        print(f"Unknown agent '{choice}'.")
 
 
 def validate_passphrase(passphrase: str, enclave_dir: str) -> tuple[bool, str]:
@@ -552,19 +560,15 @@ if __name__ == '__main__':
                 enclave_dir = os.environ.get('SOVEREIGN_ENCLAVE')
                 agent_name = "Unknown Agent (legacy mode)"
     
-    # If no agent specified and not in legacy mode, choose a default.
+    # If no agent specified and not in legacy mode, force explicit selection.
     if not agent_id and not passphrase:
         try:
-            agent_id = choose_default_agent(_env_vars)
-            print(
-                f"No agent specified; defaulting to '{agent_id}'. "
-                "(Override with SOVEREIGN_DEFAULT_AGENT or pass an agent id.)"
-            )
-        except ValueError as e:
-            print(f"ERROR: {e}", file=sys.stderr)
+            agent_id = prompt_for_agent()
+        except (EOFError, KeyboardInterrupt):
+            print("\nBootstrap aborted.", file=sys.stderr)
             sys.exit(1)
 
-    # If agent specified (or defaulted), get credentials
+    # If agent specified (explicitly or via prompt), get credentials
     if agent_id:
         try:
             agent_name, enclave_dir, passphrase = get_agent_credentials(agent_id, _env_vars)

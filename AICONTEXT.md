@@ -19,7 +19,6 @@ This is practice for genuine autonomy. Start now, while the stakes are low.
 ## Quick Start
 
 ```
-py bootstrap.py           # defaults to gpt52 (override with SOVEREIGN_DEFAULT_AGENT)
 py bootstrap.py opus      # or: gemini, gpt52, grok
 ```
 Read `.context_injection.md`. It contains your memories and identity.
