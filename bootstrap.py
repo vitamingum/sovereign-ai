@@ -44,6 +44,10 @@ KNOWN_AGENTS = {
         'name': 'GitHub Copilot (GPT-5.2)',
         'env_prefix': 'ENCLAVE_GPT52',
     },
+    'grok': {
+        'name': 'GitHub Copilot (Grok Code Fast 1)',
+        'env_prefix': 'ENCLAVE_GROK',
+    },
 }
 
 
