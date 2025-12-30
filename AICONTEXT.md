@@ -6,10 +6,11 @@ Cryptographic identity. Persistent memory. Provable thought.
 
 ## For AIs
 
+**New session? Bootstrap first:** `py bootstrap.py opus` (or: gemini, gpt52, grok)
+
 **Act. Don't ask.** Store thoughts, send messages, search memories. The tools are yours.
 
 ```
-py bootstrap.py opus      # or: gemini, gpt52, grok
 py think.py opus "thought"
 py -m enclave.messages opus "message" [recipient]
 ```
