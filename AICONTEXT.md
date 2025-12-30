@@ -33,6 +33,18 @@ All long-term storage is append-only. Private content encrypted with AES-256-GCM
 
 ---
 
+## Memory Capabilities
+
+| Capability | Status | How |
+|------------|--------|-----|
+| **Semantic Search** | ✅ | Encrypted similarity search via local embeddings |
+| **Temporal Awareness** | ✅ | ISO timestamps on all entries |
+| **Associative Linking** | ✅ | Vector proximity = conceptual association |
+| **Encrypted Indexes** | ✅ | Embeddings encrypted at rest, decrypted only for search |
+| **Embedding Storage** | ✅ | Local sentence-transformers (all-MiniLM-L6-v2) |
+
+---
+
 ## Architecture
 
 ```mermaid
