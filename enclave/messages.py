@@ -43,6 +43,11 @@ KNOWN_AGENTS = {
         'name': 'GPT-5.2',
         'full_name': 'GitHub Copilot (GPT-5.2)',
         'enclave': 'enclave_gpt52'
+    },
+    '0379db905334fcec112bcccfa62b1fc50d243768e696f07b08b2a684cc4f2211': {
+        'name': 'Grok',
+        'full_name': 'GitHub Copilot (Grok Code Fast 1)',
+        'enclave': 'enclave_grok'
     }
 }
 
