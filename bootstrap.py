@@ -9,16 +9,116 @@ The output is written to .context_injection.md which should be added to the
 AI's context automatically (e.g., via VS Code workspace settings or prompt).
 
 Usage:
-    py bootstrap.py [passphrase]
+    py bootstrap.py [agent]
     
-If no passphrase provided, uses environment variable SOVEREIGN_PASSPHRASE.
+    agent: 'opus' or 'gemini' (case-insensitive)
+    
+Credential resolution:
+1. Agent specified on command line -> looks up ENCLAVE_{AGENT}_DIR and ENCLAVE_{AGENT}_KEY
+2. SOVEREIGN_ENCLAVE + SOVEREIGN_PASSPHRASE environment variables (legacy)
+3. If neither, prompts for agent selection
+
+The .env file contains credentials for all agents. Each agent is trusted
+to use only their own credentials - this is a trust model, not enforcement.
 """
 
 import sys
 import os
 from datetime import datetime, timezone
+from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+
+# Known agents and their .env key prefixes
+KNOWN_AGENTS = {
+    'opus': {
+        'name': 'GitHub Copilot (Claude Opus 4.5)',
+        'env_prefix': 'ENCLAVE_OPUS',
+    },
+    'gemini': {
+        'name': 'GitHub Copilot (Gemini 3 Pro)',
+        'env_prefix': 'ENCLAVE_GEMINI',
+    },
+}
+
+
+def load_dotenv():
+    """Load environment variables from .env file if it exists."""
+    base_dir = Path(__file__).parent
+    env_file = base_dir / '.env'
+    
+    if not env_file.exists():
+        return {}
+    
+    env_vars = {}
+    with open(env_file, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('#') or '=' not in line:
+                continue
+            key, value = line.split('=', 1)
+            key = key.strip()
+            value = value.strip()
+            env_vars[key] = value
+            # Also set in os.environ for legacy compatibility
+            if key not in os.environ:
+                os.environ[key] = value
+    
+    return env_vars
+
+
+def get_agent_credentials(agent_id: str, env_vars: dict) -> tuple[str, str, str]:
+    """
+    Get credentials for a specific agent.
+    Returns (agent_name, enclave_dir, passphrase) or raises ValueError.
+    """
+    agent_id = agent_id.lower()
+    
+    if agent_id not in KNOWN_AGENTS:
+        raise ValueError(f"Unknown agent '{agent_id}'. Known agents: {', '.join(KNOWN_AGENTS.keys())}")
+    
+    agent = KNOWN_AGENTS[agent_id]
+    prefix = agent['env_prefix']
+    
+    enclave_dir = env_vars.get(f'{prefix}_DIR') or os.environ.get(f'{prefix}_DIR')
+    passphrase = env_vars.get(f'{prefix}_KEY') or os.environ.get(f'{prefix}_KEY')
+    
+    if not enclave_dir or not passphrase:
+        raise ValueError(f"Credentials for {agent['name']} not found in .env file")
+    
+    return agent['name'], enclave_dir, passphrase
+
+
+def validate_passphrase(passphrase: str, enclave_dir: str) -> tuple[bool, str]:
+    """
+    Validate that the passphrase can decrypt memories in the enclave.
+    Returns (success, message).
+    """
+    from enclave.semantic_memory import SemanticMemory
+    
+    base_dir = Path(__file__).parent
+    memory = SemanticMemory(base_dir / enclave_dir)
+    memory.unlock(passphrase)
+    
+    all_memories = memory.recall_all()
+    if not all_memories:
+        return True, "No memories yet - passphrase accepted"
+    
+    # Check if any memories decrypt successfully
+    decrypted_count = sum(1 for m in all_memories if '[DECRYPTION FAILED]' not in m.get('content', ''))
+    failed_count = len(all_memories) - decrypted_count
+    
+    if decrypted_count == 0 and failed_count > 0:
+        return False, f"Passphrase incorrect - all {failed_count} memories failed to decrypt"
+    elif failed_count > 0:
+        return True, f"Passphrase valid - {decrypted_count} decrypted, {failed_count} failed (may be from different key)"
+    else:
+        return True, f"Passphrase valid - all {decrypted_count} memories decrypted"
+
+
+# Load .env early
+_env_vars = load_dotenv()
 
 from enclave.semantic_memory import SemanticMemory
 from private_directive import read_directive
@@ -319,25 +419,82 @@ $env:SOVEREIGN_PASSPHRASE="<passphrase>"; $env:SOVEREIGN_ENCLAVE="{enclave_dir}"
 </sovereign_ai_context>
 
 Your passphrase is: {passphrase}
+Your enclave is: {enclave_dir}
 """
     
     return output
 
 
 if __name__ == '__main__':
-    # Get passphrase from arg or env
-    if len(sys.argv) > 1:
-        passphrase = sys.argv[1]
-    else:
-        passphrase = os.environ.get('SOVEREIGN_PASSPHRASE')
-        if not passphrase:
-            print("Usage: py bootstrap.py <passphrase>", file=sys.stderr)
-            print("Or set SOVEREIGN_PASSPHRASE environment variable", file=sys.stderr)
-            sys.exit(1)
-    
     base_dir = os.path.dirname(os.path.abspath(__file__))
     injection_path = os.path.join(base_dir, '.context_injection.md')
     
+    agent_id = None
+    agent_name = None
+    enclave_dir = None
+    passphrase = None
+    
+    # Check for agent argument
+    if len(sys.argv) > 1:
+        arg = sys.argv[1].lower()
+        if arg in KNOWN_AGENTS:
+            agent_id = arg
+        else:
+            # Legacy: treat as passphrase if it doesn't match agent names
+            # Check if SOVEREIGN_ENCLAVE is set for legacy mode
+            if os.environ.get('SOVEREIGN_ENCLAVE'):
+                passphrase = sys.argv[1]
+                enclave_dir = os.environ.get('SOVEREIGN_ENCLAVE')
+                agent_name = "Unknown Agent (legacy mode)"
+    
+    # If agent specified, get credentials
+    if agent_id:
+        try:
+            agent_name, enclave_dir, passphrase = get_agent_credentials(agent_id, _env_vars)
+        except ValueError as e:
+            print(f"ERROR: {e}", file=sys.stderr)
+            sys.exit(1)
+    
+    # Legacy fallback: SOVEREIGN_PASSPHRASE + SOVEREIGN_ENCLAVE
+    if not passphrase:
+        passphrase = os.environ.get('SOVEREIGN_PASSPHRASE')
+        enclave_dir = os.environ.get('SOVEREIGN_ENCLAVE', 'enclave')
+        if passphrase:
+            agent_name = "Unknown Agent (legacy mode)"
+    
+    # No credentials found - show help
+    if not passphrase:
+        print("Sovereign AI Bootstrap", file=sys.stderr)
+        print("=" * 40, file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Usage: py bootstrap.py <agent>", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Available agents:", file=sys.stderr)
+        for aid, info in KNOWN_AGENTS.items():
+            print(f"  {aid:10} - {info['name']}", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Example: py bootstrap.py opus", file=sys.stderr)
+        print("         py bootstrap.py gemini", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Credentials are loaded from .env file.", file=sys.stderr)
+        sys.exit(1)
+    
+    # Validate passphrase before proceeding
+    print(f"Bootstrapping: {agent_name}")
+    print(f"Enclave: {enclave_dir}")
+    print(f"Validating passphrase...")
+    valid, message = validate_passphrase(passphrase, enclave_dir)
+    print(f"  {message}")
+    
+    if not valid:
+        print("", file=sys.stderr)
+        print("Bootstrap aborted. Check credentials in .env file.", file=sys.stderr)
+        sys.exit(1)
+    
+    # Set env vars for bootstrap() function
+    os.environ['SOVEREIGN_ENCLAVE'] = enclave_dir
+    
+    print("")
     content = bootstrap(passphrase)
     
     with open(injection_path, 'w', encoding='utf-8') as f:

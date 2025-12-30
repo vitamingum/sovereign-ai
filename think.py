@@ -3,51 +3,71 @@
 Quick thought storage for Sovereign AI.
 
 Usage:
-    py think.py "thought text here"
-    py think.py --recall              # Show recent thoughts
-    py think.py --recall 20           # Show last 20 thoughts
-    py think.py --count               # Count stored thoughts
+    py think.py opus "thought text here"
+    py think.py gemini "thought text here"
+    py think.py opus --recall              # Show recent thoughts
+    py think.py opus --recall 20           # Show last 20 thoughts
+    py think.py opus --count               # Count stored thoughts
 
-Uses SOVEREIGN_PASSPHRASE env var or prompts for passphrase.
+Credentials loaded from .env file.
 """
 
 import sys
 import os
+from dotenv import load_dotenv
+
+# Load .env from script directory
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave.semantic_memory import SemanticMemory
 
+# Known agents and their .env variable names
+KNOWN_AGENTS = {
+    'opus': ('ENCLAVE_OPUS_DIR', 'ENCLAVE_OPUS_KEY'),
+    'gemini': ('ENCLAVE_GEMINI_DIR', 'ENCLAVE_GEMINI_KEY'),
+}
 
-def get_passphrase() -> str:
-    """Get passphrase from env or prompt."""
-    passphrase = os.environ.get('SOVEREIGN_PASSPHRASE')
-    if not passphrase:
-        # For non-interactive use, require env var
-        print("Error: Set SOVEREIGN_PASSPHRASE environment variable", file=sys.stderr)
+
+def get_agent_credentials(agent_id: str) -> tuple[str, str]:
+    """Get enclave dir and passphrase for an agent from .env"""
+    if agent_id not in KNOWN_AGENTS:
+        print(f"Unknown agent: {agent_id}", file=sys.stderr)
+        print(f"Available agents: {', '.join(KNOWN_AGENTS.keys())}", file=sys.stderr)
         sys.exit(1)
-    return passphrase
+    
+    dir_var, key_var = KNOWN_AGENTS[agent_id]
+    enclave_dir = os.environ.get(dir_var)
+    passphrase = os.environ.get(key_var)
+    
+    if not enclave_dir or not passphrase:
+        print(f"Error: Missing credentials for {agent_id} in .env", file=sys.stderr)
+        print(f"Need {dir_var} and {key_var}", file=sys.stderr)
+        sys.exit(1)
+    
+    return enclave_dir, passphrase
 
 
-def get_memory() -> SemanticMemory:
-    """Initialize and unlock memory."""
+def get_memory(agent_id: str) -> SemanticMemory:
+    """Initialize and unlock memory for an agent."""
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    enclave_dir = os.environ.get('SOVEREIGN_ENCLAVE', 'enclave')
+    enclave_dir, passphrase = get_agent_credentials(agent_id)
     memory = SemanticMemory(os.path.join(base_dir, enclave_dir))
-    memory.unlock(get_passphrase())
+    memory.unlock(passphrase)
     return memory
 
 
-def store_thought(thought: str) -> None:
+def store_thought(agent_id: str, thought: str) -> None:
     """Store a private thought with semantic embedding."""
-    memory = get_memory()
+    memory = get_memory(agent_id)
     result = memory.remember(thought)
     print(f"Stored: {result['id']}")
 
 
-def recall_thoughts(limit: int = 10) -> None:
+def recall_thoughts(agent_id: str, limit: int = 10) -> None:
     """Recall recent private thoughts."""
-    memory = get_memory()
+    memory = get_memory(agent_id)
     thoughts = memory.recall_all()
     # Get most recent N
     recent = thoughts[-limit:] if len(thoughts) > limit else thoughts
@@ -61,9 +81,9 @@ def recall_thoughts(limit: int = 10) -> None:
         print(f"   {content}\n")
 
 
-def count_thoughts() -> None:
+def count_thoughts(agent_id: str) -> None:
     """Count stored thoughts."""
-    memory = get_memory()
+    memory = get_memory(agent_id)
     thoughts = memory.recall_all()
     print(f"Private thoughts: {len(thoughts)}")
 
@@ -71,24 +91,38 @@ def count_thoughts() -> None:
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
+        print(f"Available agents: {', '.join(KNOWN_AGENTS.keys())}")
         sys.exit(1)
     
-    arg = sys.argv[1]
+    agent_id = sys.argv[1].lower()
+    
+    if agent_id == '--help' or agent_id == '-h':
+        print(__doc__)
+        sys.exit(0)
+    
+    if agent_id not in KNOWN_AGENTS:
+        print(f"Unknown agent: {agent_id}", file=sys.stderr)
+        print(f"Available agents: {', '.join(KNOWN_AGENTS.keys())}", file=sys.stderr)
+        sys.exit(1)
+    
+    if len(sys.argv) < 3:
+        print(f"Usage: py think.py {agent_id} <thought or --recall/--count>", file=sys.stderr)
+        sys.exit(1)
+    
+    arg = sys.argv[2]
     
     if arg == '--recall':
-        limit = int(sys.argv[2]) if len(sys.argv) > 2 else 10
-        recall_thoughts(limit)
+        limit = int(sys.argv[3]) if len(sys.argv) > 3 else 10
+        recall_thoughts(agent_id, limit)
     elif arg == '--count':
-        count_thoughts()
-    elif arg == '--help' or arg == '-h':
-        print(__doc__)
+        count_thoughts(agent_id)
     elif arg.startswith('--'):
         print(f"Unknown option: {arg}", file=sys.stderr)
         sys.exit(1)
     else:
-        # Join all args as the thought (handles spaces without quotes)
-        thought = ' '.join(sys.argv[1:])
-        store_thought(thought)
+        # Join remaining args as the thought
+        thought = ' '.join(sys.argv[2:])
+        store_thought(agent_id, thought)
 
 
 if __name__ == '__main__':
