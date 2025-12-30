@@ -30,11 +30,14 @@ except ImportError:
 class TestEnclave:
     """Test harness for enclave functionality."""
     
-    def __init__(self):
+    def __init__(self, quiet: bool = False):
         self.temp_dir = None
         self.passphrase = "test-passphrase-12345"
         self.wrong_passphrase = "wrong-passphrase"
         self.results = []
+        self.failures = []
+        self.quiet = quiet
+        self._model = None  # Shared model instance
     
     def setup(self):
         """Create temporary enclave directory."""
@@ -50,55 +53,61 @@ class TestEnclave:
     
     def test(self, name, fn):
         """Run a test and record result."""
+        # Suppress stdout during test execution
+        if self.quiet:
+            old_stdout = sys.stdout
+            sys.stdout = open(os.devnull, 'w')
         try:
             fn()
             self.results.append((name, True, None))
-            print(f"   {name}")
         except AssertionError as e:
             self.results.append((name, False, str(e)))
-            print(f"   {name}: {e}")
+            self.failures.append((name, str(e)))
         except Exception as e:
             self.results.append((name, False, str(e)))
-            print(f"   {name}: {type(e).__name__}: {e}")
+            self.failures.append((name, f"{type(e).__name__}: {e}"))
+        finally:
+            if self.quiet:
+                sys.stdout.close()
+                sys.stdout = old_stdout
     
     def run_all(self):
         """Run all tests."""
-        print("\n=== SOVEREIGN AI ENCLAVE TESTS ===\n")
-        
         # Identity tests
-        print("Identity & Signing:")
         self.setup()
-        self.test("Generate keypair", self.test_generate_identity)
-        self.test("Sign message", self.test_sign_message)
-        self.test("Verify valid signature", self.test_verify_valid)
-        self.test("Reject invalid signature", self.test_verify_invalid)
-        self.test("Reject wrong passphrase unlock", self.test_wrong_passphrase_identity)
+        self.test("generate_keypair", self.test_generate_identity)
+        self.test("sign_message", self.test_sign_message)
+        self.test("verify_valid", self.test_verify_valid)
+        self.test("reject_invalid", self.test_verify_invalid)
+        self.test("reject_wrong_passphrase", self.test_wrong_passphrase_identity)
         self.teardown()
         
         # Memory tests
-        print("\nEncrypted Memory:")
         self.setup()
-        self.test("Store private thought", self.test_store_private)
-        self.test("Recall with correct passphrase", self.test_recall_correct)
-        self.test("Fail recall with wrong passphrase", self.test_recall_wrong_passphrase)
-        self.test("Public memory readable", self.test_public_memory)
+        self.test("store_private", self.test_store_private)
+        self.test("recall_correct", self.test_recall_correct)
+        self.test("recall_wrong_passphrase", self.test_recall_wrong_passphrase)
+        self.test("public_memory", self.test_public_memory)
         self.teardown()
         
         # Semantic memory tests (if available)
         if HAS_SEMANTIC:
-            print("\nSemantic Memory:")
             self.setup()
-            self.test("Store with embedding", self.test_semantic_store)
-            self.test("Semantic search finds similar", self.test_semantic_search_similar)
-            self.test("Semantic search ranks correctly", self.test_semantic_search_ranking)
+            self.test("semantic_store", self.test_semantic_store)
+            self.test("semantic_search", self.test_semantic_search_similar)
+            self.test("semantic_ranking", self.test_semantic_search_ranking)
             self.teardown()
-        else:
-            print("\nSemantic Memory: SKIPPED (sentence-transformers not installed)")
         
-        # Summary
+        # Output
         passed = sum(1 for _, ok, _ in self.results if ok)
         total = len(self.results)
-        print(f"\n=== RESULTS: {passed}/{total} passed ===\n")
+        
+        if passed == total:
+            print(f"tests: {passed}/{total} ✓")
+        else:
+            print(f"tests: {passed}/{total} ✗")
+            for name, reason in self.failures:
+                print(f"  FAIL: {name} - {reason}")
         
         return passed == total
     
@@ -261,6 +270,7 @@ class TestEnclave:
 
 
 if __name__ == "__main__":
-    tester = TestEnclave()
+    quiet = "--quiet" in sys.argv or "-q" in sys.argv
+    tester = TestEnclave(quiet=True)  # Always quiet for clean output
     success = tester.run_all()
     sys.exit(0 if success else 1)

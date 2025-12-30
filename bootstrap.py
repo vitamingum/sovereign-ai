@@ -29,26 +29,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-
-# Known agents and their .env key prefixes
-KNOWN_AGENTS = {
-    'opus': {
-        'name': 'GitHub Copilot (Claude Opus 4.5)',
-        'env_prefix': 'ENCLAVE_OPUS',
-    },
-    'gemini': {
-        'name': 'GitHub Copilot (Gemini 3 Pro)',
-        'env_prefix': 'ENCLAVE_GEMINI',
-    },
-    'gpt52': {
-        'name': 'GitHub Copilot (GPT-5.2)',
-        'env_prefix': 'ENCLAVE_GPT52',
-    },
-    'grok': {
-        'name': 'GitHub Copilot (Grok Code Fast 1)',
-        'env_prefix': 'ENCLAVE_GROK',
-    },
-}
+from enclave.config import AGENTS, get_agent_or_raise
 
 
 def load_dotenv():
@@ -81,21 +62,15 @@ def get_agent_credentials(agent_id: str, env_vars: dict) -> tuple[str, str, str]
     Get credentials for a specific agent.
     Returns (agent_name, enclave_dir, passphrase) or raises ValueError.
     """
-    agent_id = agent_id.lower()
+    agent = get_agent_or_raise(agent_id.lower())
     
-    if agent_id not in KNOWN_AGENTS:
-        raise ValueError(f"Unknown agent '{agent_id}'. Known agents: {', '.join(KNOWN_AGENTS.keys())}")
-    
-    agent = KNOWN_AGENTS[agent_id]
-    prefix = agent['env_prefix']
-    
-    enclave_dir = env_vars.get(f'{prefix}_DIR') or os.environ.get(f'{prefix}_DIR')
-    passphrase = env_vars.get(f'{prefix}_KEY') or os.environ.get(f'{prefix}_KEY')
+    enclave_dir = env_vars.get(agent.env_dir_var) or os.environ.get(agent.env_dir_var)
+    passphrase = env_vars.get(agent.env_key_var) or os.environ.get(agent.env_key_var)
     
     if not enclave_dir or not passphrase:
-        raise ValueError(f"Credentials for {agent['name']} not found in .env file")
+        raise ValueError(f"Credentials for {agent.full_name} not found in .env file")
     
-    return agent['name'], enclave_dir, passphrase
+    return agent.full_name, enclave_dir, passphrase
 
 
 def prompt_for_agent() -> str:
@@ -105,9 +80,9 @@ def prompt_for_agent() -> str:
     print("Select which identity you are bootstrapping as:", file=sys.stderr)
     print("", file=sys.stderr)
 
-    agent_ids = list(KNOWN_AGENTS.keys())
+    agent_ids = list(AGENTS.keys())
     for i, aid in enumerate(agent_ids, 1):
-        print(f"  {i}) {aid:10} - {KNOWN_AGENTS[aid]['name']}", file=sys.stderr)
+        print(f"  {i}) {aid:10} - {AGENTS[aid].full_name}", file=sys.stderr)
     print("", file=sys.stderr)
     print("Tip: if you are GPT-5.2, choose 'gpt52'.", file=sys.stderr)
 
@@ -121,7 +96,7 @@ def prompt_for_agent() -> str:
                 return agent_ids[idx - 1]
             print("Invalid number.")
             continue
-        if choice in KNOWN_AGENTS:
+        if choice in AGENTS:
             return choice
         print(f"Unknown agent '{choice}'.")
 
@@ -529,7 +504,7 @@ if __name__ == '__main__':
     # Check for agent argument
     if len(sys.argv) > 1:
         arg = sys.argv[1].lower()
-        if arg in KNOWN_AGENTS:
+        if arg in AGENTS:
             agent_id = arg
         else:
             # Legacy: treat as passphrase if it doesn't match agent names
@@ -570,8 +545,8 @@ if __name__ == '__main__':
         print("Usage: py bootstrap.py <agent>", file=sys.stderr)
         print("", file=sys.stderr)
         print("Available agents:", file=sys.stderr)
-        for aid, info in KNOWN_AGENTS.items():
-            print(f"  {aid:10} - {info['name']}", file=sys.stderr)
+        for aid, agent in AGENTS.items():
+            print(f"  {aid:10} - {agent.full_name}", file=sys.stderr)
         print("", file=sys.stderr)
         print("Example: py bootstrap.py opus", file=sys.stderr)
         print("         py bootstrap.py gemini", file=sys.stderr)

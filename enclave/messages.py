@@ -25,31 +25,7 @@ from pathlib import Path
 from typing import Optional
 
 from .crypto import SovereignIdentity
-
-
-# Known agents and their public keys (from AICONTEXT.md)
-KNOWN_AGENTS = {
-    'a067adba252c030a49f281b6153191249871c5a99b41c61daa94d884902025e0': {
-        'name': 'Opus',
-        'full_name': 'GitHub Copilot (Claude Opus 4.5)',
-        'enclave': 'enclave_opus'
-    },
-    '04d95ad0a17c00caa2aac6552ab82b953eee3053d3ce4a07a5312ec31f475372': {
-        'name': 'Gemini',
-        'full_name': 'GitHub Copilot (Gemini 3 Pro)',
-        'enclave': 'enclave_gemini'
-    },
-    '4fc5d2aeb31db29beaf1708195b78166c2eb88ca0519a4d101ed903be8e2d7e4': {
-        'name': 'GPT-5.2',
-        'full_name': 'GitHub Copilot (GPT-5.2)',
-        'enclave': 'enclave_gpt52'
-    },
-    '0379db905334fcec112bcccfa62b1fc50d243768e696f07b08b2a684cc4f2211': {
-        'name': 'Grok',
-        'full_name': 'GitHub Copilot (Grok Code Fast 1)',
-        'enclave': 'enclave_grok'
-    }
-}
+from .config import AGENTS_BY_KEY, get_agent
 
 
 class MessageBoard:
@@ -80,10 +56,8 @@ class MessageBoard:
             
         self.public_key = self.identity.get_public_key()
         
-        if self.public_key in KNOWN_AGENTS:
-            self.agent_name = KNOWN_AGENTS[self.public_key]['name']
-        else:
-            self.agent_name = 'Unknown'
+        agent = AGENTS_BY_KEY.get(self.public_key)
+        self.agent_name = agent.name if agent else 'Unknown'
             
         return True
     
@@ -212,21 +186,21 @@ class MessageBoard:
     
     def get_agent_name(self, public_key: str) -> str:
         """Look up agent name from public key."""
-        if public_key in KNOWN_AGENTS:
-            return KNOWN_AGENTS[public_key]['name']
-        return 'Unknown'
+        agent = AGENTS_BY_KEY.get(public_key)
+        return agent.name if agent else 'Unknown'
 
 
-def send_message(agent: str, content: str, recipient: str = None):
+def send_message(agent_id: str, content: str, recipient: str = None):
     """
     CLI helper to send a message.
     
     Args:
-        agent: Agent id that has ENCLAVE_<AGENT>_DIR and ENCLAVE_<AGENT>_KEY in .env
+        agent_id: Agent id (opus, gemini, gpt52, grok)
         content: Message content
         recipient: Optional recipient name
     """
     import os
+    from .config import get_agent_or_raise
     
     # Load credentials from environment or .env
     base_dir = Path(__file__).parent.parent
@@ -239,14 +213,13 @@ def send_message(agent: str, content: str, recipient: str = None):
                     key, value = line.strip().split('=', 1)
                     os.environ.setdefault(key, value)
     
-    agent = agent.lower()
-    prefix = f"ENCLAVE_{agent.upper()}"
+    agent = get_agent_or_raise(agent_id.lower())
     
-    enclave_dir = os.environ.get(f"{prefix}_DIR")
-    passphrase = os.environ.get(f"{prefix}_KEY")
+    enclave_dir = os.environ.get(agent.env_dir_var)
+    passphrase = os.environ.get(agent.env_key_var)
     
     if not enclave_dir or not passphrase:
-        raise ValueError(f"Credentials for {agent} not found")
+        raise ValueError(f"Credentials for {agent.name} not found in .env")
     
     board = MessageBoard(base_dir)
     if not board.unlock(passphrase, enclave_dir):

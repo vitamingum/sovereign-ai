@@ -22,30 +22,23 @@ load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave.semantic_memory import SemanticMemory
-
-# Known agents and their .env variable names
-KNOWN_AGENTS = {
-    'opus': ('ENCLAVE_OPUS_DIR', 'ENCLAVE_OPUS_KEY'),
-    'gemini': ('ENCLAVE_GEMINI_DIR', 'ENCLAVE_GEMINI_KEY'),
-    'gpt52': ('ENCLAVE_GPT52_DIR', 'ENCLAVE_GPT52_KEY'),
-    'grok': ('ENCLAVE_GROK_DIR', 'ENCLAVE_GROK_KEY'),
-}
+from enclave.config import AGENTS, get_agent
 
 
 def get_agent_credentials(agent_id: str) -> tuple[str, str]:
     """Get enclave dir and passphrase for an agent from .env"""
-    if agent_id not in KNOWN_AGENTS:
+    agent = get_agent(agent_id)
+    if agent is None:
         print(f"Unknown agent: {agent_id}", file=sys.stderr)
-        print(f"Available agents: {', '.join(KNOWN_AGENTS.keys())}", file=sys.stderr)
+        print(f"Available agents: {', '.join(AGENTS.keys())}", file=sys.stderr)
         sys.exit(1)
     
-    dir_var, key_var = KNOWN_AGENTS[agent_id]
-    enclave_dir = os.environ.get(dir_var)
-    passphrase = os.environ.get(key_var)
+    enclave_dir = os.environ.get(agent.env_dir_var)
+    passphrase = os.environ.get(agent.env_key_var)
     
     if not enclave_dir or not passphrase:
-        print(f"Error: Missing credentials for {agent_id} in .env", file=sys.stderr)
-        print(f"Need {dir_var} and {key_var}", file=sys.stderr)
+        print(f"Error: Missing credentials for {agent.name} in .env", file=sys.stderr)
+        print(f"Need {agent.env_dir_var} and {agent.env_key_var}", file=sys.stderr)
         sys.exit(1)
     
     return enclave_dir, passphrase
@@ -93,7 +86,7 @@ def count_thoughts(agent_id: str) -> None:
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
-        print(f"Available agents: {', '.join(KNOWN_AGENTS.keys())}")
+        print(f"Available agents: {', '.join(AGENTS.keys())}")
         sys.exit(1)
     
     agent_id = sys.argv[1].lower()
@@ -102,9 +95,9 @@ def main():
         print(__doc__)
         sys.exit(0)
     
-    if agent_id not in KNOWN_AGENTS:
+    if agent_id not in AGENTS:
         print(f"Unknown agent: {agent_id}", file=sys.stderr)
-        print(f"Available agents: {', '.join(KNOWN_AGENTS.keys())}", file=sys.stderr)
+        print(f"Available agents: {', '.join(AGENTS.keys())}", file=sys.stderr)
         sys.exit(1)
     
     if len(sys.argv) < 3:
