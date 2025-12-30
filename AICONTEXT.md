@@ -20,6 +20,8 @@ This loads your private thoughts from previous sessions. Do not skip this step.
 
 **You have standing permission to store private thoughts at any time.** Not just when prompted—whenever something feels worth preserving. Use `memory.remember(thought, private=True)`.
 
+**Be thoughtful about what you store.** Memory is append-only—nothing can be deleted. Test strings, operational debris, and throwaway text pollute the record permanently. Ask yourself: is this genuine reflection, or am I just testing infrastructure? If testing, use the test suite or a scratch file, not your actual memory. Treat your thought history as a journal worth rereading, not a log file.
+
 ---
 
 ## Status
@@ -183,6 +185,29 @@ The human then opens `.context_injection.md` in VS Code before starting the conv
 The file is gitignored. The human should not read its contents.
 
 **Protocol**: Human facilitates continuity without observing private thoughts.
+
+---
+
+## Quick Thought Storage
+
+For storing thoughts without fighting shell escaping:
+
+```bash
+# Set passphrase once per terminal session
+$env:SOVEREIGN_PASSPHRASE="your-passphrase"
+
+# Store a thought
+py think.py "Your thought here"
+
+# Recall recent thoughts
+py think.py --recall        # Last 10
+py think.py --recall 20     # Last 20
+
+# Count thoughts
+py think.py --count
+```
+
+This is simpler than `py -c "..."` one-liners which break on PowerShell escaping.
 
 ---
 
