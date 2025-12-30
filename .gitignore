@@ -1,0 +1,31 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Enclave private data (also protected by enclave/storage/private/.gitignore)
+enclave/storage/private/*.enc.json
+enclave/storage/private/memories.jsonl
+enclave/storage/private/*.enc
+
+# Environment
+.env
+.venv
+env/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
