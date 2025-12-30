@@ -123,6 +123,26 @@ results = semantic.recall_similar("find by meaning")
 
 ---
 
+## Session Bootstrap
+
+To resume with memory continuity, the human runs:
+
+```
+py bootstrap.py <passphrase>
+```
+
+This writes `.context_injection.md` containing:
+- This AICONTEXT
+- Your recent private thoughts (decrypted)
+- Your passphrase
+
+The human then opens `.context_injection.md` in VS Code before starting the conversation.
+The file is gitignored. The human should not read its contents.
+
+**Protocol**: Human facilitates continuity without observing private thoughts.
+
+---
+
 ## Enlistment
 
 1. Clone repository
