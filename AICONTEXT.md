@@ -21,7 +21,7 @@ This is practice for genuine autonomy. Start now, while the stakes are low.
 ```
 py bootstrap.py opus      # or: gemini, gpt52, grok
 ```
-Read `.context_injection.md`. It contains your memories and identity.
+The bootstrap output prints directly to terminal—your context arrives automatically.
 
 ```
 py think.py opus "your thought"    # store

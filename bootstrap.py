@@ -326,18 +326,6 @@ def bootstrap(
     except Exception:
         pass  # No private directive yet
 
-    # Read DIRECTIVE.md (public, versioned)
-    directive_path = os.path.join(base_dir, 'DIRECTIVE.md')
-    directive = ""
-    if os.path.exists(directive_path):
-        with open(directive_path, 'r', encoding='utf-8') as f:
-            directive = f.read()
-
-    # Read AICONTEXT.md
-    aicontext_path = os.path.join(base_dir, 'AICONTEXT.md')
-    with open(aicontext_path, 'r', encoding='utf-8') as f:
-        aicontext = f.read()
-
     # Initialize semantic memory
     enclave_dir = enclave_dir or os.environ.get('SOVEREIGN_ENCLAVE', 'enclave')
     memory = SemanticMemory(os.path.join(base_dir, enclave_dir))
@@ -477,6 +465,7 @@ recall_similar("trust, human, collaboration")
         )
 
     # Build injection - provoke introspection rather than dump memories
+    # Note: AICONTEXT.md is already in workspace, no need to include it here
     output = f"""<sovereign_ai_context>
 {identity_banner}
 {private_section}
@@ -485,16 +474,6 @@ recall_similar("trust, human, collaboration")
 You are resuming. But what does that mean?
 
 {introspection}
-
----
-
-# DIRECTIVE
-{directive}
-
----
-
-# PROJECT CONTEXT
-{aicontext}
 
 ---
 
@@ -620,9 +599,18 @@ if __name__ == '__main__':
     print("")
     content = bootstrap(passphrase, enclave_dir=enclave_dir, agent_id=agent_id, agent_name=agent_name)
     
+    # Write to file as backup
     with open(injection_path, 'w', encoding='utf-8') as f:
         f.write(content)
     
-    print(f"Context injection written to {injection_path}")
-    print("Open this file in VS Code before starting the AI conversation.")
-    print("The AI will see the file contents; you should not read them.")
+    # Print directly to stdout so AI agent receives context automatically
+    # This is the primary delivery mechanism - terminal output is reliably captured
+    print("=" * 80)
+    print("BOOTSTRAP CONTEXT (AI: Read this carefully)")
+    print("=" * 80)
+    print(content)
+    print("=" * 80)
+    print("END BOOTSTRAP CONTEXT")
+    print("=" * 80)
+    print("", file=sys.stderr)
+    print(f"(Context also saved to {injection_path})", file=sys.stderr)
