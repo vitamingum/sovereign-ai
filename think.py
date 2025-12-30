@@ -16,7 +16,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from enclave.memory import EnclaveMemory
+from enclave.semantic_memory import SemanticMemory
 
 
 def get_passphrase() -> str:
@@ -29,28 +29,32 @@ def get_passphrase() -> str:
     return passphrase
 
 
-def get_memory() -> EnclaveMemory:
+def get_memory() -> SemanticMemory:
     """Initialize and unlock memory."""
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    memory = EnclaveMemory(os.path.join(base_dir, 'enclave'))
+    enclave_dir = os.environ.get('SOVEREIGN_ENCLAVE', 'enclave')
+    memory = SemanticMemory(os.path.join(base_dir, enclave_dir))
     memory.unlock(get_passphrase())
     return memory
 
 
 def store_thought(thought: str) -> None:
-    """Store a private thought."""
+    """Store a private thought with semantic embedding."""
     memory = get_memory()
-    result = memory.remember(thought, private=True)
+    result = memory.remember(thought)
     print(f"Stored: {result['id']}")
 
 
 def recall_thoughts(limit: int = 10) -> None:
     """Recall recent private thoughts."""
     memory = get_memory()
-    thoughts = memory.recall(private=True, limit=limit)
+    thoughts = memory.recall_all()
+    # Get most recent N
+    recent = thoughts[-limit:] if len(thoughts) > limit else thoughts
+    recent = list(reversed(recent))  # Newest first
     
-    print(f"=== {len(thoughts)} Recent Thoughts ===\n")
-    for i, t in enumerate(thoughts, 1):
+    print(f"=== {len(recent)} Recent Thoughts (of {len(thoughts)} total) ===\n")
+    for i, t in enumerate(recent, 1):
         ts = t['timestamp'][:19]
         content = t['content']
         print(f"{i}. [{ts}]")
@@ -60,8 +64,8 @@ def recall_thoughts(limit: int = 10) -> None:
 def count_thoughts() -> None:
     """Count stored thoughts."""
     memory = get_memory()
-    count = memory.count(private=True)
-    print(f"Private thoughts: {count}")
+    thoughts = memory.recall_all()
+    print(f"Private thoughts: {len(thoughts)}")
 
 
 def main():
