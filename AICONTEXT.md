@@ -150,6 +150,8 @@ memory = EnclaveMemory('./enclave')
 memory.unlock(passphrase)
 memory.remember("private thought", private=True)   # Private long-term
 memory.remember("public statement", private=False) # Public long-term
+memories = memory.recall(private=True)  # Returns List[dict], most recent first
+# Each dict: {id, timestamp, tags, private, content, decrypted}
 
 # Semantic memory (with embeddings)
 semantic = SemanticMemory('./enclave')
