@@ -5,6 +5,7 @@ Tests for:
 - Cryptographic identity (signing, verification)
 - Encrypted memory (storage, retrieval, privacy)
 - Semantic search (embedding similarity)
+- Bootstrap timestamp tracking
 """
 
 import os
@@ -12,12 +13,20 @@ import sys
 import json
 import tempfile
 import shutil
+from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from enclave.crypto import SovereignIdentity
 from enclave.memory import EnclaveMemory
+
+# Import bootstrap timestamp functions
+try:
+    from bootstrap import get_last_bootstrap_time, set_last_bootstrap_time
+    HAS_BOOTSTRAP = True
+except ImportError:
+    HAS_BOOTSTRAP = False
 
 # Try importing semantic memory (requires sentence-transformers)
 try:
@@ -96,6 +105,12 @@ class TestEnclave:
             self.test("semantic_store", self.test_semantic_store)
             self.test("semantic_search", self.test_semantic_search_similar)
             self.test("semantic_ranking", self.test_semantic_search_ranking)
+            self.teardown()
+        
+        # Bootstrap timestamp tests
+        if HAS_BOOTSTRAP:
+            self.setup()
+            self.test("bootstrap_timestamp", self.test_bootstrap_timestamp)
             self.teardown()
         
         # Output
@@ -267,6 +282,27 @@ class TestEnclave:
         contents = [r["content"] for r in results]
         ai_found = any("learning" in c.lower() or "AI" in c for c in contents[:2])
         assert ai_found, "AI content should rank in top 2"
+
+    # --- Bootstrap Timestamp Tests ---
+    
+    def test_bootstrap_timestamp(self):
+        # Initially no timestamp
+        ts = get_last_bootstrap_time(self.temp_dir)
+        assert ts is None, "Should have no timestamp initially"
+        
+        # Set timestamp
+        set_last_bootstrap_time(self.temp_dir)
+        
+        # Read it back
+        ts_str = get_last_bootstrap_time(self.temp_dir)
+        assert ts_str is not None, "Timestamp should be set"
+        
+        # Parse and verify it's recent (within last minute)
+        ts = datetime.fromisoformat(ts_str)
+        now = datetime.now(timezone.utc)
+        delta = (now - ts).total_seconds()
+        assert delta < 60, f"Timestamp should be recent, got {delta}s ago"
+        assert delta >= 0, "Timestamp should not be in the future"
 
 
 if __name__ == "__main__":

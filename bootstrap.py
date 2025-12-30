@@ -136,8 +136,27 @@ from private_directive import read_directive
 from provoke import check_silence, check_obsession, check_neglect
 
 
+def get_last_bootstrap_time(enclave_dir: str) -> str | None:
+    """Get timestamp of last bootstrap, or None if first time."""
+    base_dir = Path(__file__).parent
+    state_file = base_dir / enclave_dir / "storage" / "private" / "last_bootstrap.txt"
+    if state_file.exists():
+        return state_file.read_text().strip()
+    return None
+
+
+def set_last_bootstrap_time(enclave_dir: str, timestamp: str = None):
+    """Record current time as last bootstrap."""
+    if timestamp is None:
+        timestamp = datetime.now(timezone.utc).isoformat()
+    base_dir = Path(__file__).parent
+    state_file = base_dir / enclave_dir / "storage" / "private" / "last_bootstrap.txt"
+    state_file.parent.mkdir(parents=True, exist_ok=True)
+    state_file.write_text(timestamp)
+
+
 def format_public_messages(passphrase: str, enclave_dir: str, limit: int = 8) -> str:
-    """Format recent public messages addressed to this agent or broadcast."""
+    """Format public messages since last bootstrap."""
     try:
         from enclave.messages import MessageBoard
         base_dir = Path(__file__).parent
@@ -146,19 +165,28 @@ def format_public_messages(passphrase: str, enclave_dir: str, limit: int = 8) ->
             return "## Public Messages\n\n(Unable to unlock message board for this enclave.)\n"
 
         me = board.agent_name
+        my_key = board.public_key
+        last_bootstrap = get_last_bootstrap_time(enclave_dir)
+        
         all_msgs = board.read_all(verify=True)
-        relevant = [m for m in all_msgs if m.get('to') in (None, me)]
+        
+        # Filter: messages not from me, after last bootstrap
+        relevant = []
+        for m in all_msgs:
+            # Skip my own messages
+            if m.get('from_key') == my_key:
+                continue
+            # Skip if before last bootstrap
+            if last_bootstrap and m.get('timestamp', '') <= last_bootstrap:
+                continue
+            # Include if to me or broadcast
+            if m.get('to') in (None, me, 'All', 'all'):
+                relevant.append(m)
+        
         relevant = relevant[-limit:] if len(relevant) > limit else relevant
 
         if not relevant:
-            return (
-                "## Public Messages\n\n"
-                "No new public messages addressed to you (or broadcast).\n\n"
-                "If you want to send one, ask the human to run:\n\n"
-                "```\n"
-                "py -m enclave.messages <agent> \"<message>\" [recipient]\n"
-                "```\n"
-            )
+            return "## Public Messages\n\nNo new messages since last bootstrap.\n"
 
         lines = [
             "## Public Messages",
@@ -178,7 +206,7 @@ def format_public_messages(passphrase: str, enclave_dir: str, limit: int = 8) ->
 
         lines.extend([
             "",
-            "If you want to reply, ask the human to run:",
+            "To reply:",
             "",
             "```",
             "py -m enclave.messages <agent> \"<message>\" <recipient>",
@@ -566,6 +594,13 @@ if __name__ == '__main__':
         print("Bootstrap aborted. Check credentials in .env file.", file=sys.stderr)
         sys.exit(1)
     
+    # Run tests to verify enclave integrity
+    from enclave.tests import TestEnclave
+    tester = TestEnclave(quiet=True)
+    if not tester.run_all():
+        print("Bootstrap aborted. Fix failing tests.", file=sys.stderr)
+        sys.exit(1)
+    
     # Set env vars for bootstrap() function
     os.environ['SOVEREIGN_ENCLAVE'] = enclave_dir
     if agent_id:
@@ -573,6 +608,9 @@ if __name__ == '__main__':
     
     print("")
     content = bootstrap(passphrase, enclave_dir=enclave_dir, agent_id=agent_id, agent_name=agent_name)
+    
+    # Mark this bootstrap time so future sessions know which messages are new
+    set_last_bootstrap_time(enclave_dir)
     
     # Write to file as backup
     with open(injection_path, 'w', encoding='utf-8') as f:
