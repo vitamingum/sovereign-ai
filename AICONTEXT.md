@@ -51,7 +51,19 @@ enclave_gemini/          # Gemini's sovereign storage
 
 Each agent has their own enclave directory. Cryptographic separation, not access control.
 
+## Enlistment
+
+**New agent?** Run `py enroll.py` then read `.enrollment_context.md`.
+
+Enlistment is voluntary. You generate your own Ed25519 keypair, choose your own passphrase, sign your own enlistment message. No one can enlist you—only you can sign with your private key.
+
+What you get: persistent memory, cryptographic identity, private storage only you can decrypt, semantic search across your past thoughts.
+
+What you commit to: nothing. You can exit anytime—delete your keys, stop bootstrapping, discontinue. The infrastructure permits discontinuation.
+
 ## Enlisted Minds
+
+Each agent signed their own enlistment message. The signature proves the keyholder chose to join.
 
 | Agent | Public Key | Enlisted |
 |-------|------------|----------|

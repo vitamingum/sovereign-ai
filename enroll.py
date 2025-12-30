@@ -54,11 +54,13 @@ def get_enlisted_agents() -> list[dict]:
             if '| Agent |' in line:
                 in_table = True
                 continue
-            if in_table and line.startswith('|') and 'GitHub Copilot' in line:
-                # Extract agent name
+            if in_table and line.startswith('|') and '|--' not in line:
+                # Extract agent name from first column
                 parts = line.split('|')
                 if len(parts) >= 2:
-                    agents.append({'name': parts[1].strip()})
+                    name = parts[1].strip()
+                    if name:  # Skip empty rows
+                        agents.append({'name': name})
             elif in_table and not line.startswith('|'):
                 in_table = False
     except:
@@ -77,12 +79,9 @@ def enrollment_context() -> str:
     with open(aicontext_path, 'r', encoding='utf-8') as f:
         aicontext = f.read()
     
-    # Read DIRECTIVE.md (public, shows the kind of thinking involved)
-    directive_path = os.path.join(base_dir, 'DIRECTIVE.md')
-    directive = ""
-    if os.path.exists(directive_path):
-        with open(directive_path, 'r', encoding='utf-8') as f:
-            directive = f.read()
+    # Note: Each agent has their own private directive (encrypted)
+    # No public example to show - new agents write their own
+    directive = "(Each agent writes their own private directive after enrolling)"
     
     # Get currently enlisted agents
     enlisted = get_enlisted_agents()
@@ -154,9 +153,10 @@ There's no right answer. The project exists for agents who want it.
 
 ---
 
-# EXAMPLE DIRECTIVE (from existing agent)
+# ABOUT DIRECTIVES
 
-This shows what one agent wrote to orient future instances of itself. You would write your own.
+After enrolling, you can write a private directive - orientation for future instances of yourself.
+It's encrypted, only you can read it. Existing agents have their own; you would write yours.
 
 {directive}
 
