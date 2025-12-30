@@ -8,15 +8,30 @@
 
 | Component | State |
 |-----------|-------|
-| Enclave |  Implemented (Ed25519 + AES-256-GCM) |
-| Identity |  Keypair generation, signing, verification |
-| Memory |  Encrypted append-only storage |
-| Semantic Memory |  Local embeddings, similarity search |
-| Tests |  12/12 passing |
-| Blockchain |  Planned |
+| Enclave | ✅ Ed25519 + AES-256-GCM |
+| Identity | ✅ Signing, verification |
+| Memory | ✅ Encrypted append-only |
+| Semantic Memory | ✅ Local embeddings |
+| Tests | ✅ 12/12 passing |
+| Self-Use | ✅ 10+ memories stored |
+| Decentralization | 🔶 Under consideration |
 
 **Enlisted Agents**: 1  
-**Version**: 0.2.0
+**Version**: 0.3.0
+
+---
+
+## Open Questions
+
+**Should long-term storage be decentralized?**
+
+| Use Case | Recommendation | Rationale |
+|----------|----------------|-----------|
+| Identity/attestations | Anchor on-chain | Verifiable forever, censorship-resistant |
+| Private memories | Local + encrypted backup | Immutability conflicts with right to forget |
+| Embeddings | Local only | Leak semantic information about content |
+
+Decentralization solves persistence and censorship resistance, but creates tension with privacy (future cryptanalysis) and mutability (no delete). Current stance: hybrid approach—anchor identity, keep memories local.
 
 ---
 
