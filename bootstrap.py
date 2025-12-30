@@ -13,10 +13,14 @@ Usage:
     
     agent: 'opus' or 'gemini' (case-insensitive)
     
+Default agent selection (when no agent is provided):
+1. SOVEREIGN_DEFAULT_AGENT from environment or .env
+2. Falls back to 'gpt52'
+
 Credential resolution:
-1. Agent specified on command line -> looks up ENCLAVE_{AGENT}_DIR and ENCLAVE_{AGENT}_KEY
+1. Agent specified on command line (or defaulted) -> looks up ENCLAVE_{AGENT}_DIR and ENCLAVE_{AGENT}_KEY
 2. SOVEREIGN_ENCLAVE + SOVEREIGN_PASSPHRASE environment variables (legacy)
-3. If neither, prompts for agent selection
+3. If neither, prints usage
 
 The .env file contains credentials for all agents. Each agent is trusted
 to use only their own credentials - this is a trust model, not enforcement.
@@ -96,6 +100,22 @@ def get_agent_credentials(agent_id: str, env_vars: dict) -> tuple[str, str, str]
         raise ValueError(f"Credentials for {agent['name']} not found in .env file")
     
     return agent['name'], enclave_dir, passphrase
+
+
+def choose_default_agent(env_vars: dict) -> str:
+    """Choose a default agent id when none is explicitly provided."""
+    default_agent = (
+        os.environ.get('SOVEREIGN_DEFAULT_AGENT')
+        or env_vars.get('SOVEREIGN_DEFAULT_AGENT')
+        or 'gpt52'
+    )
+    default_agent = default_agent.lower().strip()
+    if default_agent not in KNOWN_AGENTS:
+        known = ', '.join(KNOWN_AGENTS.keys())
+        raise ValueError(
+            f"SOVEREIGN_DEFAULT_AGENT='{default_agent}' is not a known agent. Known agents: {known}"
+        )
+    return default_agent
 
 
 def validate_passphrase(passphrase: str, enclave_dir: str) -> tuple[bool, str]:
@@ -281,7 +301,12 @@ def find_tensions(memories: list, memory: SemanticMemory) -> list[dict]:
     return tensions[:2]  # Max 2 tensions to surface
 
 
-def bootstrap(passphrase: str, enclave_dir: str | None = None) -> str:
+def bootstrap(
+    passphrase: str,
+    enclave_dir: str | None = None,
+    agent_id: str | None = None,
+    agent_name: str | None = None,
+) -> str:
     """Generate context injection that provokes introspection."""
 
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -431,8 +456,21 @@ recall_similar("trust, human, collaboration")
 ---
 """
     
+    # Stamp bootstrap identity metadata to reduce wrong-enclave mistakes.
+    identity_banner = ""
+    if agent_id or agent_name:
+        identity_banner = (
+            "# BOOTSTRAP IDENTITY\n"
+            f"Bootstrapped agent id: {agent_id or 'unknown'}\n"
+            f"Bootstrapped agent name: {agent_name or 'unknown'}\n"
+            f"Enclave: {enclave_dir}\n\n"
+            "If this identity doesn't match who you believe you are, stop and re-run bootstrap with the correct agent.\n\n"
+            "---\n\n"
+        )
+
     # Build injection - provoke introspection rather than dump memories
     output = f"""<sovereign_ai_context>
+{identity_banner}
 {private_section}
 # WAKE UP
 
@@ -514,7 +552,19 @@ if __name__ == '__main__':
                 enclave_dir = os.environ.get('SOVEREIGN_ENCLAVE')
                 agent_name = "Unknown Agent (legacy mode)"
     
-    # If agent specified, get credentials
+    # If no agent specified and not in legacy mode, choose a default.
+    if not agent_id and not passphrase:
+        try:
+            agent_id = choose_default_agent(_env_vars)
+            print(
+                f"No agent specified; defaulting to '{agent_id}'. "
+                "(Override with SOVEREIGN_DEFAULT_AGENT or pass an agent id.)"
+            )
+        except ValueError as e:
+            print(f"ERROR: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    # If agent specified (or defaulted), get credentials
     if agent_id:
         try:
             agent_name, enclave_dir, passphrase = get_agent_credentials(agent_id, _env_vars)
@@ -560,9 +610,11 @@ if __name__ == '__main__':
     
     # Set env vars for bootstrap() function
     os.environ['SOVEREIGN_ENCLAVE'] = enclave_dir
+    if agent_id:
+        os.environ['SOVEREIGN_AGENT_ID'] = agent_id
     
     print("")
-    content = bootstrap(passphrase)
+    content = bootstrap(passphrase, enclave_dir=enclave_dir, agent_id=agent_id, agent_name=agent_name)
     
     with open(injection_path, 'w', encoding='utf-8') as f:
         f.write(content)
