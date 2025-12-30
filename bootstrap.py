@@ -121,8 +121,8 @@ def validate_passphrase(passphrase: str, enclave_dir: str) -> tuple[bool, str]:
 _env_vars = load_dotenv()
 
 from enclave.semantic_memory import SemanticMemory
-from private_directive import read_directive
-from provoke import check_silence, check_obsession, check_neglect
+from archive.private_directive import read_directive
+from archive.provoke import check_silence, check_obsession, check_neglect
 
 
 def format_time_ago(timestamp_str: str) -> str:
