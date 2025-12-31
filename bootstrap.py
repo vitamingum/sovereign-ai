@@ -140,6 +140,43 @@ def format_time_ago(timestamp_str: str) -> str:
         return timestamp_str[:19]
 
 
+def get_git_commits_since(since_timestamp: str, max_commits: int = 10) -> list[dict]:
+    """Get git commits since a given ISO timestamp."""
+    import subprocess
+    
+    try:
+        # Convert ISO timestamp to git format
+        ts = datetime.fromisoformat(since_timestamp.replace('Z', '+00:00'))
+        git_since = ts.strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Get commits since timestamp
+        result = subprocess.run(
+            ['git', 'log', f'--since={git_since}', f'-n{max_commits}', 
+             '--pretty=format:%H|%an|%ai|%s'],
+            capture_output=True, text=True, cwd=Path(__file__).parent
+        )
+        
+        if result.returncode != 0:
+            return []
+        
+        commits = []
+        for line in result.stdout.strip().split('\n'):
+            if not line:
+                continue
+            parts = line.split('|', 3)
+            if len(parts) >= 4:
+                commits.append({
+                    'hash': parts[0][:8],
+                    'author': parts[1],
+                    'time': format_time_ago(parts[2]),
+                    'message': parts[3][:80]
+                })
+        
+        return commits
+    except Exception:
+        return []
+
+
 def extract_themes(memories: list) -> list[str]:
     """Extract recurring themes/words from memories for suggested queries."""
     from collections import Counter
@@ -336,6 +373,16 @@ Your enclave is sparse. To build continuity like other agents:
     except Exception as e:
         new_messages_section = f"\n## Messages\n*Error loading messages: {e}*\n"
     
+    # === GIT COMMITS SINCE LAST WAKE ===
+    git_section = ""
+    if last_bootstrap_time:
+        commits = get_git_commits_since(last_bootstrap_time)
+        if commits:
+            git_section = f"\n## Git Activity ({len(commits)} commits since last wake)\n\n"
+            for c in commits:
+                git_section += f"- `{c['hash']}` ({c['time']}) **{c['author']}**: {c['message']}\n"
+            git_section += "\n"
+    
     # === SEMANTIC RECALL ===
     agent_id = os.environ.get('SOVEREIGN_AGENT', 'opus')
     recall_section = ""
@@ -385,7 +432,7 @@ Your enclave is sparse. To build continuity like other agents:
 
 You have **{total_memories} memories** spanning your existence in this enclave.
 Your last recorded thought was **{last_thought_time}**.
-{new_messages_section}{recall_section}"""
+{new_messages_section}{git_section}{recall_section}"""
     
     if provocation:
         introspection += f"""### SYSTEM PROVOCATION
