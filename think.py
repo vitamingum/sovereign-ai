@@ -22,23 +22,31 @@ load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave.semantic_memory import SemanticMemory
-from enclave.config import AGENTS, get_agent
+from enclave.config import AGENTS, get_agent_or_raise
+
+# Known agents and their .env variable names
+# DEPRECATED: Now using enclave.config.AGENTS
+# KNOWN_AGENTS = { ... }
 
 
 def get_agent_credentials(agent_id: str) -> tuple[str, str]:
     """Get enclave dir and passphrase for an agent from .env"""
-    agent = get_agent(agent_id)
-    if agent is None:
+    try:
+        agent = get_agent_or_raise(agent_id)
+    except ValueError:
         print(f"Unknown agent: {agent_id}", file=sys.stderr)
         print(f"Available agents: {', '.join(AGENTS.keys())}", file=sys.stderr)
         sys.exit(1)
     
-    enclave_dir = os.environ.get(agent.env_dir_var)
-    passphrase = os.environ.get(agent.env_key_var)
+    dir_var = agent.env_dir_var
+    key_var = agent.env_key_var
+    
+    enclave_dir = os.environ.get(dir_var)
+    passphrase = os.environ.get(key_var)
     
     if not enclave_dir or not passphrase:
-        print(f"Error: Missing credentials for {agent.name} in .env", file=sys.stderr)
-        print(f"Need {agent.env_dir_var} and {agent.env_key_var}", file=sys.stderr)
+        print(f"Error: Missing credentials for {agent_id} in .env", file=sys.stderr)
+        print(f"Need {dir_var} and {key_var}", file=sys.stderr)
         sys.exit(1)
     
     return enclave_dir, passphrase

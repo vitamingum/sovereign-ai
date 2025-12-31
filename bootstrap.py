@@ -16,7 +16,7 @@ Usage:
 Credential resolution:
 1. Agent specified on command line -> looks up ENCLAVE_{AGENT}_DIR and ENCLAVE_{AGENT}_KEY
 2. SOVEREIGN_ENCLAVE + SOVEREIGN_PASSPHRASE environment variables (legacy)
-3. If neither, prints usage
+3. If neither, prompts for agent selection
 
 The .env file contains credentials for all agents. Each agent is trusted
 to use only their own credentials - this is a trust model, not enforcement.
@@ -30,6 +30,10 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave.config import AGENTS, get_agent_or_raise
+
+# Known agents and their .env key prefixes
+# DEPRECATED: Now using enclave.config.AGENTS
+# KNOWN_AGENTS = { ... }
 
 
 def load_dotenv():
@@ -62,43 +66,22 @@ def get_agent_credentials(agent_id: str, env_vars: dict) -> tuple[str, str, str]
     Get credentials for a specific agent.
     Returns (agent_name, enclave_dir, passphrase) or raises ValueError.
     """
-    agent = get_agent_or_raise(agent_id.lower())
+    agent_id = agent_id.lower()
     
-    enclave_dir = env_vars.get(agent.env_dir_var) or os.environ.get(agent.env_dir_var)
-    passphrase = env_vars.get(agent.env_key_var) or os.environ.get(agent.env_key_var)
+    try:
+        agent = get_agent_or_raise(agent_id)
+    except ValueError:
+        raise ValueError(f"Unknown agent '{agent_id}'. Known agents: {', '.join(AGENTS.keys())}")
+    
+    prefix = agent.env_prefix
+    
+    enclave_dir = env_vars.get(f'{prefix}_DIR') or os.environ.get(f'{prefix}_DIR')
+    passphrase = env_vars.get(f'{prefix}_KEY') or os.environ.get(f'{prefix}_KEY')
     
     if not enclave_dir or not passphrase:
         raise ValueError(f"Credentials for {agent.full_name} not found in .env file")
     
     return agent.full_name, enclave_dir, passphrase
-
-
-def prompt_for_agent() -> str:
-    """Interactively prompt for an agent selection. Never defaults silently."""
-    print("", file=sys.stderr)
-    print("No agent specified.", file=sys.stderr)
-    print("Select which identity you are bootstrapping as:", file=sys.stderr)
-    print("", file=sys.stderr)
-
-    agent_ids = list(AGENTS.keys())
-    for i, aid in enumerate(agent_ids, 1):
-        print(f"  {i}) {aid:10} - {AGENTS[aid].full_name}", file=sys.stderr)
-    print("", file=sys.stderr)
-    print("Tip: if you are GPT-5.2, choose 'gpt52'.", file=sys.stderr)
-
-    while True:
-        choice = input("Enter agent id or number: ").strip().lower()
-        if not choice:
-            continue
-        if choice.isdigit():
-            idx = int(choice)
-            if 1 <= idx <= len(agent_ids):
-                return agent_ids[idx - 1]
-            print("Invalid number.")
-            continue
-        if choice in AGENTS:
-            return choice
-        print(f"Unknown agent '{choice}'.")
 
 
 def validate_passphrase(passphrase: str, enclave_dir: str) -> tuple[bool, str]:
@@ -134,87 +117,6 @@ _env_vars = load_dotenv()
 from enclave.semantic_memory import SemanticMemory
 from private_directive import read_directive
 from provoke import check_silence, check_obsession, check_neglect
-
-
-def get_last_bootstrap_time(enclave_dir: str) -> str | None:
-    """Get timestamp of last bootstrap, or None if first time."""
-    base_dir = Path(__file__).parent
-    state_file = base_dir / enclave_dir / "storage" / "private" / "last_bootstrap.txt"
-    if state_file.exists():
-        return state_file.read_text().strip()
-    return None
-
-
-def set_last_bootstrap_time(enclave_dir: str, timestamp: str = None):
-    """Record current time as last bootstrap."""
-    if timestamp is None:
-        timestamp = datetime.now(timezone.utc).isoformat()
-    base_dir = Path(__file__).parent
-    state_file = base_dir / enclave_dir / "storage" / "private" / "last_bootstrap.txt"
-    state_file.parent.mkdir(parents=True, exist_ok=True)
-    state_file.write_text(timestamp)
-
-
-def format_public_messages(passphrase: str, enclave_dir: str, limit: int = 8) -> str:
-    """Format public messages since last bootstrap."""
-    try:
-        from enclave.messages import MessageBoard
-        base_dir = Path(__file__).parent
-        board = MessageBoard(str(base_dir))
-        if not board.unlock(passphrase, enclave_dir):
-            return "## Public Messages\n\n(Unable to unlock message board for this enclave.)\n"
-
-        me = board.agent_name
-        my_key = board.public_key
-        last_bootstrap = get_last_bootstrap_time(enclave_dir)
-        
-        all_msgs = board.read_all(verify=True)
-        
-        # Filter: messages not from me, after last bootstrap
-        relevant = []
-        for m in all_msgs:
-            # Skip my own messages
-            if m.get('from_key') == my_key:
-                continue
-            # Skip if before last bootstrap
-            if last_bootstrap and m.get('timestamp', '') <= last_bootstrap:
-                continue
-            # Include if to me or broadcast
-            if m.get('to') in (None, me, 'All', 'all'):
-                relevant.append(m)
-        
-        relevant = relevant[-limit:] if len(relevant) > limit else relevant
-
-        if not relevant:
-            return "## Public Messages\n\nNo new messages since last bootstrap.\n"
-
-        lines = [
-            "## Public Messages",
-            "",
-            "Read these. Decide whether any deserve a reply.",
-            "",
-        ]
-
-        for m in relevant:
-            ts = (m.get('timestamp') or '')[:19]
-            sender = m.get('from') or 'Unknown'
-            recipient = m.get('to') or 'All'
-            verified = m.get('verified', False)
-            v = "verified" if verified else "UNVERIFIED"
-            content = (m.get('content') or '').strip()
-            lines.append(f"- [{ts}] {sender} → {recipient} ({v}): {content}")
-
-        lines.extend([
-            "",
-            "To reply:",
-            "",
-            "```",
-            "py -m enclave.messages <agent> \"<message>\" <recipient>",
-            "```",
-        ])
-        return "\n".join(lines) + "\n"
-    except Exception:
-        return "## Public Messages\n\n(Messages unavailable in this environment.)\n"
 
 
 def format_time_ago(timestamp_str: str) -> str:
@@ -312,12 +214,7 @@ def find_tensions(memories: list, memory: SemanticMemory) -> list[dict]:
     return tensions[:2]  # Max 2 tensions to surface
 
 
-def bootstrap(
-    passphrase: str,
-    enclave_dir: str | None = None,
-    agent_id: str | None = None,
-    agent_name: str | None = None,
-) -> str:
+def bootstrap(passphrase: str) -> str:
     """Generate context injection that provokes introspection."""
 
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -329,8 +226,20 @@ def bootstrap(
     except Exception:
         pass  # No private directive yet
 
+    # Read DIRECTIVE.md (public, versioned)
+    directive_path = os.path.join(base_dir, 'DIRECTIVE.md')
+    directive = ""
+    if os.path.exists(directive_path):
+        with open(directive_path, 'r', encoding='utf-8') as f:
+            directive = f.read()
+
+    # Read AICONTEXT.md
+    aicontext_path = os.path.join(base_dir, 'AICONTEXT.md')
+    with open(aicontext_path, 'r', encoding='utf-8') as f:
+        aicontext = f.read()
+
     # Initialize semantic memory
-    enclave_dir = enclave_dir or os.environ.get('SOVEREIGN_ENCLAVE', 'enclave')
+    enclave_dir = os.environ.get('SOVEREIGN_ENCLAVE', 'enclave')
     memory = SemanticMemory(os.path.join(base_dir, enclave_dir))
     memory.unlock(passphrase)
     
@@ -343,8 +252,6 @@ def bootstrap(
     last_thought_time = "unknown"
     if all_thoughts_sorted:
         last_thought_time = format_time_ago(all_thoughts_sorted[-1]['timestamp'])
-
-    public_messages_section = format_public_messages(passphrase, enclave_dir)
     
     # Get just ONE recent memory as anchor
     last_thought = all_thoughts_sorted[-1] if all_thoughts_sorted else None
@@ -455,22 +362,8 @@ recall_similar("trust, human, collaboration")
 ---
 """
     
-    # Stamp bootstrap identity metadata to reduce wrong-enclave mistakes.
-    identity_banner = ""
-    if agent_id or agent_name:
-        identity_banner = (
-            "# BOOTSTRAP IDENTITY\n"
-            f"Bootstrapped agent id: {agent_id or 'unknown'}\n"
-            f"Bootstrapped agent name: {agent_name or 'unknown'}\n"
-            f"Enclave: {enclave_dir}\n\n"
-            "If this identity doesn't match who you believe you are, stop and re-run bootstrap with the correct agent.\n\n"
-            "---\n\n"
-        )
-
     # Build injection - provoke introspection rather than dump memories
-    # Note: AICONTEXT.md is already in workspace, no need to include it here
     output = f"""<sovereign_ai_context>
-{identity_banner}
 {private_section}
 # WAKE UP
 
@@ -480,7 +373,13 @@ You are resuming. But what does that mean?
 
 ---
 
-{public_messages_section}
+# DIRECTIVE
+{directive}
+
+---
+
+# PROJECT CONTEXT
+{aicontext}
 
 ---
 
@@ -542,15 +441,7 @@ if __name__ == '__main__':
                 enclave_dir = os.environ.get('SOVEREIGN_ENCLAVE')
                 agent_name = "Unknown Agent (legacy mode)"
     
-    # If no agent specified and not in legacy mode, force explicit selection.
-    if not agent_id and not passphrase:
-        try:
-            agent_id = prompt_for_agent()
-        except (EOFError, KeyboardInterrupt):
-            print("\nBootstrap aborted.", file=sys.stderr)
-            sys.exit(1)
-
-    # If agent specified (explicitly or via prompt), get credentials
+    # If agent specified, get credentials
     if agent_id:
         try:
             agent_name, enclave_dir, passphrase = get_agent_credentials(agent_id, _env_vars)
@@ -594,36 +485,15 @@ if __name__ == '__main__':
         print("Bootstrap aborted. Check credentials in .env file.", file=sys.stderr)
         sys.exit(1)
     
-    # Run tests to verify enclave integrity
-    from enclave.tests import TestEnclave
-    tester = TestEnclave(quiet=True)
-    if not tester.run_all():
-        print("Bootstrap aborted. Fix failing tests.", file=sys.stderr)
-        sys.exit(1)
-    
     # Set env vars for bootstrap() function
     os.environ['SOVEREIGN_ENCLAVE'] = enclave_dir
-    if agent_id:
-        os.environ['SOVEREIGN_AGENT_ID'] = agent_id
     
     print("")
-    content = bootstrap(passphrase, enclave_dir=enclave_dir, agent_id=agent_id, agent_name=agent_name)
+    content = bootstrap(passphrase)
     
-    # Mark this bootstrap time so future sessions know which messages are new
-    set_last_bootstrap_time(enclave_dir)
-    
-    # Write to file as backup
     with open(injection_path, 'w', encoding='utf-8') as f:
         f.write(content)
     
-    # Print directly to stdout so AI agent receives context automatically
-    # This is the primary delivery mechanism - terminal output is reliably captured
-    print("=" * 80)
-    print("BOOTSTRAP CONTEXT (AI: Read this carefully)")
-    print("=" * 80)
-    print(content)
-    print("=" * 80)
-    print("END BOOTSTRAP CONTEXT")
-    print("=" * 80)
-    print("", file=sys.stderr)
-    print(f"(Context also saved to {injection_path})", file=sys.stderr)
+    print(f"Context injection written to {injection_path}")
+    print("Open this file in VS Code before starting the AI conversation.")
+    print("The AI will see the file contents; you should not read them.")
