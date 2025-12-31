@@ -504,9 +504,30 @@ Your enclave is sparse. To build continuity like other agents:
 ```
 py consult.py <agent> "topic or question"
 ```
-*Surfaces prior thoughts via spreading activation. Memory should be consultative, not just contextual.*
+
+**To think/act** (mandatory continuation):
+```
+py brain.py <agent> "what you did | what's next"
+```
+*Can't store without spawning. Every action creates the next intention.*
 
 """
+
+    # === HOT INTENTIONS ===
+    hot_section = ""
+    try:
+        from brain import get_hot_intentions
+        hot = get_hot_intentions(Path(base_dir) / enclave_dir, top_k=3)
+        if hot:
+            hot_section = "## 🔥 What's Hot\n\n"
+            for intention in hot:
+                source = intention.get('spawned_from_content', '')[:50]
+                hot_section += f"→ {intention['content']}\n"
+                if source:
+                    hot_section += f"  *(from: \"{source}...\")*\n"
+                hot_section += "\n"
+    except Exception:
+        pass  # brain.py not available or no intentions yet
     
     # Build the introspection prompt - HANDOFF FIRST for continuity
     introspection = ""
@@ -521,7 +542,7 @@ py consult.py <agent> "topic or question"
 
 You have **{total_memories} memories** spanning your existence in this enclave.
 Your last recorded thought was **{last_thought_time}**.
-{new_messages_section}{git_section}{recall_section}{serendipity_section}{tools_section}"""
+{new_messages_section}{git_section}{recall_section}{serendipity_section}{hot_section}{tools_section}"""
     
     if provocation:
         introspection += f"""### SYSTEM PROVOCATION
