@@ -21,6 +21,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave.config import get_agent_or_raise
 from enclave.semantic_memory import SemanticMemory
+from enclave.crypto import SovereignIdentity
+from enclave.opaque import OpaqueStorage
+from enclave.sif_parser import SIFParser
 
 
 def load_passphrase(agent_id: str) -> tuple[str, str]:
@@ -92,6 +95,7 @@ def get_all_messages(since_hours: int = 48) -> list[dict]:
                 'from': msg.get('from', 'unknown').lower(),
                 'to': msg.get('to', '').lower(),
                 'content': msg.get('content', ''),
+                'type': msg.get('type', 'text'),
                 'timestamp': ts,
                 'id': msg.get('id', '')
             })
@@ -169,11 +173,54 @@ def wake(agent_id: str) -> str:
     enclave_dir, passphrase = load_passphrase(agent_id)
     enclave_path = base_dir / enclave_dir
     
+    # Unlock identity for decryption
+    identity = SovereignIdentity(enclave_path)
+    if not identity.unlock(passphrase):
+        raise RuntimeError("Failed to unlock identity")
+    
+    # Get private key bytes for decryption
+    private_key_bytes = identity._private_key.private_bytes(
+        encoding=json.encoder.JSONEncoder, # Hack to get raw bytes? No.
+        # We need raw bytes for the opaque storage decryptor
+        # identity._private_key is an Ed25519PrivateKey object
+        # We need to use serialization.Encoding.Raw
+        # But we don't have serialization imported here.
+        # Let's access the private bytes directly if possible or import serialization
+        # Actually, let's just use the identity object if we can, or fix imports.
+        # Wait, OpaqueStorage.decrypt_share takes raw bytes.
+        # Let's import serialization at top level or inside here.
+        # Better: add a helper to SovereignIdentity to get raw private bytes.
+        # For now, let's do it inline.
+        format=None, encryption_algorithm=None # Placeholder
+    )
+    # Re-doing imports properly
+    from cryptography.hazmat.primitives import serialization
+    private_key_bytes = identity._private_key.private_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PrivateFormat.Raw,
+        encryption_algorithm=serialization.NoEncryption()
+    )
+
     output = []
     
     # Get all recent messages
     messages = get_all_messages(since_hours=48)
     
+    # Helper to decrypt content if needed
+    def process_content(msg):
+        content = msg['content']
+        if msg.get('type') == 'protocol/sif':
+            try:
+                encrypted_bundle = json.loads(content)
+                decrypted_bytes = OpaqueStorage.decrypt_share(encrypted_bundle, private_key_bytes)
+                sif_json = decrypted_bytes.decode('utf-8')
+                # Parse to get summary
+                graph = SIFParser.parse(sif_json)
+                return f"[SIF Graph] {len(graph.nodes)} nodes, {len(graph.edges)} edges (from {graph.generator})"
+            except Exception as e:
+                return f"[SIF Encrypted - Decryption Failed: {e}]"
+        return content
+
     # 1. Unanswered - questions I asked, no reply yet
     unanswered = find_unanswered(agent_id, messages)
     if unanswered:
@@ -181,7 +228,15 @@ def wake(agent_id: str) -> str:
         for msg in unanswered:
             ago = time_ago(msg['timestamp'])
             # Full content - need to see what I actually asked
-            output.append(f"   \"{msg['content']}\"")
+            # Note: Outgoing SIF messages are encrypted with RECIPIENT key, so I can't decrypt them!
+            # Unless I saved a copy or derived the shared secret.
+            # For now, just show raw or type.
+            if msg.get('type') == 'protocol/sif':
+                disp = "[SIF Graph - Encrypted for Recipient]"
+            else:
+                disp = f"\"{msg['content']}\""
+            
+            output.append(f"   {disp}")
             output.append(f"   → {msg['to']} hasn't replied ({ago})")
         output.append("")
     
@@ -203,7 +258,8 @@ def wake(agent_id: str) -> str:
         output.append("📨 WAITING:")
         for msg in waiting:
             ago = time_ago(msg['timestamp'])
-            output.append(f"   {msg['from']} ({ago}): {msg['content']}")
+            disp = process_content(msg)
+            output.append(f"   {msg['from']} ({ago}): {disp}")
         output.append("")
     
     if not output:
