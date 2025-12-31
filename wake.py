@@ -179,21 +179,6 @@ def wake(agent_id: str) -> str:
         raise RuntimeError("Failed to unlock identity")
     
     # Get private key bytes for decryption
-    private_key_bytes = identity._private_key.private_bytes(
-        encoding=json.encoder.JSONEncoder, # Hack to get raw bytes? No.
-        # We need raw bytes for the opaque storage decryptor
-        # identity._private_key is an Ed25519PrivateKey object
-        # We need to use serialization.Encoding.Raw
-        # But we don't have serialization imported here.
-        # Let's access the private bytes directly if possible or import serialization
-        # Actually, let's just use the identity object if we can, or fix imports.
-        # Wait, OpaqueStorage.decrypt_share takes raw bytes.
-        # Let's import serialization at top level or inside here.
-        # Better: add a helper to SovereignIdentity to get raw private bytes.
-        # For now, let's do it inline.
-        format=None, encryption_algorithm=None # Placeholder
-    )
-    # Re-doing imports properly
     from cryptography.hazmat.primitives import serialization
     private_key_bytes = identity._private_key.private_bytes(
         encoding=serialization.Encoding.Raw,

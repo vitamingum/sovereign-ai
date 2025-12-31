@@ -87,23 +87,10 @@ def send(from_agent: str, to_agent: str, content: str) -> str:
         # If successful, it is SIF. Encrypt it.
         msg_type = 'protocol/sif'
         
-        # Get recipient's public key
+        # Get recipient's public key (hex string from config)
         recipient_agent = get_agent_or_raise(recipient_id)
-        # We need the raw bytes of the public key. 
-        # The config stores hex strings? Let's check config.py or just load it.
-        # AGENTS_BY_KEY keys are bytes.
-        
-        # Find recipient key bytes
-        recipient_key_bytes = None
-        for key_bytes, agent_obj in AGENTS_BY_KEY.items():
-            if agent_obj.id == recipient_id:
-                recipient_key_bytes = key_bytes
-                break
-        
-        if not recipient_key_bytes:
-             # Fallback: try to load from their public storage if possible, 
-             # but AGENTS_BY_KEY should have it if they are enlisted.
-             raise ValueError(f"Could not find public key for {recipient_id}")
+        recipient_key_hex = recipient_agent.public_key
+        recipient_key_bytes = bytes.fromhex(recipient_key_hex)
 
         # Encrypt content
         # OpaqueStorage.encrypt_share is designed for shares but works for any bytes.

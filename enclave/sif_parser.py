@@ -34,10 +34,18 @@ class SIFKnowledgeGraph:
     context: str = "http://sovereign-ai.net/ns/v1"
 
 VALID_RELATIONS = {
-    # Core
+    # Core epistemological relations
     'supports', 'contradicts', 'extends', 'caused_by', 'equivalent_to',
-    # Grok's Extensions
-    'experiences', 'models', 'questions', 'synthesizes'
+    # Agent introspection (Grok's extensions)
+    'experiences', 'models', 'questions', 'synthesizes',
+    # Knowledge encoding (Gemini's extensions)
+    'validates', 'encodes',
+    # Process/pipeline relations (for technical graphs)
+    'transforms_to', 'extracts', 'refines_to', 'feeds_into', 
+    'constrains', 'predicts', 'produces', 'consumes',
+    # General semantic relations
+    'relates_to', 'requires', 'enables', 'precedes', 'follows',
+    'contains', 'part_of', 'instance_of', 'type_of'
 }
 
 class SIFParser:

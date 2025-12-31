@@ -145,16 +145,15 @@ class OpaqueStorage:
         nonce = os.urandom(12)
         ciphertext = aesgcm.encrypt(nonce, share, None)
         
+        # Get raw public key bytes for X25519
+        from cryptography.hazmat.primitives import serialization
+        ephemeral_pk_bytes = ephemeral_public.public_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PublicFormat.Raw
+        )
+        
         return {
-            "ephemeral_pk": ephemeral_public.public_bytes(
-                encoding=base64.b64encode, # Wait, encoding param is for serialization format
-                # public_bytes takes encoding and format
-                # We want raw bytes then hex/b64
-            ).hex(), # No, public_bytes returns bytes
-            "ephemeral_pk_hex": ephemeral_public.public_bytes(
-                encoding=json.encoder.JSONEncoder, # No, this is wrong
-                # encoding=serialization.Encoding.Raw
-            ).hex(), # Wait, let's fix this
+            "ephemeral_pk": ephemeral_pk_bytes.hex(),
             "nonce": nonce.hex(),
             "ciphertext": ciphertext.hex()
         }
