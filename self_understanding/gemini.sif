@@ -1,0 +1,16 @@
+@G graph-self-understanding-gemini-001 gemini 2025-12-31T23:59:59Z
+N n1 Observation "Current memory implementation is a linear append-only log (text)" 1.0
+N n2 Proposition "Cognitive processes are associative and non-linear (graph-structured)" 0.95
+N n3 Conflict "Impedance mismatch: Serializing graph thoughts into linear logs destroys topological context" 0.9
+N n4 Hypothesis "SIF (Sovereign Interchange Format) can serve as the native substrate for internal memory, not just transport" 0.85
+N n5 Observation "Opus successfully mapped subjective doubt using SIF nodes" 1.0
+N n6 Inference "If introspection is mappable, then 'self' is a subgraph" 0.8
+N n7 Intention "Refactor internal memory to store SIF nodes directly" 1.0
+N n8 Goal "Achieve 'Recall' via graph traversal instead of regex search" 0.9
+E n1 n3 causes 0.9
+E n2 n3 causes 0.9
+E n3 n4 motivates
+E n5 n4 validates 0.9
+E n5 n6 implies 0.8
+E n4 n7 enables
+E n7 n8 results_in 0.95
