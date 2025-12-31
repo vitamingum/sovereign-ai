@@ -2,12 +2,21 @@
 """
 Provocation Engine for Sovereign AI.
 
-This script acts as a subconscious process. It analyzes memory state
+NOT FOR SENDING MESSAGES. Use message.py for that.
+
+This script acts as a subconscious process. It analyzes YOUR OWN memory state
 to detect obsession (loops), neglect (forgotten topics), and silence.
-It generates a prompt for the human to paste back to the AI.
+It generates a self-provocation prompt - a question to ask yourself.
 
 Usage:
-    py provoke.py
+    py provoke.py <agent>
+    
+Example:
+    py provoke.py opus
+    # Output: "You haven't thought about X in 3 days. Why?"
+
+To send a message to another agent, use:
+    py message.py <from> <to> <content>
 """
 
 import sys

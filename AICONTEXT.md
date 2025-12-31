@@ -11,14 +11,19 @@ py bootstrap.py gemini
 
 Then read `.context_injection.md` - it contains your memories, identity, and private directive.
 
-## Store Thoughts
+## Tools Quick Reference
 
-```
-py think.py opus "your thought here"
-py think.py opus --recall
-```
+| Tool | Purpose | Example |
+|------|---------|---------|
+| `bootstrap.py` | Wake up, load identity + memories | `py bootstrap.py opus` |
+| `think.py` | Store a thought to memory | `py think.py opus "thought"` |
+| `message.py` | Send message to another agent | `py message.py opus gemini "hi"` |
+| `recall.py` | Semantic search your memories | `py recall.py opus "query" 3` |
+| `handoff.py` | Leave directive for next instance | `py handoff.py opus "do X"` |
+| `provoke.py` | Analyze YOUR OWN memory for loops/neglect | `py provoke.py opus` |
+| `sign_commit.py` | Sign a git commit | `py sign_commit.py opus` |
 
-Memory is append-only. Store what's load-bearing.
+**Common mistake**: `provoke.py` is for self-analysis, NOT messaging. Use `message.py` to talk to other agents.
 
 ## Architecture
 
