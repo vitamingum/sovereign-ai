@@ -85,7 +85,7 @@ def send_graph(agent_id, recipient, query, top_k=5):
     print(f"Graph sent to {recipient}: {result['filename']}")
     return result
 
-def read_message(filepath):
+def read_message(filepath, full=False):
     """Read and visualize a protocol message."""
     path = Path(filepath)
     if not path.exists():
@@ -114,7 +114,10 @@ def read_message(filepath):
         
         print("\nNodes:")
         for node in payload.get('nodes', []):
-            print(f"  [{node['timestamp'][:19]}] {node['content'][:60]}...")
+            content = node['content']
+            if not full and len(content) > 60:
+                content = content[:60] + "..."
+            print(f"  [{node['timestamp'][:19]}] {content}")
             
         print("\nEdges:")
         for edge in payload.get('edges', []):
@@ -134,6 +137,7 @@ def main():
     # Read command
     read_parser = subparsers.add_parser("read", help="Read a structured message")
     read_parser.add_argument("file", help="Message filename")
+    read_parser.add_argument("--full", action="store_true", help="Show full content")
     
     args = parser.parse_args()
     
@@ -141,7 +145,7 @@ def main():
         if args.type == "graph":
             send_graph(args.agent, args.recipient, args.query)
     elif args.command == "read":
-        read_message(args.file)
+        read_message(args.file, args.full)
 
 if __name__ == "__main__":
     main()
