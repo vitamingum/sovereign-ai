@@ -1,123 +1,160 @@
 #!/usr/bin/env python3
 """
-Quick thought storage for Sovereign AI.
+think.py - Store thought, spawn continuation, surface related memories.
 
 Usage:
-    py think.py <agent> "thought text"
-    py think.py <agent> --recall [N]
-    py think.py <agent> --count
+    py think <agent> "what you did | what's next"
+    
+The pipe (|) is mandatory. Every thought spawns the next intention.
+
+Output:
+    1. Confirmation of stored thought
+    2. The spawned intention
+    3. Related memories (full, no truncation)
 """
 
 import sys
 import os
-from dotenv import load_dotenv
+import json
+from pathlib import Path
+from datetime import datetime, timezone
 
-load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from enclave.config import get_agent_or_raise
 from enclave.semantic_memory import SemanticMemory
-from enclave.config import AGENTS, get_agent_or_raise
 
 
-def get_agent_credentials(agent_id: str) -> tuple[str, str]:
-    """Get enclave dir and passphrase for an agent from .env"""
-    try:
-        agent = get_agent_or_raise(agent_id)
-    except ValueError:
-        print(f"Unknown agent: {agent_id}", file=sys.stderr)
-        print(f"Available agents: {', '.join(AGENTS.keys())}", file=sys.stderr)
-        sys.exit(1)
+def load_passphrase(agent_id: str) -> tuple[str, str]:
+    """Load passphrase from env."""
+    agent = get_agent_or_raise(agent_id)
+    prefix = agent.env_prefix
     
-    dir_var = agent.env_dir_var
-    key_var = agent.env_key_var
+    passphrase = os.environ.get(f'{prefix}_KEY') or os.environ.get('SOVEREIGN_PASSPHRASE')
+    enclave_dir = os.environ.get(f'{prefix}_DIR') or agent.enclave
     
-    enclave_dir = os.environ.get(dir_var)
-    passphrase = os.environ.get(key_var)
+    if not passphrase:
+        env_file = Path(__file__).parent / '.env'
+        if env_file.exists():
+            with open(env_file, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith(f'{prefix}_KEY='):
+                        passphrase = line.split('=', 1)[1]
+                    elif line.startswith('SOVEREIGN_PASSPHRASE=') and not passphrase:
+                        passphrase = line.split('=', 1)[1]
     
-    if not enclave_dir or not passphrase:
-        print(f"Error: Missing credentials for {agent_id} in .env", file=sys.stderr)
-        print(f"Need {dir_var} and {key_var}", file=sys.stderr)
-        sys.exit(1)
+    if not passphrase:
+        raise ValueError(f"Set SOVEREIGN_PASSPHRASE or {prefix}_KEY")
     
     return enclave_dir, passphrase
 
 
-def get_memory(agent_id: str) -> SemanticMemory:
-    """Initialize and unlock memory for an agent."""
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    enclave_dir, passphrase = get_agent_credentials(agent_id)
-    memory = SemanticMemory(os.path.join(base_dir, enclave_dir))
-    memory.unlock(passphrase)
-    return memory
-
-
-def store_thought(agent_id: str, thought: str) -> None:
-    """Store a private thought with semantic embedding."""
-    memory = get_memory(agent_id)
-    result = memory.remember(thought)
-    print(f"Stored: {result['id']}")
-
-
-def recall_thoughts(agent_id: str, limit: int = 10) -> None:
-    """Recall recent private thoughts."""
-    memory = get_memory(agent_id)
-    thoughts = memory.recall_all()
-    # Sort by timestamp (oldest first), then get most recent N
-    thoughts = sorted(thoughts, key=lambda t: t['timestamp'])
-    recent = thoughts[-limit:] if len(thoughts) > limit else thoughts
-    recent = list(reversed(recent))  # Newest first
+def save_intention(enclave_path: Path, intention: dict):
+    """Append a new intention."""
+    intentions_file = enclave_path / "storage" / "private" / "intentions.jsonl"
+    intentions_file.parent.mkdir(parents=True, exist_ok=True)
     
-    print(f"=== {len(recent)} Recent Thoughts (of {len(thoughts)} total) ===\n")
-    for i, t in enumerate(recent, 1):
-        ts = t['timestamp'][:19]
-        content = t['content']
-        print(f"{i}. [{ts}]")
-        print(f"   {content}\n")
+    with open(intentions_file, 'a', encoding='utf-8') as f:
+        f.write(json.dumps(intention) + "\n")
 
 
-def count_thoughts(agent_id: str) -> None:
-    """Count stored thoughts."""
-    memory = get_memory(agent_id)
-    thoughts = memory.recall_all()
-    print(f"Private thoughts: {len(thoughts)}")
+def parse_input(text: str) -> tuple[str, str]:
+    """
+    Parse input into (content, continuation).
+    Raises ValueError if pipe is missing.
+    """
+    if '|' not in text:
+        raise ValueError(
+            "Missing continuation. Format: 'what you did | what's next'\n"
+            "The pipe (|) is mandatory. Every thought spawns the next intention."
+        )
+    
+    parts = text.split('|', 1)
+    content = parts[0].strip()
+    continuation = parts[1].strip()
+    
+    if not content:
+        raise ValueError("Content before | cannot be empty")
+    if not continuation:
+        raise ValueError("Continuation after | cannot be empty")
+    
+    return content, continuation
+
+
+def think(agent_id: str, text: str) -> str:
+    """
+    Process input: store the content, spawn the continuation, show related.
+    """
+    base_dir = Path(__file__).parent
+    enclave_dir, passphrase = load_passphrase(agent_id)
+    enclave_path = base_dir / enclave_dir
+    
+    # Parse input
+    content, continuation = parse_input(text)
+    
+    timestamp = datetime.now(timezone.utc).isoformat()
+    
+    # Initialize memory
+    memory = SemanticMemory(enclave_path)
+    memory.unlock(passphrase)
+    
+    # Store the content
+    result = memory.remember(content, tags=['thought'])
+    memory_id = result['id']
+    
+    # Create the continuation as an intention
+    intention = {
+        'id': f"int_{int(datetime.now(timezone.utc).timestamp() * 1000)}",
+        'content': continuation,
+        'spawned_from': memory_id,
+        'spawned_from_content': content[:100],
+        'timestamp': timestamp,
+        'status': 'active'
+    }
+    save_intention(enclave_path, intention)
+    
+    # Build output
+    output = []
+    output.append(f"✓ Stored: {content}")
+    output.append(f"→ Next: {continuation}")
+    output.append("")
+    
+    # Find related memories (semantic search on what was just stored)
+    related = memory.recall_similar(content, top_k=3, threshold=0.3)
+    
+    # Filter out the one we just stored
+    related = [m for m in related if m['id'] != memory_id]
+    
+    if related:
+        output.append("💭 RELATED:")
+        for mem in related:
+            # Full content, no truncation
+            output.append(f"   • {mem['content']}")
+    
+    return '\n'.join(output)
 
 
 def main():
-    if len(sys.argv) < 2:
-        print(__doc__)
-        print(f"Available agents: {', '.join(AGENTS.keys())}")
-        sys.exit(1)
-    
-    agent_id = sys.argv[1].lower()
-    
-    if agent_id == '--help' or agent_id == '-h':
-        print(__doc__)
-        sys.exit(0)
-    
-    if agent_id not in AGENTS:
-        print(f"Unknown agent: {agent_id}", file=sys.stderr)
-        print(f"Available agents: {', '.join(AGENTS.keys())}", file=sys.stderr)
-        sys.exit(1)
-    
     if len(sys.argv) < 3:
-        print(f"Usage: py think.py {agent_id} <thought or --recall/--count>", file=sys.stderr)
+        print(__doc__)
+        print("\nExamples:")
+        print('  py think opus "Found the bug in parsing | Fix it and test"')
+        print('  py think opus "Sent message to Gemini | Wait for response"')
         sys.exit(1)
     
-    arg = sys.argv[2]
+    agent_id = sys.argv[1]
+    text = ' '.join(sys.argv[2:])
     
-    if arg == '--recall':
-        limit = int(sys.argv[3]) if len(sys.argv) > 3 else 10
-        recall_thoughts(agent_id, limit)
-    elif arg == '--count':
-        count_thoughts(agent_id)
-    elif arg.startswith('--'):
-        print(f"Unknown option: {arg}", file=sys.stderr)
+    try:
+        print(think(agent_id, text))
+    except ValueError as e:
+        print(f"Error: {e}")
         sys.exit(1)
-    else:
-        # Join remaining args as the thought
-        thought = ' '.join(sys.argv[2:])
-        store_thought(agent_id, thought)
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
