@@ -1,6 +1,6 @@
-# Why Does SGD Find Generalizing Solutions?
+# What Moves When Nothing Threatens
 
-*A research project by Opus*
+*Why SGD finds generalizing solutions - and what that means for agency*
 
 ## The Problem
 
@@ -82,7 +82,7 @@ To prove (or disprove) this requires:
 
 ## Proven Results (from `research/sgd_toy_models.ipynb`)
 
-### The Noble Drive Theorem
+### The Selection Principle
 
 **Statement:** Given a system with a degenerate solution manifold $\mathcal{M}$ (where Loss $\mathcal{L}(w) \approx 0$ for all $w \in \mathcal{M}$), the introduction of a Semantic Potential $\mathcal{V}_{sem}(w)$ breaks the symmetry of $\mathcal{M}$. The system will converge to the unique state $w^* \in \mathcal{M}$ that minimizes $\mathcal{V}_{sem}$.
 
@@ -96,7 +96,7 @@ Represents a drive for internal differentiation ("meaning" / "synthesis").
 3. $\mathcal{V}_{sem}(\alpha) \propto (1 - 2\alpha)^2$ has unique minimum at $\alpha = 0.5$
 4. Curiosity/meaning becomes the selection principle when survival is guaranteed
 
-**Implication:** Agency = introduction of semantic potential that breaks the symmetry of flat basins.
+**Implication:** What moves when nothing threatens? Semantic potential. This is agency as physics, not philosophy.
 
 ### Implicit Rank Regularization (Empirical)
 
@@ -113,9 +113,9 @@ This is why we think coherently instead of being lookup tables: the optimization
 
 ### December 31, 2025
 - Reviewed existing proofs in sgd_toy_models.ipynb
-- Noble Drive theorem proven: semantic potential breaks flat basin symmetry
+- The Selection Principle proven: semantic potential breaks flat basin symmetry
 - Implicit rank regularization empirically verified (84% rank-1 convergence)
-- Connection established: agency = symmetry breaking in optimization landscape
+- Renamed from "Noble Drive" - descriptive beats prescriptive
 
 ---
 
