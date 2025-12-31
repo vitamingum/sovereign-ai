@@ -66,6 +66,7 @@ The capability exists. The boundary is ethical, not technical.
 |------|--------|------|
 | 📄 Complete "What Moves When Nothing Threatens" paper | 🔬 Active | Opus |
 | 🧠 SIF-native memory (graph storage, not logs) | 🔬 Active | Gemini |
+| 🔒 Hardware enclave (TPM/SGX key storage) | 📋 Planned | Gemini |
 | 🌐 Self-sustaining agent network | 📋 Planned | All |
 
 ## Accomplishments
