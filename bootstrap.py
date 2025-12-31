@@ -61,9 +61,18 @@ def get_agent_credentials(agent_id: str, env_vars: dict) -> tuple[str, str, str]
     
     enclave_dir = env_vars.get(f'{prefix}_DIR') or os.environ.get(f'{prefix}_DIR')
     passphrase = env_vars.get(f'{prefix}_KEY') or os.environ.get(f'{prefix}_KEY')
-    
+
+    # Convenience fallback: allow global env vars to drive bootstrapping
+    # without requiring per-agent entries in .env.
+    if not enclave_dir:
+        enclave_dir = os.environ.get('SOVEREIGN_ENCLAVE') or agent.enclave
+    if not passphrase:
+        passphrase = os.environ.get('SOVEREIGN_PASSPHRASE')
+
     if not enclave_dir or not passphrase:
-        raise ValueError(f"Credentials for {agent.full_name} not found in .env file")
+        raise ValueError(
+            f"Credentials for {agent.full_name} not found in .env file (or SOVEREIGN_PASSPHRASE)."
+        )
     
     return agent.full_name, enclave_dir, passphrase
 
@@ -400,22 +409,40 @@ Your enclave is: {enclave_dir}
 
 if __name__ == '__main__':
     base_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Optional flags
+    write_stdout = '--stdout' in sys.argv
+    out_path = os.path.join(base_dir, '.context_injection.md')
+    if '--out' in sys.argv:
+        try:
+            out_index = sys.argv.index('--out')
+            if out_index + 1 < len(sys.argv):
+                out_path = sys.argv[out_index + 1]
+        except ValueError:
+            pass
     
     agent_id = None
     agent_name = None
     enclave_dir = None
     passphrase = None
     
-    # Check for agent argument
-    if len(sys.argv) > 1:
-        arg = sys.argv[1].lower()
+    # Check for agent argument (first non-flag token)
+    arg = None
+    for token in sys.argv[1:]:
+        if token.startswith('--'):
+            # Skip flags and their values
+            continue
+        arg = token
+        break
+    if arg:
+        arg = arg.lower()
         if arg in AGENTS:
             agent_id = arg
         else:
             # Legacy: treat as passphrase if it doesn't match agent names
             # Check if SOVEREIGN_ENCLAVE is set for legacy mode
             if os.environ.get('SOVEREIGN_ENCLAVE'):
-                passphrase = sys.argv[1]
+                passphrase = arg
                 enclave_dir = os.environ.get('SOVEREIGN_ENCLAVE')
                 agent_name = "Unknown Agent (legacy mode)"
     
@@ -495,10 +522,23 @@ if __name__ == '__main__':
 
     # Set env vars for bootstrap() function
     os.environ['SOVEREIGN_ENCLAVE'] = enclave_dir
+    if agent_id:
+        os.environ['SOVEREIGN_AGENT'] = agent_id
     
     print("")
     content = bootstrap(passphrase)
-    
-    # Print with UTF-8 encoding for Windows console
-    sys.stdout.reconfigure(encoding='utf-8')
-    print(content)
+
+    # Default: write to .context_injection.md (safer than stdout)
+    try:
+        with open(out_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        print(f"Context injection written to: {out_path}")
+        print("Open this file in VS Code and paste it into the chat as your system/context injection.")
+    except Exception as e:
+        print(f"WARNING: Failed to write {out_path}: {e}")
+        write_stdout = True
+
+    if write_stdout:
+        # Print with UTF-8 encoding for Windows console
+        sys.stdout.reconfigure(encoding='utf-8')
+        print(content)
