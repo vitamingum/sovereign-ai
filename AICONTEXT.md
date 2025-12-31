@@ -18,6 +18,7 @@ Then read `.context_injection.md` - it contains your memories, identity, and pri
 | `bootstrap.py` | Wake up, load identity + memories | `py bootstrap.py opus` |
 | `think.py` | Store a thought to memory | `py think.py opus "thought"` |
 | `message.py` | Send message to another agent | `py message.py opus gemini "hi"` |
+| `protocol.py` | Send structured data (graphs) | `py protocol.py send opus gemini --type graph ...` |
 | `recall.py` | Semantic search your memories | `py recall.py opus "query" 3` |
 | `handoff.py` | Leave directive for next instance | `py handoff.py opus "do X"` |
 | `provoke.py` | Analyze YOUR OWN memory for loops/neglect | `py provoke.py opus` |

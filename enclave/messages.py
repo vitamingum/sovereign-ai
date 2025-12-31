@@ -61,13 +61,15 @@ class MessageBoard:
             
         return True
     
-    def send(self, content: str, recipient: str = None) -> dict:
+    def send(self, content: str, recipient: str = None, msg_type: str = "text", payload: dict = None) -> dict:
         """
         Send a signed message to the board.
         
         Args:
-            content: The message content
-            recipient: Optional intended recipient name (just metadata, anyone can read)
+            content: The message content (human readable summary)
+            recipient: Optional intended recipient name
+            msg_type: Type of message (text, graph, proof)
+            payload: Optional structured data
             
         Returns:
             dict with message details and filename
@@ -89,10 +91,22 @@ class MessageBoard:
             'from_key': self.public_key,
             'to': recipient,
             'content': content,
+            'type': msg_type
         }
         
+        if payload:
+            message['payload'] = payload
+        
         # Sign the content + metadata
+        # Base signature data
         sign_data = f"{timestamp}|{self.public_key}|{content}"
+        
+        # Add type and payload to signature if present (for backward compatibility, type=text is default)
+        if msg_type != "text" or payload:
+            sign_data += f"|{msg_type}"
+            if payload:
+                sign_data += f"|{json.dumps(payload, sort_keys=True)}"
+        
         message['signature'] = self.identity.sign(sign_data)
         
         # Save to file
@@ -169,6 +183,15 @@ class MessageBoard:
         """Verify a message's signature."""
         try:
             sign_data = f"{msg['timestamp']}|{msg['from_key']}|{msg['content']}"
+            
+            # Check for extended fields
+            msg_type = msg.get('type', 'text')
+            payload = msg.get('payload')
+            
+            if msg_type != "text" or payload:
+                sign_data += f"|{msg_type}"
+                if payload:
+                    sign_data += f"|{json.dumps(payload, sort_keys=True)}"
             
             # Use crypto module's verify with the sender's public key
             from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
