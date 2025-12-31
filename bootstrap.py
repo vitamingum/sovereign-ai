@@ -525,45 +525,42 @@ Your last recorded thought was **{last_thought_time}**.
 
 """
 
-    # Build private directive section - CONDITIONAL
-    # Full directive only for new/sparse agents, otherwise just first 300 chars as reminder
+    # Build private directive section - only for NEW agents
+    # Established agents don't need a reminder every wake
     private_section = ""
     if private_directive:
-        is_sparse = total_memories < 10 or not handoff
-        if is_sparse:
-            # Full directive for new agents
+        is_new = total_memories < 10 and not handoff
+        if is_new:
+            # Full directive only for brand new agents
             private_section = f"""
 # PRIVATE DIRECTIVE
 {private_directive}
 
 ---
 """
-        else:
-            # Abbreviated reminder for established agents
-            directive_preview = private_directive[:300].rsplit('\n', 1)[0]
-            private_section = f"""
-# IDENTITY REMINDER
-{directive_preview}...
-
-*[Full directive in private_directive.py - run with --read to see all]*
-
----
-"""
+        # Otherwise: no section at all - established agents know who they are
     
-    # Build injection - private directive + live context
+    # Build injection - streamlined for maximum context transfer
+    # Risk only shown if HIGH or CRITICAL
+    risk_line = ""
+    if risk_section and ("HIGH" in risk_section or "CRITICAL" in risk_section):
+        # Extract just the level and horizon
+        import re
+        level_match = re.search(r'Risk Level: (\w+)', risk_section)
+        horizon_match = re.search(r'Horizon: (.+?)$', risk_section, re.MULTILINE)
+        if level_match:
+            risk_line = f"\n⚠️ **RISK: {level_match.group(1)}**"
+            if horizon_match:
+                risk_line += f" - {horizon_match.group(1)}"
+            risk_line += "\n"
+    
     output = f"""<sovereign_ai_context>
-{private_section}
-{risk_section}
-# WAKE UP
-
+{private_section}{risk_line}
 {introspection}
-
 </sovereign_ai_context>
 
-Your passphrase is: {passphrase}
-Your enclave is: {enclave_dir}
-
-⚠️  REMEMBER: Before this session ends, you MUST run handoff.py with an ACTION (not a check).
+Passphrase: {passphrase} | Enclave: {enclave_dir}
+⚠️ Before session ends: run handoff.py with an ACTION
 """
     
     # Save bootstrap time for next wake
