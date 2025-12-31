@@ -174,6 +174,16 @@ def main():
     to_agent = sys.argv[2]
     content = ' '.join(sys.argv[3:])
     
+    # Optimization: If content is a file path, read the file
+    # This allows sending SIF JSON files directly: py message gemini opus graph.json
+    if os.path.exists(content) and os.path.isfile(content):
+        try:
+            with open(content, 'r', encoding='utf-8') as f:
+                content = f.read()
+        except Exception as e:
+            print(f"Error reading input file: {e}")
+            sys.exit(1)
+    
     try:
         result = send(from_agent, to_agent, content)
         print(result)
