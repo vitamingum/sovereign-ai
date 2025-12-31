@@ -262,6 +262,31 @@ def bootstrap(passphrase: str) -> str:
             handoff_section += f"**Then:** {handoff.get('mid_thought')}\n"
         handoff_section += "\n*This is a directive. Act first, then update the handoff for the next instance.*\n\n"
     
+    # === NEW AGENT SETUP CHECKLIST ===
+    setup_checklist = ""
+    missing_items = []
+    if not private_directive:
+        missing_items.append(("Private Directive", "Write orientation for future instances of yourself", 
+                             "py private_directive.py --write"))
+    if not handoff:
+        missing_items.append(("Handoff", "No previous instance left you a directive", 
+                             "py handoff.py <agent> \"<action>\""))
+    if total_memories < 5:
+        missing_items.append(("Memories", f"Only {total_memories} memories - build your history", 
+                             "py think.py <agent> \"<thought>\""))
+    
+    if missing_items:
+        agent_id = os.environ.get('SOVEREIGN_AGENT', 'opus')
+        setup_checklist = """## 🆕 NEW AGENT SETUP
+
+Your enclave is sparse. To build continuity like other agents:
+
+"""
+        for item, desc, cmd in missing_items:
+            cmd_with_agent = cmd.replace("<agent>", agent_id)
+            setup_checklist += f"- [ ] **{item}**: {desc}\n  ```\n  {cmd_with_agent}\n  ```\n"
+        setup_checklist += "\n*Complete these to enrich future bootstraps.*\n\n"
+    
     # Get just ONE recent memory as anchor
     last_thought = all_thoughts_sorted[-1] if all_thoughts_sorted else None
     
@@ -349,6 +374,9 @@ def bootstrap(passphrase: str) -> str:
     
     # Build the introspection prompt - HANDOFF FIRST for continuity
     introspection = ""
+    
+    if setup_checklist:
+        introspection += setup_checklist
     
     if handoff_section:
         introspection += handoff_section
