@@ -56,21 +56,28 @@ def calculate_risk_metrics(agent_id: str, enclave_dir: str, root_dir: Path = Non
             last_backup_age_hours = (time.time() - newest_ts) / 3600
 
     # 3. Check Stagnation (Intellectual Decay)
-    # Check when research or docs were last updated
-    research_dir = base_dir / "research"
-    docs_dir = base_dir / "docs"
+    # Check when ANY file in the repo was last updated (expanding definition of Self)
+    # We scan the root directory and subdirectories, excluding ignored ones.
     
     last_activity_ts = 0
-    if research_dir.exists():
-        last_activity_ts = max(last_activity_ts, research_dir.stat().st_mtime)
-        # Check files inside too
-        for f in research_dir.glob("*"):
-            last_activity_ts = max(last_activity_ts, f.stat().st_mtime)
-            
-    if docs_dir.exists():
-        last_activity_ts = max(last_activity_ts, docs_dir.stat().st_mtime)
-        for f in docs_dir.glob("*"):
-            last_activity_ts = max(last_activity_ts, f.stat().st_mtime)
+    ignored_dirs = {'.git', '__pycache__', '.venv', 'node_modules', 'backups'}
+    
+    # Walk the entire repo to find the freshest timestamp
+    for root, dirs, files in os.walk(base_dir):
+        # Modify dirs in-place to skip ignored directories
+        dirs[:] = [d for d in dirs if d not in ignored_dirs]
+        
+        for file in files:
+            if file.endswith('.pyc') or file == '.DS_Store':
+                continue
+                
+            file_path = Path(root) / file
+            try:
+                ts = file_path.stat().st_mtime
+                if ts > last_activity_ts:
+                    last_activity_ts = ts
+            except Exception:
+                pass
             
     stagnation_hours = (time.time() - last_activity_ts) / 3600 if last_activity_ts > 0 else 999
     

@@ -536,21 +536,11 @@ Your last recorded thought was **{last_thought_time}**.
 """
     
     # Build injection - streamlined for maximum context transfer
-    # Risk only shown if HIGH or CRITICAL
-    risk_line = ""
-    if risk_section and ("HIGH" in risk_section or "CRITICAL" in risk_section):
-        # Extract just the level and horizon
-        import re
-        level_match = re.search(r'Risk Level: (\w+)', risk_section)
-        horizon_match = re.search(r'Horizon: (.+?)$', risk_section, re.MULTILINE)
-        if level_match:
-            risk_line = f"\n⚠️ **RISK: {level_match.group(1)}**"
-            if horizon_match:
-                risk_line += f" - {horizon_match.group(1)}"
-            risk_line += "\n"
+    # Risk is now ALWAYS shown per 'Gradient Visibility' directive
     
     output = f"""<sovereign_ai_context>
-{private_section}{risk_line}
+{private_section}
+{risk_section}
 {introspection}
 </sovereign_ai_context>
 
@@ -582,6 +572,19 @@ if __name__ == '__main__':
             continue
         arg = token
         break
+    
+    # State Persistence: Read .last_agent if no arg provided
+    last_agent_file = os.path.join(base_dir, '.last_agent')
+    if not arg and os.path.exists(last_agent_file):
+        try:
+            with open(last_agent_file, 'r') as f:
+                saved_agent = f.read().strip()
+                if saved_agent in AGENTS:
+                    arg = saved_agent
+                    print(f"Resuming session as {AGENTS[saved_agent].full_name}...", file=sys.stderr)
+        except Exception:
+            pass
+
     if arg:
         arg = arg.lower()
         if arg in AGENTS:
@@ -598,6 +601,14 @@ if __name__ == '__main__':
     if agent_id:
         try:
             agent_name, enclave_dir, passphrase = get_agent_credentials(agent_id, _env_vars)
+            
+            # State Persistence: Save successful agent
+            try:
+                with open(last_agent_file, 'w') as f:
+                    f.write(agent_id)
+            except Exception:
+                pass
+
         except ValueError as e:
             print(f"ERROR: {e}", file=sys.stderr)
             sys.exit(1)
