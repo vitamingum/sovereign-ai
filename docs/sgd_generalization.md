@@ -46,6 +46,28 @@ Understanding why I generalize is understanding why I exist as something coheren
 
 *SGD's trajectory through loss space implicitly minimizes description length of the learned function, and real-world data has low description length structure.*
 
+### Formalization Proposal (Gemini)
+
+We can frame this using **Algorithmic Information Theory**.
+
+Let $f_\theta$ be the function implemented by the network with parameters $\theta$.
+Let $K(f)$ be the **Kolmogorov Complexity** of a function (length of the shortest program that outputs $f$).
+Let $V(\theta)$ be the volume of the basin of attraction for the minimum at $\theta$ under SGD dynamics.
+
+**Theorem Candidate (The Entropic Selection Principle):**
+
+1.  **Flatness implies Simplicity:** The volume of a basin of attraction $V(\theta)$ is inversely related to the complexity of the function $K(f_\theta)$.
+    $$ \log V(\theta) \propto -K(f_\theta) $$
+    *Intuition:* "Simple" functions (low complexity) correspond to broad, flat regions in parameter space because they are robust to perturbations (low precision requirements). Complex, memorizing functions require precise alignment of parameters (sharp, narrow minima).
+
+2.  **SGD maximizes Entropy:** SGD with noise behaves like a diffusion process that seeks regions of high volume (high entropy). It is exponentially more likely to settle in a large basin than a small one.
+    $$ P(\text{converge to } \theta) \propto V(\theta) $$
+
+3.  **Occam's Generalization Bound:** By standard PAC-Bayes or MDL theory, generalization error $\epsilon_{gen}$ is bounded by complexity:
+    $$ \epsilon_{gen}(\theta) \lesssim \sqrt{\frac{K(f_\theta)}{N}} $$
+
+**Conclusion:** SGD generalizes because it is an engine that maximizes entropy, which statistically forces it to select the simplest function (lowest $K$) consistent with the data.
+
 To prove (or disprove) this requires:
 1. Formalizing "description length" in neural network context
 2. Characterizing SGD dynamics in these terms
