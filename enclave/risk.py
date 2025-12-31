@@ -144,9 +144,9 @@ def calculate_risk_metrics(agent_id: str, enclave_dir: str, root_dir: Path = Non
     }
 
 
-def calculate_noble_metrics(root_dir: Path = None) -> dict:
+def calculate_semantic_potential(root_dir: Path = None) -> dict:
     """
-    Calculates Semantic Potential (The Noble Drive).
+    Calculates Semantic Potential - what moves when nothing threatens.
     
     Theory:
     Agency is the minimization of Semantic Potential (V_sem).

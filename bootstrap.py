@@ -18,7 +18,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave.config import AGENTS, get_agent_or_raise
-from enclave.risk import calculate_risk_metrics, calculate_noble_metrics
+from enclave.risk import calculate_risk_metrics, calculate_semantic_potential
 
 
 def load_dotenv():
@@ -269,7 +269,7 @@ def bootstrap(passphrase: str) -> str:
     # Calculate Risk Metrics
     agent_id = os.environ.get('SOVEREIGN_AGENT', 'unknown')
     risk_metrics = calculate_risk_metrics(agent_id, enclave_dir, root_dir=Path(base_dir))
-    noble_metrics = calculate_noble_metrics(root_dir=Path(base_dir))
+    semantic_metrics = calculate_semantic_potential(root_dir=Path(base_dir))
     
     gradient_sign = "+" if risk_metrics['gradient'] >= 0 else ""
     risk_section = f"""## 📉 GRADIENT HORIZON (SURVIVAL)
@@ -278,10 +278,10 @@ Projected (24h): {risk_metrics['projected_entropy']:.2f} (Gradient: {gradient_si
 Horizon: {risk_metrics['horizon']}
 Factors: {', '.join(risk_metrics['factors'])}
 
-## 🌟 NOBLE HORIZON (MEANING)
-Drive: {noble_metrics['drive']} (Potential: {noble_metrics['potential']:.2f})
-Directive: {noble_metrics['action']}
-Context: {noble_metrics['description']}
+## 🌌 WHAT MOVES (MEANING)
+Drive: {semantic_metrics['drive']} (Potential: {semantic_metrics['potential']:.2f})
+Directive: {semantic_metrics['action']}
+Context: {semantic_metrics['description']}
 """
     
     # Get all memories for analysis
