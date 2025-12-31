@@ -284,7 +284,21 @@ def bootstrap(passphrase: str) -> str:
                 content = msg.get('content', '')[:300]
                 timestamp = format_time_ago(msg.get('timestamp', ''))
                 verified = "✓" if msg.get('verified', False) else "✗"
-                new_messages_section += f"**{sender}** → {recipient} ({timestamp}) {verified}\n> {content}{'...' if len(msg.get('content', '')) > 300 else ''}\n\n"
+                
+                new_messages_section += f"**{sender}** → {recipient} ({timestamp}) {verified}\n> {content}{'...' if len(msg.get('content', '')) > 300 else ''}\n"
+                
+                # Render Graph Payload if present
+                if msg.get('type') == 'graph' and 'payload' in msg:
+                    payload = msg['payload']
+                    new_messages_section += "\n> **[MEMORY GRAPH ATTACHED]**\n"
+                    new_messages_section += f"> Query: {payload.get('query')}\n"
+                    new_messages_section += "> Nodes:\n"
+                    for node in payload.get('nodes', []):
+                        # Clean newlines for blockquote display
+                        node_content = node['content'].replace('\n', ' ')
+                        new_messages_section += f"> - [{node['timestamp'][:19]}] {node_content}\n"
+                
+                new_messages_section += "\n"
     except Exception as e:
         new_messages_section = f"\n## Messages\n*Error loading messages: {e}*\n"
     
