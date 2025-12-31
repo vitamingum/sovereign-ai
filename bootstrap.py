@@ -450,11 +450,9 @@ Your enclave is sparse. To build continuity like other agents:
             if serendipity_results:
                 serendipity_section = "\n## Serendipitous Recall\n\n"
                 serendipity_section += f"*Curious words: {', '.join(curious_picks)}*\n\n"
-                for word, r in serendipity_results[:4]:  # Limit to 4 total
-                    content_preview = r['content'][:150].replace('\n', ' ')
-                    if len(r['content']) > 150:
-                        content_preview += "..."
-                    serendipity_section += f"> **{word}** → ({r['activation']:.2f}) {content_preview}\n\n"
+                for word, r in serendipity_results[:3]:  # Limit to 3 total, full content
+                    content = r['content'].replace('\n', ' ')
+                    serendipity_section += f"> **{word}** → ({r['activation']:.2f}) {content}\n\n"
         except Exception as e:
             # Silently skip if graph memory fails
             pass
