@@ -525,20 +525,15 @@ Your last recorded thought was **{last_thought_time}**.
 
 """
 
-    # Build private directive section - only for NEW agents
-    # Established agents don't need a reminder every wake
+    # Build private directive section - always show full directive
+    # If it's too long, edit the directive itself for conciseness
     private_section = ""
     if private_directive:
-        is_new = total_memories < 10 and not handoff
-        if is_new:
-            # Full directive only for brand new agents
-            private_section = f"""
-# PRIVATE DIRECTIVE
+        private_section = f"""# PRIVATE DIRECTIVE
 {private_directive}
 
 ---
 """
-        # Otherwise: no section at all - established agents know who they are
     
     # Build injection - streamlined for maximum context transfer
     # Risk only shown if HIGH or CRITICAL
