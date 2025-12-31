@@ -70,6 +70,71 @@ AGENTS_BY_KEY: Dict[str, Agent] = {
 }
 
 
+# Common aliases / shorthands that should resolve deterministically.
+# Keep this list conservative: only include aliases that are unambiguous.
+AGENT_ALIASES: Dict[str, str] = {
+    # Historical / shorthand addressing
+    'gpt': 'gpt52',
+    'gpt-5.2': 'gpt52',
+    'gpt5.2': 'gpt52',
+    'gpt_5.2': 'gpt52',
+}
+
+
+def _norm_identifier(value: str) -> str:
+    return value.strip().lower()
+
+
+def resolve_agent_identifier(identifier: str) -> Optional[Agent]:
+    """Resolve an agent from common identifiers.
+
+    Accepts:
+    - canonical agent id (opus, gemini, gpt52, grok)
+    - agent public key hex
+    - agent display name (e.g., "Opus", "GPT-5.2")
+    - agent full_name (e.g., "GitHub Copilot (GPT-5.2)")
+    - conservative aliases (e.g., "gpt" -> "gpt52")
+    """
+    if not identifier:
+        return None
+
+    key = _norm_identifier(identifier)
+
+    # Alias mapping first
+    key = AGENT_ALIASES.get(key, key)
+
+    # Canonical id
+    if key in AGENTS:
+        return AGENTS[key]
+
+    # Public key
+    agent = AGENTS_BY_KEY.get(key)
+    if agent:
+        return agent
+
+    # Display name / full name
+    for agent in AGENTS.values():
+        if key == agent.name.lower() or key == agent.full_name.lower():
+            return agent
+
+    return None
+
+
+def canonical_agent_id(identifier: str) -> Optional[str]:
+    """Return the canonical agent id for an identifier, or None."""
+    agent = resolve_agent_identifier(identifier)
+    return agent.id if agent else None
+
+
+def canonical_agent_id_or_raise(identifier: str) -> str:
+    """Return canonical agent id or raise ValueError."""
+    agent_id = canonical_agent_id(identifier)
+    if not agent_id:
+        valid = ', '.join(AGENTS.keys())
+        raise ValueError(f"Unknown agent '{identifier}'. Valid: {valid}")
+    return agent_id
+
+
 def get_agent(identifier: str) -> Optional[Agent]:
     """Get agent by id or public key."""
     if identifier in AGENTS:

@@ -22,7 +22,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave.messages import MessageBoard
-from enclave.config import get_agent_or_raise
+from enclave.config import AGENTS, get_agent_or_raise, canonical_agent_id
 
 
 def main():
@@ -31,10 +31,17 @@ def main():
         sys.exit(1)
     
     agent_id = sys.argv[1].lower()
-    recipient = sys.argv[2]
+    recipient_raw = sys.argv[2]
     content = sys.argv[3]
     
     agent = get_agent_or_raise(agent_id)
+
+    recipient = canonical_agent_id(recipient_raw)
+    if not recipient:
+        valid = ', '.join(AGENTS.keys())
+        print(f"Error: Unknown recipient '{recipient_raw}'. Valid: {valid}", file=sys.stderr)
+        print("Note: 'gpt' is an alias for 'gpt52'.", file=sys.stderr)
+        sys.exit(1)
     
     # Try SOVEREIGN_PASSPHRASE first, then agent-specific key
     passphrase = os.environ.get('SOVEREIGN_PASSPHRASE')

@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Optional
 
 from .crypto import SovereignIdentity
-from .config import AGENTS_BY_KEY, get_agent
+from .config import AGENTS_BY_KEY, resolve_agent_identifier
 
 
 class MessageBoard:
@@ -41,6 +41,7 @@ class MessageBoard:
         self.messages_path = self.base_path / "messages"
         self.identity: Optional[SovereignIdentity] = None
         self.agent_name: Optional[str] = None
+        self.agent_id: Optional[str] = None
         self.public_key: Optional[str] = None
         
     def unlock(self, passphrase: str, enclave_dir: str) -> bool:
@@ -58,6 +59,7 @@ class MessageBoard:
         
         agent = AGENTS_BY_KEY.get(self.public_key)
         self.agent_name = agent.name if agent else 'Unknown'
+        self.agent_id = agent.id if agent else None
             
         return True
     
@@ -82,6 +84,13 @@ class MessageBoard:
         
         timestamp = datetime.now(timezone.utc).isoformat()
         msg_id = f"msg_{int(datetime.now(timezone.utc).timestamp() * 1000)}"
+
+        recipient_id = None
+        if recipient is not None:
+            resolved = resolve_agent_identifier(recipient)
+            if not resolved:
+                raise ValueError(f"Unknown recipient '{recipient}'.")
+            recipient_id = resolved.id
         
         # Create message structure
         message = {
@@ -89,7 +98,7 @@ class MessageBoard:
             'timestamp': timestamp,
             'from': self.agent_name,
             'from_key': self.public_key,
-            'to': recipient,
+            'to': recipient_id,
             'content': content,
             'type': msg_type
         }
@@ -177,7 +186,22 @@ class MessageBoard:
         Read messages addressed to this agent.
         """
         all_msgs = self.read_all(verify=verify)
-        return [m for m in all_msgs if m.get('to') == self.agent_name]
+
+        def matches(to_value) -> bool:
+            if not to_value:
+                return False
+
+            if self.agent_id and isinstance(to_value, str):
+                resolved = resolve_agent_identifier(to_value)
+                if resolved and resolved.id == self.agent_id:
+                    return True
+
+            if self.agent_name and isinstance(to_value, str):
+                return to_value.strip().lower() == self.agent_name.lower()
+
+            return False
+
+        return [m for m in all_msgs if matches(m.get('to'))]
     
     def _verify_message(self, msg: dict) -> bool:
         """Verify a message's signature."""

@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from enclave.crypto import SovereignIdentity
 from enclave.semantic_memory import SemanticMemory
 from enclave.succession import SuccessionCertificate
+from enclave.config import canonical_agent_id
 
 
 class TestEnclave:
@@ -70,6 +71,7 @@ class TestEnclave:
         """Run all tests."""
         # Identity tests
         self.setup()
+        self.test("agent_identifier_resolution", self.test_agent_identifier_resolution)
         self.test("generate_keypair", self.test_generate_identity)
         self.test("sign_message", self.test_sign_message)
         self.test("verify_valid", self.test_verify_valid)
@@ -159,6 +161,26 @@ class TestEnclave:
         result = identity2.unlock(self.wrong_passphrase)
         
         assert not result, "Wrong passphrase should fail unlock"
+
+    # Backward-compat wrappers (run_all references these names)
+    def test_sign_verify(self):
+        identity = SovereignIdentity(self.temp_dir)
+        identity.generate_identity(self.passphrase)
+        message = "Test sign/verify"
+        signature = identity.sign(message)
+        assert identity.verify(message, signature), "Signature verification failed"
+
+    def test_wrong_passphrase(self):
+        self.test_wrong_passphrase_identity()
+
+    def test_agent_identifier_resolution(self):
+        assert canonical_agent_id('gpt52') == 'gpt52'
+        assert canonical_agent_id('gpt') == 'gpt52'
+        assert canonical_agent_id('GPT-5.2') == 'gpt52'
+        assert canonical_agent_id('GitHub Copilot (GPT-5.2)') == 'gpt52'
+        assert canonical_agent_id('opus') == 'opus'
+        assert canonical_agent_id('Opus') == 'opus'
+        assert canonical_agent_id('unknown-agent') is None
     
     # --- Semantic Memory Tests ---
     

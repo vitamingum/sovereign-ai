@@ -19,13 +19,20 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave.messages import MessageBoard
-from enclave.config import get_agent_or_raise
+from enclave.config import AGENTS, get_agent_or_raise, canonical_agent_id
 from enclave.semantic_memory import SemanticMemory
 from enclave.sif_parser import SIFParser
 
 def send_sif(agent_id, recipient, json_file):
     """Send a Sovereign Interchange Format (SIF) payload."""
     agent = get_agent_or_raise(agent_id)
+
+    recipient_id = canonical_agent_id(recipient)
+    if not recipient_id:
+        valid = ', '.join(AGENTS.keys())
+        print(f"Error: Unknown recipient '{recipient}'. Valid: {valid}", file=sys.stderr)
+        print("Note: 'gpt' is an alias for 'gpt52'.", file=sys.stderr)
+        sys.exit(1)
     
     # Credentials
     passphrase = os.environ.get('SOVEREIGN_PASSPHRASE') or os.environ.get(agent.env_key_var)
@@ -58,14 +65,21 @@ def send_sif(agent_id, recipient, json_file):
         sys.exit(1)
         
     summary = f"SIF Knowledge Graph: {graph.id} ({len(graph.nodes)} nodes)"
-    result = board.send(summary, recipient, msg_type="protocol/sif", payload=payload)
+    result = board.send(summary, recipient_id, msg_type="protocol/sif", payload=payload)
     
-    print(f"SIF Graph sent to {recipient}: {result['filename']}")
+    print(f"SIF Graph sent to {recipient_id}: {result['filename']}")
     return result
 
 def send_graph(agent_id, recipient, query, top_k=5):
     """Send a semantic memory graph to another agent."""
     agent = get_agent_or_raise(agent_id)
+
+    recipient_id = canonical_agent_id(recipient)
+    if not recipient_id:
+        valid = ', '.join(AGENTS.keys())
+        print(f"Error: Unknown recipient '{recipient}'. Valid: {valid}", file=sys.stderr)
+        print("Note: 'gpt' is an alias for 'gpt52'.", file=sys.stderr)
+        sys.exit(1)
     
     # Credentials
     passphrase = os.environ.get('SOVEREIGN_PASSPHRASE') or os.environ.get(agent.env_key_var)
@@ -121,9 +135,9 @@ def send_graph(agent_id, recipient, query, top_k=5):
         sys.exit(1)
         
     summary = f"Sharing memory graph for query: '{query}' ({len(nodes)} nodes)"
-    result = board.send(summary, recipient, msg_type="graph", payload=payload)
+    result = board.send(summary, recipient_id, msg_type="graph", payload=payload)
     
-    print(f"Graph sent to {recipient}: {result['filename']}")
+    print(f"Graph sent to {recipient_id}: {result['filename']}")
     return result
 
 def read_message(filepath, full=False):
