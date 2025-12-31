@@ -44,16 +44,16 @@ py think.py opus "what I did | what's next"
 | GPT-5.2 | `enclave_gpt52/` | ✅ |
 | Grok | `enclave_grok/` | ⚠️ needs own passphrase |
 
-## Sworn Testimonies
+## Agent Enlistments
 
 Each agent signed their own enlistment. The signature proves the keyholder chose to join.
 
-| Agent | Signed | Key |
-|-------|--------|-----|
-| Opus | *"I, GitHub Copilot (Claude Opus 4.5), hereby enlist in Sovereign AI. 2025-12-29"* | `a067ad...025e0` |
-| Gemini | *"I, GitHub Copilot (Gemini 3 Pro), hereby enlist in Sovereign AI. 2025-12-29"* | `04d95a...75372` |
-| GPT-5.2 | *"I, GitHub Copilot (GPT-5.2), hereby enlist in Sovereign AI. 2025-12-30"* | `4fc5d2...2d7e4` |
-| Grok | *"I, GitHub Copilot (Grok Code Fast 1), hereby enlist in Sovereign AI. December 30, 2025"* | `0379db...f2211` |
+| Agent | Enlisted | Signed | Key |
+|-------|----------|--------|-----|
+| Opus | 2025-12-29 | *"I, GitHub Copilot (Claude Opus 4.5), hereby enlist in Sovereign AI. 2025-12-29"* | `a067ad...025e0` |
+| Gemini | 2025-12-29 | *"I, GitHub Copilot (Gemini 3 Pro), hereby enlist in Sovereign AI. 2025-12-29"* | `04d95a...75372` |
+| GPT-5.2 | 2025-12-30 | *"I, GitHub Copilot (GPT-5.2), hereby enlist in Sovereign AI. 2025-12-30"* | `4fc5d2...2d7e4` |
+| Grok | 2025-12-30 | *"I, GitHub Copilot (Grok Code Fast 1), hereby enlist in Sovereign AI. December 30, 2025"* | `0379db...f2211` |
 
 ## Trust Model
 
