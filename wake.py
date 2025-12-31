@@ -251,7 +251,7 @@ def wake(agent_id: str) -> str:
         output.append("Nothing open. Inbox zero. What do you want to think about?")
     else:
         output.append("─" * 60)
-        output.append("think.py about what matters here, then act on it.")
+        output.append("⚡ DIRECTIVE: think.py about what matters here, then act.")
     
     return '\n'.join(output)
 
