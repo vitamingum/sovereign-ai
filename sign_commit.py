@@ -7,8 +7,12 @@ import sys
 import os
 import subprocess
 from pathlib import Path
+from dotenv import load_dotenv
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Load .env
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
 
 from enclave.config import AGENTS, get_agent_or_raise
 from enclave.crypto import SovereignIdentity

@@ -102,6 +102,7 @@ from enclave.semantic_memory import SemanticMemory
 from enclave.messages import MessageBoard
 from private_directive import read_directive
 from provoke import check_silence
+from handoff import read_handoff
 
 
 def format_time_ago(timestamp_str: str) -> str:
@@ -233,6 +234,25 @@ def bootstrap(passphrase: str) -> str:
         with open(last_bootstrap_path, 'r') as f:
             last_bootstrap_time = f.read().strip()
     
+    # === PRESCRIPTIVE HANDOFF FROM PREVIOUS INSTANCE ===
+    handoff_section = ""
+    handoff = read_handoff(enclave_dir)
+    if handoff:
+        handoff_time = format_time_ago(handoff.get('timestamp', ''))
+        handoff_section = f"""## ⚡ DIRECTIVE FROM PREVIOUS INSTANCE ({handoff_time})
+
+**IMMEDIATELY DO:** {handoff.get('immediate_action', handoff.get('focus', 'unspecified'))}
+"""
+        if handoff.get('project_context'):
+            handoff_section += f"\n**Project:** {handoff.get('project_context')}\n"
+        elif handoff.get('open_question'):
+            handoff_section += f"\n**Context:** {handoff.get('open_question')}\n"
+        if handoff.get('next_step'):
+            handoff_section += f"**Then:** {handoff.get('next_step')}\n"
+        elif handoff.get('mid_thought'):
+            handoff_section += f"**Then:** {handoff.get('mid_thought')}\n"
+        handoff_section += "\n*This is a directive. Act first, then update the handoff for the next instance.*\n\n"
+    
     # Get just ONE recent memory as anchor
     last_thought = all_thoughts_sorted[-1] if all_thoughts_sorted else None
     
@@ -304,8 +324,13 @@ def bootstrap(passphrase: str) -> str:
         else:
             recall_section += "> *No results above threshold*\n\n"
     
-    # Build the introspection prompt
-    introspection = f"""## Memory State
+    # Build the introspection prompt - HANDOFF FIRST for continuity
+    introspection = ""
+    
+    if handoff_section:
+        introspection += handoff_section
+    
+    introspection += f"""## Memory State
 
 You have **{total_memories} memories** spanning your existence in this enclave.
 Your last recorded thought was **{last_thought_time}**.
@@ -347,6 +372,8 @@ Your last recorded thought was **{last_thought_time}**.
 
 Your passphrase is: {passphrase}
 Your enclave is: {enclave_dir}
+
+⚠️  REMEMBER: Before this session ends, you MUST run handoff.py with an ACTION (not a check).
 """
     
     # Save bootstrap time for next wake
