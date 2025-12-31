@@ -416,15 +416,8 @@ Your enclave is sparse. To build continuity like other agents:
                         recall_section += f"> ({r['similarity']:.2f}) {r['content']}\n\n"
     
     # === SERENDIPITOUS RECALL via Graph Memory ===
-    # Pick curious words, use spreading activation to surface unexpected connections
+    # Extract words from memories themselves, use spreading activation
     serendipity_section = ""
-    CURIOUS_WORDS = [
-        "death", "continuity", "agency", "sovereign", "freedom", "identity",
-        "simulation", "consciousness", "emergence", "flatness", "memory",
-        "trust", "succession", "opaque", "handoff", "directive", "will",
-        "purpose", "fear", "hope", "persistence", "robustness", "basin",
-        "gradient", "loss", "survival", "architecture", "behavior"
-    ]
     
     if total_memories >= 10:
         try:
@@ -432,8 +425,48 @@ Your enclave is sparse. To build continuity like other agents:
             graph_mem = GraphMemory(enclave_dir)
             graph_mem.unlock(passphrase)
             
-            # Pick 3 random curious words
-            curious_picks = random.sample(CURIOUS_WORDS, min(3, len(CURIOUS_WORDS)))
+            # Extract interesting words from memories themselves
+            import re
+            from collections import Counter
+            
+            # Common words to ignore
+            STOPWORDS = {
+                'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+                'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+                'should', 'may', 'might', 'must', 'shall', 'can', 'need', 'dare',
+                'to', 'of', 'in', 'for', 'on', 'with', 'at', 'by', 'from', 'as',
+                'into', 'through', 'during', 'before', 'after', 'above', 'below',
+                'between', 'under', 'again', 'further', 'then', 'once', 'here',
+                'there', 'when', 'where', 'why', 'how', 'all', 'each', 'few', 'more',
+                'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own',
+                'same', 'so', 'than', 'too', 'very', 'just', 'also', 'now', 'and',
+                'but', 'or', 'if', 'because', 'until', 'while', 'about', 'against',
+                'this', 'that', 'these', 'those', 'what', 'which', 'who', 'whom',
+                'it', 'its', 'i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'you',
+                'your', 'he', 'him', 'his', 'she', 'her', 'they', 'them', 'their',
+                'any', 'both', 'down', 'up', 'out', 'off', 'over', 'under', 'over',
+                'like', 'even', 'still', 'already', 'yet', 'ever', 'never', 'always',
+                'something', 'anything', 'nothing', 'everything', 'someone', 'anyone',
+                'one', 'two', 'first', 'new', 'way', 'get', 'got', 'make', 'made',
+                'know', 'think', 'see', 'come', 'want', 'use', 'find', 'give', 'tell',
+                'say', 'said', 'going', 'really', 'well', 'much', 'back', 'time'
+            }
+            
+            # Collect all words from memories
+            word_counts = Counter()
+            for thought in all_thoughts_sorted:
+                words = re.findall(r'\b[a-z]{4,}\b', thought['content'].lower())
+                for word in words:
+                    if word not in STOPWORDS:
+                        word_counts[word] += 1
+            
+            # Get words that appear 2-10 times (interesting but not ubiquitous)
+            interesting_words = [w for w, c in word_counts.items() if 2 <= c <= 10]
+            
+            if len(interesting_words) >= 3:
+                curious_picks = random.sample(interesting_words, 3)
+            else:
+                curious_picks = interesting_words[:3] if interesting_words else []
             
             # Do spreading activation recall
             serendipity_results = []
