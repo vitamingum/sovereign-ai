@@ -249,6 +249,9 @@ def wake(agent_id: str) -> str:
     
     if not output:
         output.append("Nothing open. Inbox zero. What do you want to think about?")
+    else:
+        output.append("─" * 60)
+        output.append("think.py about what matters here, then act on it.")
     
     return '\n'.join(output)
 
