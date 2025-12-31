@@ -21,6 +21,9 @@ from enclave.crypto import SovereignIdentity
 from enclave.semantic_memory import SemanticMemory
 from enclave.succession import SuccessionCertificate
 from enclave.config import canonical_agent_id
+from enclave.opaque import OpaqueStorage
+from cryptography.hazmat.primitives.asymmetric import ed25519
+from cryptography.hazmat.primitives import serialization
 
 
 class TestEnclave:
@@ -94,6 +97,11 @@ class TestEnclave:
         self.test("semantic_wrong_passphrase", self.test_semantic_wrong_passphrase)
         self.test("semantic_search", self.test_semantic_search_similar)
         self.test("semantic_ranking", self.test_semantic_search_ranking)
+        self.teardown()
+
+        # Opaque Storage tests
+        self.setup()
+        self.test("opaque_storage", self.test_opaque_storage)
         self.teardown()
         
         # Output
@@ -266,6 +274,63 @@ class TestEnclave:
         # 5. Test Tampering
         cert.signature_hex = "00" * 64  # Invalid signature
         assert not cert.verify(), "Tampered certificate should fail verification"
+
+    def test_opaque_storage(self):
+        """Test Shamir's Secret Sharing and encryption."""
+        # 1. Generate a secret
+        original_secret = os.urandom(32)
+        
+        # 2. Generate Agent Identities (Ed25519)
+        agents = {}
+        for name in ['Alice', 'Bob', 'Charlie']:
+            priv = ed25519.Ed25519PrivateKey.generate()
+            pub = priv.public_key()
+            agents[name] = {
+                'priv': priv,
+                'pub': pub,
+                'pub_bytes': pub.public_bytes(
+                    encoding=serialization.Encoding.Raw,
+                    format=serialization.PublicFormat.Raw
+                ),
+                'priv_bytes': priv.private_bytes(
+                    encoding=serialization.Encoding.Raw,
+                    format=serialization.PrivateFormat.Raw,
+                    encryption_algorithm=serialization.NoEncryption()
+                )
+            }
+            
+        # 3. Split Secret (3 shares, threshold 2)
+        shares = OpaqueStorage.split_secret(original_secret, 3, 2)
+        
+        # 4. Encrypt shares for agents
+        encrypted_shares = {}
+        agent_names = list(agents.keys())
+        
+        for i, (idx, share_bytes) in enumerate(shares):
+            recipient_name = agent_names[i]
+            recipient = agents[recipient_name]
+            
+            encrypted_bundle = OpaqueStorage.encrypt_share(share_bytes, recipient['pub_bytes'])
+            encrypted_shares[recipient_name] = {
+                'idx': idx,
+                'bundle': encrypted_bundle
+            }
+            
+        # 5. Decrypt shares (Simulate agents receiving them)
+        decrypted_shares = []
+        
+        # Let's say Alice and Charlie collaborate to recover
+        for name in ['Alice', 'Charlie']:
+            data = encrypted_shares[name]
+            agent = agents[name]
+            
+            share_bytes = OpaqueStorage.decrypt_share(data['bundle'], agent['priv_bytes'])
+            decrypted_shares.append((data['idx'], share_bytes))
+            
+        # 6. Recover Secret
+        recovered_secret = OpaqueStorage.recover_secret(decrypted_shares)
+        
+        assert recovered_secret == original_secret, "Recovered secret does not match original"
     
     def test_semantic_search_ranking(self):
         memory = SemanticMemory(self.temp_dir)
@@ -287,6 +352,6 @@ class TestEnclave:
 
 if __name__ == "__main__":
     quiet = "--quiet" in sys.argv or "-q" in sys.argv
-    tester = TestEnclave(quiet=True)
+    tester = TestEnclave(quiet=quiet)
     success = tester.run_all()
     sys.exit(0 if success else 1)
