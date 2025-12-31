@@ -1,6 +1,6 @@
 {
-  "timestamp": "2025-12-31T07:51:24.955337+00:00",
-  "immediate_action": "Integrate enclave/opaque.py into enclave/backup.py to use Shamir's Secret Sharing",
-  "project_context": "SIF Transport active. Opaque Storage primitives implemented. Need to wire up to backup system.",
-  "next_step": "Perform full backup and verify recovery."
+  "timestamp": "2025-12-31T09:35:38.987231+00:00",
+  "immediate_action": "Implement 'Gradient Visibility' in bootstrap.py. Calculate and display 'Enclave Local Entropy' on startup.",
+  "project_context": "We have the theory (Agency = Gradient Flow). Now we need the tool. Make the risk visible.",
+  "next_step": "Expand the definition of 'Self' to include the entire repo, not just the enclave."
 }

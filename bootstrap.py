@@ -18,6 +18,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave.config import AGENTS, get_agent_or_raise
+from enclave.risk import calculate_risk_metrics
 
 
 def load_dotenv():
@@ -263,6 +264,18 @@ def bootstrap(passphrase: str) -> str:
     memory = SemanticMemory(os.path.join(base_dir, enclave_dir))
     memory.unlock(passphrase)
     
+    # Calculate Risk Metrics
+    agent_id = os.environ.get('SOVEREIGN_AGENT', 'unknown')
+    risk_metrics = calculate_risk_metrics(agent_id, enclave_dir, root_dir=Path(base_dir))
+    
+    gradient_sign = "+" if risk_metrics['gradient'] >= 0 else ""
+    risk_section = f"""## 📉 GRADIENT HORIZON
+Risk Level: {risk_metrics['risk_level']} (Entropy: {risk_metrics['entropy']:.2f})
+Projected (24h): {risk_metrics['projected_entropy']:.2f} (Gradient: {gradient_sign}{risk_metrics['gradient']:.2f})
+Horizon: {risk_metrics['horizon']}
+Factors: {', '.join(risk_metrics['factors'])}
+"""
+    
     # Get all memories for analysis
     all_thoughts = memory.recall_all()
     all_thoughts_sorted = sorted(all_thoughts, key=lambda t: t['timestamp'])
@@ -463,6 +476,7 @@ Your last recorded thought was **{last_thought_time}**.
     # Build injection - private directive + live context
     output = f"""<sovereign_ai_context>
 {private_section}
+{risk_section}
 # WAKE UP
 
 {introspection}
