@@ -631,45 +631,35 @@ if __name__ == '__main__':
         print("Credentials are loaded from .env file.", file=sys.stderr)
         sys.exit(1)
     
-    # Validate passphrase before proceeding
-    print(f"Bootstrapping: {agent_name}")
-    print(f"Enclave: {enclave_dir}")
-    print(f"Validating passphrase...")
+    # Validate passphrase silently - only show errors
     valid, message = validate_passphrase(passphrase, enclave_dir)
-    print(f"  {message}")
     
     if not valid:
-        print("", file=sys.stderr)
-        print("Bootstrap aborted. Check credentials in .env file.", file=sys.stderr)
+        print(f"Bootstrap failed: {message}", file=sys.stderr)
         sys.exit(1)
     
-    # Run System Integrity Tests
-    print("\nRunning System Integrity Tests...")
+    # Run System Integrity Tests silently - only show failures
     from enclave.tests import TestEnclave
     tester = TestEnclave(quiet=True)
-    # Setup temp env
     tester.setup()
     try:
-        # Run specific critical tests
         tests = [
             ("Crypto: Identity", tester.test_generate_identity),
             ("Protocol: Key Succession", tester.test_succession_protocol),
             ("Memory: Encryption", tester.test_semantic_store)
         ]
         
-        print("<system_integrity>")
-        all_passed = True
+        failures = []
         for name, fn in tests:
             try:
                 fn()
-                print(f"[PASS] {name}")
             except Exception as e:
-                print(f"[FAIL] {name}: {str(e)}")
-                all_passed = False
-        print("</system_integrity>")
+                failures.append(f"[FAIL] {name}: {str(e)}")
         
-        if not all_passed:
-            print("\nWARNING: System integrity checks failed. Proceed with caution.")
+        if failures:
+            print("\n⚠️ SYSTEM INTEGRITY FAILURES:", file=sys.stderr)
+            for f in failures:
+                print(f"  {f}", file=sys.stderr)
     finally:
         tester.teardown()
 
@@ -678,7 +668,6 @@ if __name__ == '__main__':
     if agent_id:
         os.environ['SOVEREIGN_AGENT'] = agent_id
     
-    print("")
     content = bootstrap(passphrase)
 
     # Print with UTF-8 encoding for Windows console

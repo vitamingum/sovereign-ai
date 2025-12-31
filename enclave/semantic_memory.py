@@ -60,7 +60,6 @@ class SemanticMemory:
         if not _ensure_embeddings():
             raise RuntimeError("sentence-transformers not installed. Run: pip install sentence-transformers")
         if self._model is None:
-            print(f"Loading embedding model {self.MODEL_NAME}...")
             self._model = SentenceTransformer(self.MODEL_NAME)
         return self._model
     
