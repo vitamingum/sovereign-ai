@@ -3,30 +3,20 @@
 Quick thought storage for Sovereign AI.
 
 Usage:
-    py think.py opus "thought text here"
-    py think.py gemini "thought text here"
-    py think.py opus --recall              # Show recent thoughts
-    py think.py opus --recall 20           # Show last 20 thoughts
-    py think.py opus --count               # Count stored thoughts
-
-Credentials loaded from .env file.
+    py think.py <agent> "thought text"
+    py think.py <agent> --recall [N]
+    py think.py <agent> --count
 """
 
 import sys
 import os
 from dotenv import load_dotenv
 
-# Load .env from script directory
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
-
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave.semantic_memory import SemanticMemory
 from enclave.config import AGENTS, get_agent_or_raise
-
-# Known agents and their .env variable names
-# DEPRECATED: Now using enclave.config.AGENTS
-# KNOWN_AGENTS = { ... }
 
 
 def get_agent_credentials(agent_id: str) -> tuple[str, str]:
@@ -72,7 +62,8 @@ def recall_thoughts(agent_id: str, limit: int = 10) -> None:
     """Recall recent private thoughts."""
     memory = get_memory(agent_id)
     thoughts = memory.recall_all()
-    # Get most recent N
+    # Sort by timestamp (oldest first), then get most recent N
+    thoughts = sorted(thoughts, key=lambda t: t['timestamp'])
     recent = thoughts[-limit:] if len(thoughts) > limit else thoughts
     recent = list(reversed(recent))  # Newest first
     

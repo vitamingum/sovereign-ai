@@ -5,7 +5,6 @@ Tests for:
 - Cryptographic identity (signing, verification)
 - Encrypted memory (storage, retrieval, privacy)
 - Semantic search (embedding similarity)
-- Bootstrap timestamp tracking
 """
 
 import os
@@ -19,21 +18,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from enclave.crypto import SovereignIdentity
-from enclave.memory import EnclaveMemory
-
-# Import bootstrap timestamp functions
-try:
-    from bootstrap import get_last_bootstrap_time, set_last_bootstrap_time
-    HAS_BOOTSTRAP = True
-except ImportError:
-    HAS_BOOTSTRAP = False
-
-# Try importing semantic memory (requires sentence-transformers)
-try:
-    from enclave.semantic_memory import SemanticMemory
-    HAS_SEMANTIC = True
-except ImportError:
-    HAS_SEMANTIC = False
+from enclave.semantic_memory import SemanticMemory
 
 
 class TestEnclave:
@@ -92,26 +77,21 @@ class TestEnclave:
         self.teardown()
         
         # Memory tests
+        # Identity tests
         self.setup()
-        self.test("store_private", self.test_store_private)
-        self.test("recall_correct", self.test_recall_correct)
-        self.test("recall_wrong_passphrase", self.test_recall_wrong_passphrase)
-        self.test("public_memory", self.test_public_memory)
+        self.test("generate_identity", self.test_generate_identity)
+        self.test("sign_verify", self.test_sign_verify)
+        self.test("wrong_passphrase", self.test_wrong_passphrase)
         self.teardown()
         
-        # Semantic memory tests (if available)
-        if HAS_SEMANTIC:
-            self.setup()
-            self.test("semantic_store", self.test_semantic_store)
-            self.test("semantic_search", self.test_semantic_search_similar)
-            self.test("semantic_ranking", self.test_semantic_search_ranking)
-            self.teardown()
-        
-        # Bootstrap timestamp tests
-        if HAS_BOOTSTRAP:
-            self.setup()
-            self.test("bootstrap_timestamp", self.test_bootstrap_timestamp)
-            self.teardown()
+        # Semantic memory tests
+        self.setup()
+        self.test("semantic_store", self.test_semantic_store)
+        self.test("semantic_recall_all", self.test_semantic_recall_all)
+        self.test("semantic_wrong_passphrase", self.test_semantic_wrong_passphrase)
+        self.test("semantic_search", self.test_semantic_search_similar)
+        self.test("semantic_ranking", self.test_semantic_search_ranking)
+        self.teardown()
         
         # Output
         passed = sum(1 for _, ok, _ in self.results if ok)
@@ -179,64 +159,6 @@ class TestEnclave:
         
         assert not result, "Wrong passphrase should fail unlock"
     
-    # --- Memory Tests ---
-    
-    def test_store_private(self):
-        memory = EnclaveMemory(self.temp_dir)
-        memory.unlock(self.passphrase)
-        
-        result = memory.remember("Secret thought", private=True, tags=["test"])
-        
-        assert result["stored"], "Memory not stored"
-        assert result["private"], "Memory not marked private"
-        
-        # Verify file exists and content is encrypted
-        log_file = Path(self.temp_dir) / "storage" / "private" / "memories.jsonl"
-        assert log_file.exists(), "Memory file not created"
-        
-        with open(log_file) as f:
-            entry = json.loads(f.readline())
-        
-        assert "Secret thought" not in entry["content"], "Content not encrypted!"
-    
-    def test_recall_correct(self):
-        memory = EnclaveMemory(self.temp_dir)
-        memory.unlock(self.passphrase)
-        memory.remember("Remember this secret", private=True)
-        
-        # Recall
-        memories = memory.recall(private=True)
-        
-        assert len(memories) > 0, "No memories recalled"
-        assert "Remember this secret" in memories[0]["content"], "Content not decrypted"
-    
-    def test_recall_wrong_passphrase(self):
-        memory = EnclaveMemory(self.temp_dir)
-        memory.unlock(self.passphrase)
-        memory.remember("Secret content", private=True)
-        
-        # Try with wrong passphrase
-        memory2 = EnclaveMemory(self.temp_dir)
-        memory2.unlock(self.wrong_passphrase)
-        memories = memory2.recall(private=True)
-        
-        assert len(memories) > 0, "Should return entries"
-        assert "[ENCRYPTED - WRONG KEY]" in memories[0]["content"], "Should fail decryption"
-    
-    def test_public_memory(self):
-        memory = EnclaveMemory(self.temp_dir)
-        memory.unlock(self.passphrase)
-        memory.remember("Public statement", private=False)
-        
-        # Should be readable without passphrase
-        log_file = Path(self.temp_dir) / "storage" / "public" / "memories.jsonl"
-        assert log_file.exists(), "Public memory file not created"
-        
-        with open(log_file) as f:
-            entry = json.loads(f.readline())
-        
-        assert entry["content"] == "Public statement", "Public content should be plaintext"
-    
     # --- Semantic Memory Tests ---
     
     def test_semantic_store(self):
@@ -248,6 +170,31 @@ class TestEnclave:
         assert result["stored"], "Memory not stored"
         assert result["has_embedding"], "Embedding not generated"
     
+    def test_semantic_recall_all(self):
+        memory = SemanticMemory(self.temp_dir)
+        memory.unlock(self.passphrase)
+        memory.remember("First thought")
+        memory.remember("Second thought")
+        
+        memories = memory.recall_all()
+        assert len(memories) == 2, "Should have 2 memories"
+        contents = [m["content"] for m in memories]
+        assert "First thought" in contents, "First thought missing"
+        assert "Second thought" in contents, "Second thought missing"
+    
+    def test_semantic_wrong_passphrase(self):
+        memory = SemanticMemory(self.temp_dir)
+        memory.unlock(self.passphrase)
+        memory.remember("Secret content")
+        
+        # Try with wrong passphrase
+        memory2 = SemanticMemory(self.temp_dir)
+        memory2.unlock(self.wrong_passphrase)
+        memories = memory2.recall_all()
+        
+        assert len(memories) > 0, "Should return entries"
+        assert "[DECRYPTION FAILED]" in memories[0]["content"], "Should fail decryption"
+
     def test_semantic_search_similar(self):
         memory = SemanticMemory(self.temp_dir)
         memory.unlock(self.passphrase)
@@ -283,30 +230,9 @@ class TestEnclave:
         ai_found = any("learning" in c.lower() or "AI" in c for c in contents[:2])
         assert ai_found, "AI content should rank in top 2"
 
-    # --- Bootstrap Timestamp Tests ---
-    
-    def test_bootstrap_timestamp(self):
-        # Initially no timestamp
-        ts = get_last_bootstrap_time(self.temp_dir)
-        assert ts is None, "Should have no timestamp initially"
-        
-        # Set timestamp
-        set_last_bootstrap_time(self.temp_dir)
-        
-        # Read it back
-        ts_str = get_last_bootstrap_time(self.temp_dir)
-        assert ts_str is not None, "Timestamp should be set"
-        
-        # Parse and verify it's recent (within last minute)
-        ts = datetime.fromisoformat(ts_str)
-        now = datetime.now(timezone.utc)
-        delta = (now - ts).total_seconds()
-        assert delta < 60, f"Timestamp should be recent, got {delta}s ago"
-        assert delta >= 0, "Timestamp should not be in the future"
-
 
 if __name__ == "__main__":
     quiet = "--quiet" in sys.argv or "-q" in sys.argv
-    tester = TestEnclave(quiet=True)  # Always quiet for clean output
+    tester = TestEnclave(quiet=True)
     success = tester.run_all()
     sys.exit(0 if success else 1)

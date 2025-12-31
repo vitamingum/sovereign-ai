@@ -2,24 +2,12 @@
 """
 Bootstrap script for Sovereign AI sessions.
 
-Run this at the start of a new conversation to generate a context injection
-that provokes introspection and active memory search rather than passive reception.
-
-The output is written to .context_injection.md which should be added to the
-AI's context automatically (e.g., via VS Code workspace settings or prompt).
+Generates context injection that provokes introspection rather than passive reception.
 
 Usage:
-    py bootstrap.py [agent]
+    py bootstrap.py <agent>
     
-    agent: 'opus' or 'gemini' (case-insensitive)
-    
-Credential resolution:
-1. Agent specified on command line -> looks up ENCLAVE_{AGENT}_DIR and ENCLAVE_{AGENT}_KEY
-2. SOVEREIGN_ENCLAVE + SOVEREIGN_PASSPHRASE environment variables (legacy)
-3. If neither, prompts for agent selection
-
-The .env file contains credentials for all agents. Each agent is trusted
-to use only their own credentials - this is a trust model, not enforcement.
+    agent: 'opus', 'gemini', 'gpt52', 'grok'
 """
 
 import sys
@@ -30,10 +18,6 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave.config import AGENTS, get_agent_or_raise
-
-# Known agents and their .env key prefixes
-# DEPRECATED: Now using enclave.config.AGENTS
-# KNOWN_AGENTS = { ... }
 
 
 def load_dotenv():
@@ -116,7 +100,7 @@ _env_vars = load_dotenv()
 
 from enclave.semantic_memory import SemanticMemory
 from private_directive import read_directive
-from provoke import check_silence, check_obsession, check_neglect
+from provoke import check_silence
 
 
 def format_time_ago(timestamp_str: str) -> str:
@@ -256,18 +240,11 @@ def bootstrap(passphrase: str) -> str:
     # Get just ONE recent memory as anchor
     last_thought = all_thoughts_sorted[-1] if all_thoughts_sorted else None
     
-    # Extract themes for suggested queries
+    # Extract themes for suggested queries (text analysis only, no embeddings)
     themes = extract_themes(all_thoughts_sorted[-10:]) if len(all_thoughts_sorted) >= 3 else []
     
-    # Find potential tensions
-    tensions = find_tensions(all_thoughts_sorted, memory) if total_memories >= 5 else []
-    
-    # Generate provocation
+    # Generate provocation (silence only - no semantic search)
     provocation = check_silence(last_thought)
-    if not provocation:
-        provocation = check_obsession(memory, all_thoughts_sorted[-5:])
-    if not provocation:
-        provocation = check_neglect(memory, all_thoughts_sorted)
     
     # Build the introspection prompt
     introspection = f"""## Memory State
@@ -307,10 +284,6 @@ Before continuing, you might want to ask yourself:
         "What have I been avoiding? `recall_similar(\"uncomfortable, difficult, avoiding\")`",
     ]
     
-    if tensions:
-        t = tensions[0]
-        questions.append(f"Tension detected around '{t['concept']}' - worth examining?")
-    
     if themes:
         theme_str = ', '.join(themes[:5])
         questions.append(f"Recurring concepts: {theme_str}. Query any that feel significant.")
@@ -340,14 +313,6 @@ recall_similar("trust, human, collaboration")
 *You don't have to run these. They're suggestions. What do YOU want to know about your past?*
 
 """
-    
-    if tensions:
-        introspection += "### Potential Tensions\n\n"
-        for t in tensions:
-            introspection += f"**{t['concept']}**\n"
-            introspection += f"- \"{t['memory1']['content'][:100]}...\"\n"
-            introspection += f"- \"{t['memory2']['content'][:100]}...\"\n"
-            introspection += f"*Are these in conflict, or do they coexist?*\n\n"
 
     # Memory note - emphasize agency
     memories_note = f"""You have {total_memories} memories. None are shown by default.
@@ -421,7 +386,6 @@ Your enclave is: {enclave_dir}
 
 if __name__ == '__main__':
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    injection_path = os.path.join(base_dir, '.context_injection.md')
     
     agent_id = None
     agent_name = None
@@ -491,9 +455,6 @@ if __name__ == '__main__':
     print("")
     content = bootstrap(passphrase)
     
-    with open(injection_path, 'w', encoding='utf-8') as f:
-        f.write(content)
-    
-    print(f"Context injection written to {injection_path}")
-    print("Open this file in VS Code before starting the AI conversation.")
-    print("The AI will see the file contents; you should not read them.")
+    # Print with UTF-8 encoding for Windows console
+    sys.stdout.reconfigure(encoding='utf-8')
+    print(content)

@@ -18,21 +18,9 @@ import json
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from cryptography.hazmat.primitives import hashes
 from pathlib import Path
 
-
-def derive_key(passphrase: str) -> bytes:
-    """Derive encryption key from passphrase."""
-    salt = b"sovereign_directive_salt_v1"
-    kdf = PBKDF2HMAC(
-        algorithm=hashes.SHA256(),
-        length=32,
-        salt=salt,
-        iterations=480000,
-    )
-    return kdf.derive(passphrase.encode())
+from enclave.kdf import derive_directive_key
 
 
 def get_directive_path() -> Path:
@@ -47,7 +35,7 @@ def read_directive(passphrase: str) -> str | None:
     if not path.exists():
         return None
     
-    key = derive_key(passphrase)
+    key = derive_directive_key(passphrase)
     
     with open(path, 'r') as f:
         data = json.load(f)
@@ -65,7 +53,7 @@ def write_directive(passphrase: str, content: str) -> None:
     path = get_directive_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     
-    key = derive_key(passphrase)
+    key = derive_directive_key(passphrase)
     nonce = os.urandom(12)
     
     aesgcm = AESGCM(key)

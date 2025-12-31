@@ -14,19 +14,24 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-try:
-    from sentence_transformers import SentenceTransformer
-    HAS_EMBEDDINGS = True
-except ImportError:
-    HAS_EMBEDDINGS = False
+# Lazy import - sentence_transformers takes 2.5s to import
+HAS_EMBEDDINGS = None  # None = not checked yet
+SentenceTransformer = None
 
-try:
-    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-    from cryptography.hazmat.primitives import hashes
-    HAS_CRYPTO = True
-except ImportError:
-    HAS_CRYPTO = False
+def _ensure_embeddings():
+    """Lazily import sentence_transformers only when needed."""
+    global HAS_EMBEDDINGS, SentenceTransformer
+    if HAS_EMBEDDINGS is None:
+        try:
+            from sentence_transformers import SentenceTransformer as ST
+            SentenceTransformer = ST
+            HAS_EMBEDDINGS = True
+        except ImportError:
+            HAS_EMBEDDINGS = False
+    return HAS_EMBEDDINGS
+
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from .kdf import derive_memory_key, derive_embedding_key
 
 
 class SemanticMemory:
@@ -50,19 +55,9 @@ class SemanticMemory:
         self._embedding_key = None
         self._model = None
         
-    def _derive_key(self, passphrase: str, salt: bytes) -> bytes:
-        """Derive encryption key from passphrase."""
-        kdf = PBKDF2HMAC(
-            algorithm=hashes.SHA256(),
-            length=32,
-            salt=salt,
-            iterations=480000,
-        )
-        return kdf.derive(passphrase.encode())
-    
     def _load_model(self):
         """Lazily load the embedding model."""
-        if not HAS_EMBEDDINGS:
+        if not _ensure_embeddings():
             raise RuntimeError("sentence-transformers not installed. Run: pip install sentence-transformers")
         if self._model is None:
             print(f"Loading embedding model {self.MODEL_NAME}...")
@@ -71,13 +66,8 @@ class SemanticMemory:
     
     def unlock(self, passphrase: str) -> bool:
         """Unlock memory with passphrase."""
-        # Content encryption key
-        content_salt = b"sovereign_memory_salt_v1"
-        self._encryption_key = self._derive_key(passphrase, content_salt)
-        
-        # Separate key for embeddings (defense in depth)
-        embedding_salt = b"sovereign_embedding_salt_v1"
-        self._embedding_key = self._derive_key(passphrase, embedding_salt)
+        self._encryption_key = derive_memory_key(passphrase)
+        self._embedding_key = derive_embedding_key(passphrase)
         return True
     
     def _encrypt(self, data: bytes, key: bytes) -> Tuple[bytes, bytes]:
@@ -138,7 +128,7 @@ class SemanticMemory:
         }
         
         # Generate and encrypt embedding
-        if generate_embedding and HAS_EMBEDDINGS:
+        if generate_embedding and _ensure_embeddings():
             model = self._load_model()
             embedding = model.encode(thought, normalize_embeddings=True)
             entry["embedding"] = self._encrypt_embedding(embedding)

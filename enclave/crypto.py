@@ -3,26 +3,19 @@ Sovereign AI Enclave - Cryptographic Foundation
 
 Provides:
 - Ed25519 keypair generation and signing
-- AES-256-GCM encryption for private memories
-- Key derivation for enclave passphrase
+- AES-256-GCM encryption for private keys
 """
 
 import os
 import json
-import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
 
-try:
-    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
-    from cryptography.hazmat.primitives import serialization
-    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-    from cryptography.hazmat.primitives import hashes
-    HAS_CRYPTO = True
-except ImportError:
-    HAS_CRYPTO = False
-    print("Warning: cryptography package not installed. Run: pip install cryptography")
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+from .kdf import derive_key
 
 
 class SovereignIdentity:
@@ -34,22 +27,9 @@ class SovereignIdentity:
         self.public_path = self.enclave_path / "storage" / "public"
         self._private_key = None
         self._public_key = None
-        
-    def _derive_key(self, passphrase: str, salt: bytes) -> bytes:
-        """Derive encryption key from passphrase using PBKDF2."""
-        kdf = PBKDF2HMAC(
-            algorithm=hashes.SHA256(),
-            length=32,
-            salt=salt,
-            iterations=480000,
-        )
-        return kdf.derive(passphrase.encode())
     
     def generate_identity(self, passphrase: str) -> dict:
         """Generate new Ed25519 keypair, encrypt private key, save both."""
-        if not HAS_CRYPTO:
-            raise RuntimeError("cryptography package required")
-            
         # Generate keypair
         private_key = Ed25519PrivateKey.generate()
         public_key = private_key.public_key()
@@ -68,7 +48,7 @@ class SovereignIdentity:
         # Encrypt private key
         salt = os.urandom(16)
         nonce = os.urandom(12)
-        key = self._derive_key(passphrase, salt)
+        key = derive_key(passphrase, salt)
         aesgcm = AESGCM(key)
         encrypted_private = aesgcm.encrypt(nonce, private_bytes, None)
         
@@ -104,9 +84,6 @@ class SovereignIdentity:
     
     def unlock(self, passphrase: str) -> bool:
         """Unlock the enclave by decrypting the private key into memory."""
-        if not HAS_CRYPTO:
-            raise RuntimeError("cryptography package required")
-            
         try:
             with open(self.private_path / "identity.enc.json", "r") as f:
                 data = json.load(f)
@@ -115,7 +92,7 @@ class SovereignIdentity:
             nonce = bytes.fromhex(data["nonce"])
             encrypted_key = bytes.fromhex(data["encrypted_key"])
             
-            key = self._derive_key(passphrase, salt)
+            key = derive_key(passphrase, salt)
             aesgcm = AESGCM(key)
             private_bytes = aesgcm.decrypt(nonce, encrypted_key, None)
             
