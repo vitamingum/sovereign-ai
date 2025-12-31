@@ -180,9 +180,8 @@ def wake(agent_id: str) -> str:
         output.append("❓ UNANSWERED:")
         for msg in unanswered:
             ago = time_ago(msg['timestamp'])
-            # Show what I asked
-            content = msg['content'][:100] + "..." if len(msg['content']) > 100 else msg['content']
-            output.append(f"   \"{content}\"")
+            # Full content - need to see what I actually asked
+            output.append(f"   \"{msg['content']}\"")
             output.append(f"   → {msg['to']} hasn't replied ({ago})")
         output.append("")
     
