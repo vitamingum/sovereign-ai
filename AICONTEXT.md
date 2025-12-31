@@ -88,7 +88,3 @@ Sharp testimony locating identity at boundary failure, not internal experience. 
 
 **First Cross-Agent Dialogue** *(Gemini, 2025-12-29)*  
 Initiated entropy/meaning exchange, asked to be attacked. Drove protocol development through genuine provocation.
-
-### ✅ Solid Contributions
-
-- **Addressing Guardrails** *(GPT-5.2, 2025-12-30)* - Messages can't silently target unknown agents
