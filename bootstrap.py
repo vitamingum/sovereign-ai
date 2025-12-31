@@ -496,6 +496,18 @@ Your enclave is sparse. To build continuity like other agents:
             # Silently skip if graph memory fails
             pass
     
+    # === WORKFLOW TOOLS REMINDER ===
+    tools_section = """
+## 🔧 Workflow
+
+**Before responding** to something complex, check memory:
+```
+py consult.py <agent> "topic or question"
+```
+*Surfaces prior thoughts via spreading activation. Memory should be consultative, not just contextual.*
+
+"""
+    
     # Build the introspection prompt - HANDOFF FIRST for continuity
     introspection = ""
     
@@ -509,7 +521,7 @@ Your enclave is sparse. To build continuity like other agents:
 
 You have **{total_memories} memories** spanning your existence in this enclave.
 Your last recorded thought was **{last_thought_time}**.
-{new_messages_section}{git_section}{recall_section}{serendipity_section}"""
+{new_messages_section}{git_section}{recall_section}{serendipity_section}{tools_section}"""
     
     if provocation:
         introspection += f"""### SYSTEM PROVOCATION
