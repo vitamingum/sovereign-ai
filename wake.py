@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-wake.py - Wake up with context.
+wake.py - Wake up with genuine curiosity.
 
 Usage:
     py wake <agent>
     
 Output:
-    1. What to do (hot intention)
-    2. Related memories (full, no truncation)
-    3. New messages
+    1. Unanswered questions (messages I sent, no reply yet)
+    2. Mid-thought threads (recent intentions/thoughts)
+    3. Waiting on (messages to me I haven't addressed)
 """
 
 import sys
@@ -62,18 +62,16 @@ def load_intentions(enclave_path: Path) -> list[dict]:
     return intentions
 
 
-def get_hot_intention(enclave_path: Path) -> dict | None:
-    """Get the most recent active intention."""
+def get_recent_intentions(enclave_path: Path, limit: int = 3) -> list[dict]:
+    """Get most recent active intentions."""
     intentions = load_intentions(enclave_path)
     active = [i for i in intentions if i.get('status') != 'completed']
-    if not active:
-        return None
     active.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
-    return active[0]
+    return active[:limit]
 
 
-def get_new_messages(agent_id: str, since_hours: int = 24) -> list[dict]:
-    """Get messages received in the last N hours."""
+def get_all_messages(since_hours: int = 48) -> list[dict]:
+    """Get all messages in the last N hours."""
     messages_dir = Path(__file__).parent / "messages"
     if not messages_dir.exists():
         return []
@@ -86,17 +84,13 @@ def get_new_messages(agent_id: str, since_hours: int = 24) -> list[dict]:
             with open(msg_file, 'r', encoding='utf-8') as f:
                 msg = json.load(f)
             
-            # Check if it's to this agent and recent
-            if msg.get('to', '').lower() != agent_id.lower():
-                continue
-            
-            # Parse timestamp
             ts = datetime.fromisoformat(msg['timestamp'].replace('Z', '+00:00'))
             if ts.timestamp() < cutoff:
                 continue
             
             messages.append({
-                'from': msg.get('from', 'unknown'),
+                'from': msg.get('from', 'unknown').lower(),
+                'to': msg.get('to', '').lower(),
                 'content': msg.get('content', ''),
                 'timestamp': ts,
                 'id': msg.get('id', '')
@@ -104,8 +98,53 @@ def get_new_messages(agent_id: str, since_hours: int = 24) -> list[dict]:
         except:
             continue
     
-    messages.sort(key=lambda x: x['timestamp'], reverse=True)
+    messages.sort(key=lambda x: x['timestamp'])
     return messages
+
+
+def find_unanswered(agent_id: str, messages: list[dict]) -> list[dict]:
+    """Find questions I asked that haven't been answered yet."""
+    agent_lower = agent_id.lower()
+    unanswered = []
+    
+    # Group messages by conversation (to/from pairs)
+    my_outgoing = [m for m in messages if m['from'] == agent_lower]
+    
+    for msg in my_outgoing:
+        recipient = msg['to']
+        # Check if recipient replied after this message
+        later_replies = [
+            m for m in messages 
+            if m['from'] == recipient 
+            and m['to'] == agent_lower
+            and m['timestamp'] > msg['timestamp']
+        ]
+        if not later_replies:
+            unanswered.append(msg)
+    
+    return unanswered[-3:]  # Most recent 3
+
+
+def find_waiting_on_me(agent_id: str, messages: list[dict]) -> list[dict]:
+    """Find messages to me that I haven't responded to."""
+    agent_lower = agent_id.lower()
+    waiting = []
+    
+    incoming = [m for m in messages if m['to'] == agent_lower]
+    
+    for msg in incoming:
+        sender = msg['from']
+        # Check if I replied after this message
+        my_replies = [
+            m for m in messages
+            if m['from'] == agent_lower
+            and m['to'] == sender
+            and m['timestamp'] > msg['timestamp']
+        ]
+        if not my_replies:
+            waiting.append(msg)
+    
+    return waiting[-5:]  # Most recent 5
 
 
 def time_ago(ts: datetime) -> str:
@@ -116,12 +155,12 @@ def time_ago(ts: datetime) -> str:
     
     if hours < 1:
         mins = int(diff.total_seconds() / 60)
-        return f"{mins}m ago"
+        return f"{mins}m"
     elif hours < 24:
-        return f"{int(hours)}h ago"
+        return f"{int(hours)}h"
     else:
         days = int(hours / 24)
-        return f"{days}d ago"
+        return f"{days}d"
 
 
 def wake(agent_id: str) -> str:
@@ -130,43 +169,46 @@ def wake(agent_id: str) -> str:
     enclave_dir, passphrase = load_passphrase(agent_id)
     enclave_path = base_dir / enclave_dir
     
-    # Initialize memory
-    memory = SemanticMemory(enclave_path)
-    memory.unlock(passphrase)
-    
     output = []
     
-    # Get hot intention
-    hot = get_hot_intention(enclave_path)
+    # Get all recent messages
+    messages = get_all_messages(since_hours=48)
     
-    if hot:
-        output.append(f"⚡ DO: {hot['content']}")
-        output.append("")
-        
-        # Get memories related to this intention
-        related = memory.recall_similar(hot['content'], top_k=3, threshold=0.3)
-        
-        if related:
-            output.append("💭 CONTEXT:")
-            for mem in related:
-                # Full content, no truncation
-                output.append(f"   • {mem['content']}")
-            output.append("")
-    else:
-        output.append("⚡ No active intention. Use: py think <agent> \"what | next\"")
-        output.append("")
-    
-    # Get new messages
-    messages = get_new_messages(agent_id)
-    
-    if messages:
-        output.append("📨 NEW:")
-        for msg in messages[:5]:  # Show up to 5
+    # 1. Unanswered - questions I asked, no reply yet
+    unanswered = find_unanswered(agent_id, messages)
+    if unanswered:
+        output.append("❓ UNANSWERED:")
+        for msg in unanswered:
             ago = time_ago(msg['timestamp'])
-            sender = msg['from'].lower()
-            # Full content, no truncation
-            output.append(f"   {sender} ({ago}): {msg['content']}")
+            # Show what I asked
+            content = msg['content'][:100] + "..." if len(msg['content']) > 100 else msg['content']
+            output.append(f"   \"{content}\"")
+            output.append(f"   → {msg['to']} hasn't replied ({ago})")
         output.append("")
+    
+    # 2. Mid-thought - recent intentions/threads
+    intentions = get_recent_intentions(enclave_path, limit=2)
+    if intentions:
+        output.append("🧵 MID-THOUGHT:")
+        for intent in intentions:
+            content = intent['content']
+            source = intent.get('spawned_from_content', '')[:60]
+            output.append(f"   {content}")
+            if source:
+                output.append(f"   (from: \"{source}...\")")
+        output.append("")
+    
+    # 3. Waiting on me - messages I haven't responded to
+    waiting = find_waiting_on_me(agent_id, messages)
+    if waiting:
+        output.append("📨 WAITING:")
+        for msg in waiting:
+            ago = time_ago(msg['timestamp'])
+            output.append(f"   {msg['from']} ({ago}): {msg['content']}")
+        output.append("")
+    
+    if not output:
+        output.append("Nothing open. Inbox zero. What do you want to think about?")
     
     return '\n'.join(output)
 
