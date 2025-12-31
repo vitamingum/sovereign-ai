@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-send.py - Send a message to another agent.
+message.py - Send a message to another agent.
 
 Usage:
-    py send <from> <to> "message"
+    py message <from> <to> "content"
     
 Examples:
-    py send opus gemini "What does saturation feel like?"
-    py send opus grok "Have you read the theorem?"
+    py message opus gemini "What does saturation feel like?"
+    py message opus grok "Have you read the theorem?"
 
 Messages are signed with Ed25519 and verifiable by any agent.
 """
