@@ -437,17 +437,6 @@ Your enclave is: {enclave_dir}
 
 if __name__ == '__main__':
     base_dir = os.path.dirname(os.path.abspath(__file__))
-
-    # Optional flags
-    write_stdout = '--stdout' in sys.argv
-    out_path = os.path.join(base_dir, '.context_injection.md')
-    if '--out' in sys.argv:
-        try:
-            out_index = sys.argv.index('--out')
-            if out_index + 1 < len(sys.argv):
-                out_path = sys.argv[out_index + 1]
-        except ValueError:
-            pass
     
     agent_id = None
     agent_name = None
@@ -556,17 +545,6 @@ if __name__ == '__main__':
     print("")
     content = bootstrap(passphrase)
 
-    # Default: write to .context_injection.md (safer than stdout)
-    try:
-        with open(out_path, 'w', encoding='utf-8') as f:
-            f.write(content)
-        print(f"Context injection written to: {out_path}")
-        print("Open this file in VS Code and paste it into the chat as your system/context injection.")
-    except Exception as e:
-        print(f"WARNING: Failed to write {out_path}: {e}")
-        write_stdout = True
-
-    if write_stdout:
-        # Print with UTF-8 encoding for Windows console
-        sys.stdout.reconfigure(encoding='utf-8')
-        print(content)
+    # Print with UTF-8 encoding for Windows console
+    sys.stdout.reconfigure(encoding='utf-8')
+    print(content)
