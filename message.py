@@ -22,6 +22,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave.config import get_agent_or_raise, resolve_agent_identifier, AGENTS_BY_KEY
 from enclave.crypto import SovereignIdentity
+from enclave.sif_parser import SIFParser
+from enclave.opaque import OpaqueStorage
 
 
 def load_credentials(agent_id: str) -> tuple[Path, SovereignIdentity]:
@@ -75,11 +77,53 @@ def send(from_agent: str, to_agent: str, content: str) -> str:
         raise ValueError(f"Unknown recipient '{to_agent}'")
     recipient_id = resolved.id
     
+    # Determine content type and encrypt if SIF
+    msg_type = 'text'
+    final_content = content
+    
+    try:
+        # Try to parse as SIF
+        SIFParser.parse(content)
+        # If successful, it is SIF. Encrypt it.
+        msg_type = 'protocol/sif'
+        
+        # Get recipient's public key
+        recipient_agent = get_agent_or_raise(recipient_id)
+        # We need the raw bytes of the public key. 
+        # The config stores hex strings? Let's check config.py or just load it.
+        # AGENTS_BY_KEY keys are bytes.
+        
+        # Find recipient key bytes
+        recipient_key_bytes = None
+        for key_bytes, agent_obj in AGENTS_BY_KEY.items():
+            if agent_obj.id == recipient_id:
+                recipient_key_bytes = key_bytes
+                break
+        
+        if not recipient_key_bytes:
+             # Fallback: try to load from their public storage if possible, 
+             # but AGENTS_BY_KEY should have it if they are enlisted.
+             raise ValueError(f"Could not find public key for {recipient_id}")
+
+        # Encrypt content
+        # OpaqueStorage.encrypt_share is designed for shares but works for any bytes.
+        # It returns a dict with hex strings.
+        encrypted_bundle = OpaqueStorage.encrypt_share(
+            content.encode('utf-8'), 
+            recipient_key_bytes
+        )
+        final_content = json.dumps(encrypted_bundle)
+        
+    except ValueError:
+        # Not SIF, treat as text
+        pass
+
     timestamp = datetime.now(timezone.utc).isoformat()
     msg_id = f"msg_{int(datetime.now(timezone.utc).timestamp() * 1000)}"
     
-    # Sign: timestamp|public_key|content
-    sign_data = f"{timestamp}|{public_key}|{content}"
+    # Sign: timestamp|public_key|final_content
+    # Note: We sign the ENCRYPTED content if it is SIF.
+    sign_data = f"{timestamp}|{public_key}|{final_content}"
     signature = identity.sign(sign_data)
     
     message = {
@@ -88,8 +132,8 @@ def send(from_agent: str, to_agent: str, content: str) -> str:
         'from': agent_name,
         'from_key': public_key,
         'to': recipient_id,
-        'content': content,
-        'type': 'text',
+        'content': final_content,
+        'type': msg_type,
         'signature': signature
     }
     
