@@ -11,9 +11,13 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
+import copy
+
+from cryptography.hazmat.primitives import serialization
 
 from .crypto import SovereignIdentity
 from .config import AGENTS, get_agent
+from .opaque import OpaqueStorage
 
 class BackupClient:
     """
@@ -78,15 +82,53 @@ class BackupClient:
     def distribute(self, recipients: List[str] = None):
         """
         Distributes the backup bundle to specified agents (or all others).
+        Splits the private key using Shamir's Secret Sharing and encrypts shares.
         """
         if recipients is None:
             recipients = [aid for aid in AGENTS.keys() if aid != self.agent_id]
             
-        bundle = self.create_bundle()
+        base_bundle = self.create_bundle()
+        
+        # Get raw private key bytes
+        private_bytes = self.identity._private_key.private_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PrivateFormat.Raw,
+            encryption_algorithm=serialization.NoEncryption()
+        )
+        
+        # Split secret
+        n = len(recipients)
+        if n == 0:
+            return
+            
+        # Threshold k: require majority? or just 2?
+        # If n=3 (Opus, GPT, Grok), k=2 is good.
+        # If n=1, k=1.
+        k = max(1, min(n, 2)) 
+        
+        shares = OpaqueStorage.split_secret(private_bytes, n, k)
         
         self.backups_dir.mkdir(exist_ok=True)
         
-        for recipient in recipients:
+        for i, recipient in enumerate(recipients):
+            # Get share for this recipient
+            share_index, share_bytes = shares[i]
+            
+            # Encrypt share for recipient
+            recipient_pk_hex = AGENTS[recipient].public_key
+            recipient_pk_bytes = bytes.fromhex(recipient_pk_hex)
+            
+            encrypted_share = OpaqueStorage.encrypt_share(share_bytes, recipient_pk_bytes)
+            
+            # Create recipient-specific bundle
+            bundle = copy.deepcopy(base_bundle)
+            bundle["opaque_share"] = {
+                "index": share_index,
+                "threshold": k,
+                "total": n,
+                "encrypted_data": encrypted_share
+            }
+            
             # We store it in a folder named after the recipient (the holder)
             # backups/opus/gemini_backup.json
             recipient_dir = self.backups_dir / recipient
