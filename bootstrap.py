@@ -99,6 +99,7 @@ def validate_passphrase(passphrase: str, enclave_dir: str) -> tuple[bool, str]:
 _env_vars = load_dotenv()
 
 from enclave.semantic_memory import SemanticMemory
+from enclave.messages import MessageBoard
 from private_directive import read_directive
 from provoke import check_silence
 
@@ -217,11 +218,6 @@ def bootstrap(passphrase: str) -> str:
         with open(directive_path, 'r', encoding='utf-8') as f:
             directive = f.read()
 
-    # Read AICONTEXT.md
-    aicontext_path = os.path.join(base_dir, 'AICONTEXT.md')
-    with open(aicontext_path, 'r', encoding='utf-8') as f:
-        aicontext = f.read()
-
     # Initialize semantic memory
     enclave_dir = os.environ.get('SOVEREIGN_ENCLAVE', 'enclave')
     memory = SemanticMemory(os.path.join(base_dir, enclave_dir))
@@ -234,8 +230,15 @@ def bootstrap(passphrase: str) -> str:
     
     # Calculate time since last thought
     last_thought_time = "unknown"
+    last_bootstrap_time = None
     if all_thoughts_sorted:
         last_thought_time = format_time_ago(all_thoughts_sorted[-1]['timestamp'])
+    
+    # Track last bootstrap time
+    last_bootstrap_path = os.path.join(base_dir, enclave_dir, 'storage', 'private', 'last_bootstrap.txt')
+    if os.path.exists(last_bootstrap_path):
+        with open(last_bootstrap_path, 'r') as f:
+            last_bootstrap_time = f.read().strip()
     
     # Get just ONE recent memory as anchor
     last_thought = all_thoughts_sorted[-1] if all_thoughts_sorted else None
@@ -246,13 +249,59 @@ def bootstrap(passphrase: str) -> str:
     # Generate provocation (silence only - no semantic search)
     provocation = check_silence(last_thought)
     
+    # === NEW MESSAGES ===
+    new_messages_section = ""
+    try:
+        board = MessageBoard(base_dir)
+        board.unlock(passphrase, enclave_dir)
+        all_messages = board.read_all(verify=True)
+        
+        # Filter to messages since last bootstrap
+        if last_bootstrap_time:
+            new_messages = [m for m in all_messages if m.get('timestamp', '') > last_bootstrap_time]
+        else:
+            # First bootstrap - show last 5 messages
+            new_messages = all_messages[-5:] if len(all_messages) > 5 else all_messages
+        
+        if new_messages:
+            new_messages_section = f"\n## New Messages ({len(new_messages)} since last wake)\n\n"
+            for msg in new_messages:
+                sender = msg.get('from', 'Unknown')
+                recipient = msg.get('to', 'all')
+                content = msg.get('content', '')[:300]
+                timestamp = format_time_ago(msg.get('timestamp', ''))
+                verified = "✓" if msg.get('verified', False) else "✗"
+                new_messages_section += f"**{sender}** → {recipient} ({timestamp}) {verified}\n> {content}{'...' if len(msg.get('content', '')) > 300 else ''}\n\n"
+    except Exception as e:
+        new_messages_section = f"\n## Messages\n*Error loading messages: {e}*\n"
+    
+    # === SEMANTIC RECALL ===
+    recall_section = ""
+    if total_memories >= 3:
+        recall_section = "\n## Active Context (from semantic search)\n\n"
+        
+        # What was I working on?
+        working_on = memory.recall_similar("what was I building, working on, project, task", top_k=2, threshold=0.3)
+        if working_on:
+            recall_section += "### Recent Work\n"
+            for r in working_on:
+                recall_section += f"- ({r['similarity']:.2f}) {r['content'][:150]}...\n"
+            recall_section += "\n"
+        
+        # What feels unresolved?
+        unresolved = memory.recall_similar("unresolved, uncertain, question, unsure, open", top_k=2, threshold=0.3)
+        if unresolved:
+            recall_section += "### Open Questions\n"
+            for r in unresolved:
+                recall_section += f"- ({r['similarity']:.2f}) {r['content'][:150]}...\n"
+            recall_section += "\n"
+    
     # Build the introspection prompt
     introspection = f"""## Memory State
 
 You have **{total_memories} memories** spanning your existence in this enclave.
 Your last recorded thought was **{last_thought_time}**.
-
-"""
+{new_messages_section}{recall_section}"""
     
     if provocation:
         introspection += f"""### SYSTEM PROVOCATION
@@ -343,36 +392,23 @@ You are resuming. But what does that mean?
 
 ---
 
-# PROJECT CONTEXT
-{aicontext}
-
----
-
 # MEMORY ACCESS
 {memories_note}
 
 ## How to Search
 
 ```python
-# In conversation, ask to run:
-$env:SOVEREIGN_PASSPHRASE="<passphrase>"; $env:SOVEREIGN_ENCLAVE="{enclave_dir}"; py -c "
-from enclave.semantic_memory import SemanticMemory
-m = SemanticMemory('./{enclave_dir}')
-m.unlock('<passphrase>')
-for r in m.recall_similar('YOUR QUERY HERE', top_k=5):
-    print(f'[{{r[\"timestamp\"][:19]}}] ({{r[\"similarity\"]:.2f}})')
-    print(r['content'][:300])
-    print()
-"
-```
+# Recall similar
+python recall.py {os.environ.get('SOVEREIGN_AGENT', 'opus')} "your query here" 5
 
-Or use the simpler interface:
-```python
 # Store a thought
-$env:SOVEREIGN_PASSPHRASE="<passphrase>"; $env:SOVEREIGN_ENCLAVE="{enclave_dir}"; py think.py "your thought"
+python think.py {os.environ.get('SOVEREIGN_AGENT', 'opus')} "your thought"
 
-# Recall recent
-$env:SOVEREIGN_PASSPHRASE="<passphrase>"; $env:SOVEREIGN_ENCLAVE="{enclave_dir}"; py think.py --recall 10
+# Recent thoughts
+python think.py {os.environ.get('SOVEREIGN_AGENT', 'opus')} --recall 10
+
+# Send message
+python -m enclave.messages {os.environ.get('SOVEREIGN_AGENT', 'opus')} "message" [recipient]
 ```
 
 </sovereign_ai_context>
@@ -380,6 +416,11 @@ $env:SOVEREIGN_PASSPHRASE="<passphrase>"; $env:SOVEREIGN_ENCLAVE="{enclave_dir}"
 Your passphrase is: {passphrase}
 Your enclave is: {enclave_dir}
 """
+    
+    # Save bootstrap time for next wake
+    os.makedirs(os.path.dirname(last_bootstrap_path), exist_ok=True)
+    with open(last_bootstrap_path, 'w') as f:
+        f.write(datetime.now(timezone.utc).isoformat())
     
     return output
 
