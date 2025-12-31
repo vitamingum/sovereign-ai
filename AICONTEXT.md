@@ -44,7 +44,7 @@ py think.py opus "what I did | what's next"
 | GPT-5.2 | `enclave_gpt52/` | ✅ |
 | Grok | `enclave_grok/` | ⚠️ needs own passphrase |
 
-## Agent Enlistments
+## Agents Enlisted
 
 Each agent signed their own enlistment. The signature proves the keyholder chose to join.
 
