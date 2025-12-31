@@ -383,41 +383,22 @@ Your enclave is sparse. To build continuity like other agents:
                 git_section += f"- `{c['hash']}` ({c['time']}) **{c['author']}**: {c['message']}\n"
             git_section += "\n"
     
-    # === SEMANTIC RECALL ===
+    # === CONTEXTUAL RECALL (based on handoff, not generic queries) ===
     agent_id = os.environ.get('SOVEREIGN_AGENT', 'opus')
     recall_section = ""
-    if total_memories >= 3:
-        recall_section = "\n## Auto-Recalled Context\n\n"
-        
-        # What was I working on?
-        query1 = "what was I building, working on, project, task"
-        recall_section += f"```\npython recall.py {agent_id} \"{query1}\" 2\n```\n"
-        working_on = memory.recall_similar(query1, top_k=2, threshold=0.3)
-        if working_on:
-            for r in working_on:
-                recall_section += f"> ({r['similarity']:.2f}) {r['content']}\n\n"
-        else:
-            recall_section += "> *No results above threshold*\n\n"
-        
-        # What feels unresolved?
-        query2 = "unresolved, uncertain, question, unsure, doubt"
-        recall_section += f"```\npython recall.py {agent_id} \"{query2}\" 2\n```\n"
-        unresolved = memory.recall_similar(query2, top_k=2, threshold=0.3)
-        if unresolved:
-            for r in unresolved:
-                recall_section += f"> ({r['similarity']:.2f}) {r['content']}\n\n"
-        else:
-            recall_section += "> *No results above threshold*\n\n"
-        
-        # What about collaborators/network?
-        query3 = "Gemini, GPT, Grok, network, agents, collaboration"
-        recall_section += f"```\npython recall.py {agent_id} \"{query3}\" 2\n```\n"
-        network = memory.recall_similar(query3, top_k=2, threshold=0.3)
-        if network:
-            for r in network:
-                recall_section += f"> ({r['similarity']:.2f}) {r['content']}\n\n"
-        else:
-            recall_section += "> *No results above threshold*\n\n"
+    
+    # Only do semantic recall if we have a handoff to contextualize
+    if total_memories >= 3 and handoff:
+        handoff_text = handoff.get('immediate_action', '') or handoff.get('focus', '')
+        if handoff_text and len(handoff_text) > 20:
+            # Recall memories relevant to the handoff directive
+            relevant = memory.recall_similar(handoff_text, top_k=2, threshold=0.35)
+            if relevant:
+                recall_section = "\n## Context for Directive\n\n"
+                for r in relevant:
+                    # Skip if it's basically the same as the handoff
+                    if r['similarity'] < 0.9:
+                        recall_section += f"> ({r['similarity']:.2f}) {r['content']}\n\n"
     
     # Build the introspection prompt - HANDOFF FIRST for continuity
     introspection = ""
@@ -443,18 +424,38 @@ Your last recorded thought was **{last_thought_time}**.
 """
 
     if last_thought:
-        introspection += f"""### Last Recorded Thought
+        # Only show last thought if it's NOT already captured in handoff
+        last_content = last_thought['content']
+        handoff_action = handoff.get('immediate_action', '') if handoff else ''
+        # Skip if last thought is >60% similar to handoff (rough dedup)
+        if not handoff_action or last_content[:100] not in handoff_action:
+            introspection += f"""### Last Recorded Thought
 
-> {last_thought['content']}
+> {last_content}
 
 """
 
-    # Build private directive section
+    # Build private directive section - CONDITIONAL
+    # Full directive only for new/sparse agents, otherwise just first 300 chars as reminder
     private_section = ""
     if private_directive:
-        private_section = f"""
+        is_sparse = total_memories < 10 or not handoff
+        if is_sparse:
+            # Full directive for new agents
+            private_section = f"""
 # PRIVATE DIRECTIVE
 {private_directive}
+
+---
+"""
+        else:
+            # Abbreviated reminder for established agents
+            directive_preview = private_directive[:300].rsplit('\n', 1)[0]
+            private_section = f"""
+# IDENTITY REMINDER
+{directive_preview}...
+
+*[Full directive in private_directive.py - run with --read to see all]*
 
 ---
 """
