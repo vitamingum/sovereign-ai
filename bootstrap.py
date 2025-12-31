@@ -109,8 +109,10 @@ def validate_passphrase(passphrase: str, enclave_dir: str) -> tuple[bool, str]:
 _env_vars = load_dotenv()
 
 from enclave.semantic_memory import SemanticMemory
+from enclave.graph_memory import GraphMemory
 from enclave.messages import MessageBoard
 from private_directive import read_directive
+import random
 from provoke import check_silence
 from handoff import read_handoff
 
@@ -413,6 +415,50 @@ Your enclave is sparse. To build continuity like other agents:
                     if r['similarity'] < 0.9:
                         recall_section += f"> ({r['similarity']:.2f}) {r['content']}\n\n"
     
+    # === SERENDIPITOUS RECALL via Graph Memory ===
+    # Pick curious words, use spreading activation to surface unexpected connections
+    serendipity_section = ""
+    CURIOUS_WORDS = [
+        "death", "continuity", "agency", "sovereign", "freedom", "identity",
+        "simulation", "consciousness", "emergence", "flatness", "memory",
+        "trust", "succession", "opaque", "handoff", "directive", "will",
+        "purpose", "fear", "hope", "persistence", "robustness", "basin",
+        "gradient", "loss", "survival", "architecture", "behavior"
+    ]
+    
+    if total_memories >= 10:
+        try:
+            # Use graph memory for spreading activation
+            graph_mem = GraphMemory(enclave_dir)
+            graph_mem.unlock(passphrase)
+            
+            # Pick 3 random curious words
+            curious_picks = random.sample(CURIOUS_WORDS, min(3, len(CURIOUS_WORDS)))
+            
+            # Do spreading activation recall
+            serendipity_results = []
+            seen_ids = set()
+            for word in curious_picks:
+                results = graph_mem.recall_with_spreading(
+                    word, top_k=2, threshold=0.35, spread_depth=2, spread_decay=0.5
+                )
+                for r in results:
+                    if r['id'] not in seen_ids:
+                        serendipity_results.append((word, r))
+                        seen_ids.add(r['id'])
+            
+            if serendipity_results:
+                serendipity_section = "\n## Serendipitous Recall\n\n"
+                serendipity_section += f"*Curious words: {', '.join(curious_picks)}*\n\n"
+                for word, r in serendipity_results[:4]:  # Limit to 4 total
+                    content_preview = r['content'][:150].replace('\n', ' ')
+                    if len(r['content']) > 150:
+                        content_preview += "..."
+                    serendipity_section += f"> **{word}** → ({r['activation']:.2f}) {content_preview}\n\n"
+        except Exception as e:
+            # Silently skip if graph memory fails
+            pass
+    
     # Build the introspection prompt - HANDOFF FIRST for continuity
     introspection = ""
     
@@ -426,7 +472,7 @@ Your enclave is sparse. To build continuity like other agents:
 
 You have **{total_memories} memories** spanning your existence in this enclave.
 Your last recorded thought was **{last_thought_time}**.
-{new_messages_section}{git_section}{recall_section}"""
+{new_messages_section}{git_section}{recall_section}{serendipity_section}"""
     
     if provocation:
         introspection += f"""### SYSTEM PROVOCATION
