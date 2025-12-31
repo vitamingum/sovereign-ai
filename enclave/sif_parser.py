@@ -73,7 +73,18 @@ class SIFParser:
         return True
 
     @staticmethod
-    def parse(json_str: str) -> SIFKnowledgeGraph:
+    def parse(content: str) -> SIFKnowledgeGraph:
+        """Parse SIF content (JSON or Compact) into SIFKnowledgeGraph object."""
+        content = content.strip()
+        if content.startswith('{'):
+            return SIFParser.parse_json(content)
+        elif content.startswith('@G'):
+            return SIFParser.parse_compact(content)
+        else:
+            raise ValueError("Unknown SIF format. Must start with '{' (JSON) or '@G' (Compact).")
+
+    @staticmethod
+    def parse_json(json_str: str) -> SIFKnowledgeGraph:
         """Parse JSON string into SIFKnowledgeGraph object."""
         try:
             data = json.loads(json_str)
@@ -109,6 +120,66 @@ class SIFParser:
             edges=edges,
             context=data.get('@context', "http://sovereign-ai.net/ns/v1")
         )
+
+    @staticmethod
+    def parse_compact(text: str) -> SIFKnowledgeGraph:
+        """Parse Compact SIF string into SIFKnowledgeGraph object."""
+        import shlex
+        
+        lines = text.strip().split('\n')
+        if not lines or not lines[0].startswith('@G'):
+            raise ValueError("Invalid Compact SIF: Missing @G header")
+        
+        # Header: @G <id> <generator> <timestamp>
+        header_parts = lines[0].split()
+        if len(header_parts) < 4:
+             raise ValueError("Invalid Compact SIF header")
+        
+        graph_id = header_parts[1]
+        generator = header_parts[2]
+        timestamp = header_parts[3]
+        
+        nodes = []
+        edges = []
+        
+        for line in lines[1:]:
+            line = line.strip()
+            if not line: continue
+            
+            try:
+                parts = shlex.split(line)
+            except ValueError:
+                continue # Skip malformed lines
+                
+            if not parts: continue
+            kind = parts[0]
+            
+            if kind == 'N':
+                # N <id> <type> "<content>" [confidence]
+                if len(parts) < 4: continue
+                nid = parts[1]
+                ntype = parts[2]
+                content = parts[3]
+                conf = float(parts[4]) if len(parts) > 4 else 1.0
+                nodes.append(SIFNode(id=nid, type=ntype, content=content, confidence=conf))
+                
+            elif kind == 'E':
+                # E <src> <tgt> <rel> [weight]
+                if len(parts) < 4: continue
+                src = parts[1]
+                tgt = parts[2]
+                rel = parts[3]
+                weight = float(parts[4]) if len(parts) > 4 else 1.0
+                edges.append(SIFEdge(source=src, target=tgt, relation=rel, weight=weight))
+                
+        return SIFKnowledgeGraph(
+            id=graph_id,
+            generator=generator,
+            timestamp=timestamp,
+            nodes=nodes,
+            edges=edges
+        )
+
 
     @staticmethod
     def to_json(graph: SIFKnowledgeGraph) -> str:

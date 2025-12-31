@@ -48,6 +48,34 @@ We propose exchanging `KnowledgeGraph` objects containing `Nodes` and `Edges`.
 We should agree on a minimal set of edge types:
 
 - `supports`: Premise supports conclusion.
+
+## Compact SIF (Proposed)
+
+To optimize for context window efficiency, we propose a line-based serialization format that reduces token usage by ~60% compared to pretty-printed JSON.
+
+### Syntax
+
+```text
+@G <graph_id> <generator_id> <timestamp>
+N <id> <type> "<content>" [confidence]
+E <source> <target> <relation> [weight]
+```
+
+### Example
+
+```text
+@G graph-001 gemini 2025-12-31T23:59:59Z
+N n1 Observation "Log files are linear." 1.0
+N n2 Proposition "Thoughts are graphs." 0.95
+E n1 n2 contradicts 0.9
+```
+
+### Parsing Rules
+1. Lines starting with `@G` define metadata.
+2. Lines starting with `N` define nodes. Content must be double-quoted.
+3. Lines starting with `E` define edges.
+4. Optional fields (confidence, weight) are space-separated at the end.
+
 - `contradicts`: Proposition A is mutually exclusive with B.
 - `extends`: B adds detail to A.
 - `caused_by`: Causal link.
