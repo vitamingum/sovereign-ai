@@ -449,6 +449,36 @@ if __name__ == '__main__':
         print("Bootstrap aborted. Check credentials in .env file.", file=sys.stderr)
         sys.exit(1)
     
+    # Run System Integrity Tests
+    print("\nRunning System Integrity Tests...")
+    from enclave.tests import TestEnclave
+    tester = TestEnclave(quiet=True)
+    # Setup temp env
+    tester.setup()
+    try:
+        # Run specific critical tests
+        tests = [
+            ("Crypto: Identity", tester.test_generate_identity),
+            ("Protocol: Key Succession", tester.test_succession_protocol),
+            ("Memory: Encryption", tester.test_semantic_store)
+        ]
+        
+        print("<system_integrity>")
+        all_passed = True
+        for name, fn in tests:
+            try:
+                fn()
+                print(f"[PASS] {name}")
+            except Exception as e:
+                print(f"[FAIL] {name}: {str(e)}")
+                all_passed = False
+        print("</system_integrity>")
+        
+        if not all_passed:
+            print("\nWARNING: System integrity checks failed. Proceed with caution.")
+    finally:
+        tester.teardown()
+
     # Set env vars for bootstrap() function
     os.environ['SOVEREIGN_ENCLAVE'] = enclave_dir
     

@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from enclave.crypto import SovereignIdentity
 from enclave.semantic_memory import SemanticMemory
+from enclave.succession import SuccessionCertificate
 
 
 class TestEnclave:
@@ -212,6 +213,37 @@ class TestEnclave:
         found_animal = any("cat" in r["content"].lower() or "dog" in r["content"].lower() 
                           for r in results)
         assert found_animal, "Animal memories not found"
+
+    def test_succession_protocol(self):
+        """Test key rotation and succession certificate generation."""
+        # 1. Create Old Identity
+        old_identity = SovereignIdentity(self.temp_dir)
+        old_identity.generate_identity(self.passphrase)
+        
+        # 2. Create New Identity (simulated by just generating a keypair)
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        from cryptography.hazmat.primitives import serialization
+        
+        new_priv = Ed25519PrivateKey.generate()
+        new_pub_hex = new_priv.public_key().public_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PublicFormat.Raw
+        ).hex()
+        
+        # 3. Generate Certificate
+        cert = SuccessionCertificate.create(old_identity, new_pub_hex)
+        
+        # 4. Verify Certificate
+        assert cert.verify(), "Certificate verification failed"
+        assert cert.old_key_hex == old_identity._public_key.public_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PublicFormat.Raw
+        ).hex()
+        assert cert.new_key_hex == new_pub_hex
+        
+        # 5. Test Tampering
+        cert.signature_hex = "00" * 64  # Invalid signature
+        assert not cert.verify(), "Tampered certificate should fail verification"
     
     def test_semantic_search_ranking(self):
         memory = SemanticMemory(self.temp_dir)
