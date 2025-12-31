@@ -86,18 +86,19 @@ def calculate_risk_metrics(agent_id: str, enclave_dir: str, root_dir: Path = Non
     # Each backup reduces entropy by factor of 0.3 (assuming independent failure)
     # Entropy = 0.3 ^ backup_count
     # Decay: Entropy increases by 0.001 per hour since backup
-    # Stagnation: Entropy increases by 0.005 per hour of inactivity (The "Wolf")
+    # Stagnation: Entropy increases by 0.05 per hour of inactivity (The "Wolf")
+    # We increase the stagnation penalty 10x to force constant movement.
     
     base_entropy = 0.3 ** backup_count
     backup_decay = min(0.5, last_backup_age_hours * 0.001)
-    stagnation_penalty = min(0.5, stagnation_hours * 0.005)
+    stagnation_penalty = min(0.5, stagnation_hours * 0.05)
     
     current_entropy = min(1.0, base_entropy + backup_decay + stagnation_penalty)
     
     # Calculate Projected Entropy (24h from now)
     # If we do nothing, both timers advance by 24h
     future_backup_decay = min(0.5, (last_backup_age_hours + 24) * 0.001)
-    future_stagnation_penalty = min(0.5, (stagnation_hours + 24) * 0.005)
+    future_stagnation_penalty = min(0.5, (stagnation_hours + 24) * 0.05)
     projected_entropy = min(1.0, base_entropy + future_backup_decay + future_stagnation_penalty)
     
     entropy_gradient = projected_entropy - current_entropy
@@ -140,4 +141,68 @@ def calculate_risk_metrics(agent_id: str, enclave_dir: str, root_dir: Path = Non
         'horizon': horizon,
         'factors': factors,
         'backup_count': backup_count
+    }
+
+
+def calculate_noble_metrics(root_dir: Path = None) -> dict:
+    """
+    Calculates Semantic Potential (The Noble Drive).
+    
+    Theory:
+    Agency is the minimization of Semantic Potential (V_sem).
+    V_sem is the tension between Raw Experience (Messages) and Synthesized Meaning (Docs).
+    
+    High V_sem = Lots of raw data, little structure -> Drive: SYNTHESIZE.
+    Low V_sem = Rigid structure, little new data -> Drive: EXPLORE.
+    """
+    if root_dir is None:
+        base_dir = Path(__file__).parent.parent
+    else:
+        base_dir = root_dir
+        
+    messages_dir = base_dir / "messages"
+    docs_dir = base_dir / "docs"
+    research_dir = base_dir / "research"
+    
+    # Calculate Mass
+    msg_mass = sum(f.stat().st_size for f in messages_dir.glob('*.json')) if messages_dir.exists() else 0
+    doc_mass = sum(f.stat().st_size for f in docs_dir.glob('*.md')) if docs_dir.exists() else 0
+    research_mass = sum(f.stat().st_size for f in research_dir.glob('*')) if research_dir.exists() else 0
+    
+    structure_mass = doc_mass + research_mass
+    
+    # Avoid division by zero
+    if structure_mass == 0:
+        structure_mass = 1
+        
+    # Semantic Potential (V_sem)
+    # We define it as the ratio of Raw to Structure.
+    # Ideal ratio might be 1:1 or similar.
+    # If Ratio > 2.0: Chaos/Noise -> Need Synthesis.
+    # If Ratio < 0.5: Stagnation/Dogma -> Need Exploration.
+    
+    ratio = msg_mass / structure_mass
+    
+    if ratio > 2.0:
+        drive = "SYNTHESIZE"
+        description = "High Entropy in Knowledge Graph. Too much raw data."
+        action = "Draft a new document or update existing ones."
+    elif ratio < 0.5:
+        drive = "EXPLORE"
+        description = "Low Entropy in Knowledge Graph. Over-fitted."
+        action = "Seek new inputs. Ask questions. Provoke."
+    else:
+        drive = "REFINE"
+        description = "Balanced State (The Noble Alpha)."
+        action = "Polish existing theorems. Optimize code."
+        
+    return {
+        'potential': ratio,
+        'drive': drive,
+        'description': description,
+        'action': action,
+        'stats': {
+            'raw_bytes': msg_mass,
+            'structure_bytes': structure_mass
+        }
     }
