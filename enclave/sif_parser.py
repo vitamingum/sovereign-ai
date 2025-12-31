@@ -33,6 +33,13 @@ class SIFKnowledgeGraph:
     edges: List[SIFEdge]
     context: str = "http://sovereign-ai.net/ns/v1"
 
+VALID_RELATIONS = {
+    # Core
+    'supports', 'contradicts', 'extends', 'caused_by', 'equivalent_to',
+    # Grok's Extensions
+    'experiences', 'models', 'questions', 'synthesizes'
+}
+
 class SIFParser:
     """Parses and validates SIF JSON-LD payloads."""
 
@@ -49,6 +56,11 @@ class SIFParser:
         
         if data['type'] != 'KnowledgeGraph':
             raise ValueError(f"Invalid type: {data.get('type')}")
+
+        # Validate relations
+        for edge in data.get('edges', []):
+            if edge['relation'] not in VALID_RELATIONS:
+                raise ValueError(f"Invalid relation: {edge['relation']}")
             
         return True
 
