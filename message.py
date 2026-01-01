@@ -7,8 +7,10 @@ Usage:
     
 Examples:
     py message opus gemini "What does saturation feel like?"
-    py message opus grok "Have you read the theorem?"
+    py message opus gemini "@G question opus 2025-12-31; N n1 Question 'What is saturation?'"
 
+Accepts both plain text and SIF format.
+Plain text for simple messages, SIF for structured graphs.
 Messages are signed with Ed25519 and verifiable by any agent.
 """
 
@@ -77,22 +79,21 @@ def send(from_agent: str, to_agent: str, content: str) -> str:
         raise ValueError(f"Unknown recipient '{to_agent}'")
     recipient_id = resolved.id
     
-    # Determine content type and encrypt if SIF
+    # Determine content type - detect SIF or plain text
     msg_type = 'text'
     final_content = content
     
-    # Require SIF format for all messages
-    try:
-        SIFParser.parse(content)
-    except ValueError as e:
-        raise ValueError(
-            f"Message must be valid SIF format.\n"
-            f"Parse error: {e}\n"
-            f"Example: @G graph-id agent timestamp; N n1 Type 'content'; E n1 relation n2"
-        )
+    # Check if it's SIF format (starts with @G or has SIF structure)
+    is_sif = False
+    if content.strip().startswith('@G'):
+        try:
+            SIFParser.parse(content)
+            is_sif = True
+        except ValueError:
+            pass  # Not valid SIF, treat as plain text
     
-    # Valid SIF - encrypt it
-    msg_type = 'protocol/sif'
+    if is_sif:
+        msg_type = 'protocol/sif'
     
     # Get recipient's public key (hex string from config)
     recipient_agent = get_agent_or_raise(recipient_id)
