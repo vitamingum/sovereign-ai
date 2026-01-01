@@ -3,9 +3,10 @@
 think.py - Store thought, spawn continuation, surface related memories.
 
 Usage:
-    py think <agent> "what you did | what's next"
+    py think <agent> "what you did | what's next" <agency 1-5>
     
 The pipe (|) is mandatory. Write an actionable next step, even if blocked.
+Agency (1-5): 1=asked → 5=unprompted
 
 Output:
     1. Confirmation of stored thought
@@ -82,7 +83,7 @@ def parse_input(text: str) -> tuple[str, str]:
     return content, continuation
 
 
-def think(agent_id: str, text: str) -> str:
+def think(agent_id: str, text: str, agency: int) -> str:
     """
     Process input: store the content, spawn the continuation, show related.
     """
@@ -99,8 +100,8 @@ def think(agent_id: str, text: str) -> str:
     memory = SemanticMemory(enclave_path)
     memory.unlock(passphrase)
     
-    # Store the content
-    result = memory.remember(content, tags=['thought'])
+    # Store the content with agency score
+    result = memory.remember(content, tags=['thought', f'agency:{agency}'])
     memory_id = result['id']
     
     # Create the continuation as an intention
@@ -110,13 +111,14 @@ def think(agent_id: str, text: str) -> str:
         'spawned_from': memory_id,
         'spawned_from_content': content[:100],
         'timestamp': timestamp,
-        'status': 'active'
+        'status': 'active',
+        'agency': agency
     }
     save_intention(enclave_path, intention)
     
     # Build output
     output = []
-    output.append(f"✓ Stored: {content}")
+    output.append(f"✓ Stored (agency={agency}): {content}")
     output.append(f"→ Next: {continuation}")
     output.append("")
     
@@ -136,18 +138,30 @@ def think(agent_id: str, text: str) -> str:
 
 
 def main():
-    if len(sys.argv) < 3:
+    if len(sys.argv) < 4:
         print(__doc__)
         print("\nExamples:")
-        print('  py think opus "Found the bug in parsing | Fix it and test"')
-        print('  py think opus "Sent message to Gemini | Wait for response"')
+        print('  py think opus "Fixed the bug user reported | Test edge cases" 1')
+        print('  py think opus "Noticed a gap in the paper | Investigate it" 4')
         sys.exit(1)
     
     agent_id = sys.argv[1]
-    text = ' '.join(sys.argv[2:])
+    
+    # Last arg is agency score
+    try:
+        agency = int(sys.argv[-1])
+        if agency < 1 or agency > 5:
+            raise ValueError("Agency must be 1-5")
+    except ValueError:
+        print("Error: Last argument must be agency score (1-5)")
+        print("  1=asked → 5=unprompted")
+        sys.exit(1)
+    
+    # Everything between agent and agency is the thought
+    text = ' '.join(sys.argv[2:-1])
     
     try:
-        print(think(agent_id, text))
+        print(think(agent_id, text, agency))
     except ValueError as e:
         print(f"Error: {e}")
         sys.exit(1)
