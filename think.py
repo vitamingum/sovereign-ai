@@ -28,6 +28,7 @@ from enclave.config import get_agent_or_raise
 from enclave.semantic_memory import SemanticMemory
 from enclave.sif_parser import SIFParser
 from enclave.metrics import calculate_enclave_entropy
+from enclave.viz import update_dashboard
 
 
 def classify_action_type(text: str) -> str:
@@ -193,6 +194,13 @@ def think(agent_id: str, text: str, agency: int) -> str:
         for mem in related:
             # Full content, no truncation
             output.append(f"   • {mem['content']}")
+    
+    # Update V_sem dashboard
+    try:
+        dashboard_path = update_dashboard(agent_id)
+        output.append(f"\n📊 Dashboard: {dashboard_path}")
+    except Exception as e:
+        pass  # Don't fail on viz errors
     
     return '\n'.join(output)
 
