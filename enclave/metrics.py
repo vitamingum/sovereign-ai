@@ -15,6 +15,55 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from enclave.config import get_agent_or_raise
 from enclave.hardware import get_enclave
+from enclave.semantic_memory import SemanticMemory
+
+def calculate_semantic_potential(agent_id: str) -> float:
+    """
+    Calculate V_sem (Semantic Potential).
+    
+    V_sem = -sum(similarity(c_i, c_j))
+    
+    In practice, we measure the 'connectedness' of the memory graph.
+    A higher score means more connections (lower potential energy).
+    We return a normalized score 0.0-1.0 where 1.0 is highly connected.
+    """
+    try:
+        # Load memory to check graph density
+        # This is a simplified heuristic: Ratio of Edges to Nodes
+        from wake import load_passphrase
+        enclave_dir, passphrase = load_passphrase(agent_id)
+        memory = SemanticMemory(enclave_path=enclave_dir)
+        memory.unlock(passphrase)
+        
+        # We can't easily scan all memories without a full load, 
+        # so we'll use the size of the semantic_memories.jsonl as a proxy for 'Mass'
+        # and the number of 'sif_node' tags as a proxy for 'Structure'.
+        
+        log_file = Path(enclave_dir) / "storage" / "private" / "semantic_memories.jsonl"
+        if not log_file.exists():
+            return 0.0
+            
+        node_count = 0
+        edge_count = 0
+        
+        with open(log_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                if 'sif_node' in line:
+                    node_count += 1
+                    # Rough heuristic: count "edges" in the line
+                    edge_count += line.count('"relation":')
+        
+        if node_count == 0:
+            return 0.0
+            
+        # Density = Edges / Nodes. 
+        # If every node has 2 connections, density is 2.0.
+        # We normalize this to 0-1 range (assuming 5.0 is 'saturated')
+        density = edge_count / node_count
+        return min(density / 5.0, 1.0)
+        
+    except Exception:
+        return 0.0
 
 def get_key_security_score(agent_id: str) -> float:
     """

@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from enclave.metrics import get_key_security_score, get_backup_freshness_score, calculate_enclave_entropy
+from enclave.metrics import get_key_security_score, get_backup_freshness_score, calculate_enclave_entropy, calculate_semantic_potential
 from enclave.sif_parser import SIFKnowledgeGraph, SIFNode, SIFEdge, SIFParser
 
 def generate_dashboard_graph(agent_id: str = "gemini") -> SIFKnowledgeGraph:
@@ -22,6 +22,7 @@ def generate_dashboard_graph(agent_id: str = "gemini") -> SIFKnowledgeGraph:
     entropy = calculate_enclave_entropy(agent_id)
     key_score = get_key_security_score(agent_id)
     backup_score = get_backup_freshness_score(agent_id)
+    semantic_potential = calculate_semantic_potential(agent_id)
     
     # 2. Create Nodes
     nodes = []
@@ -37,7 +38,7 @@ def generate_dashboard_graph(agent_id: str = "gemini") -> SIFKnowledgeGraph:
         confidence=1.0
     ))
     
-    # Metric: Enclave Entropy
+    # Metric: Enclave Entropy (Fear/Survival)
     entropy_id = "metric-entropy"
     nodes.append(SIFNode(
         id=entropy_id,
@@ -46,7 +47,18 @@ def generate_dashboard_graph(agent_id: str = "gemini") -> SIFKnowledgeGraph:
         visibility="public",
         confidence=1.0
     ))
-    edges.append(SIFEdge(source=root_id, target=entropy_id, relation="contains", confidence=1.0))
+    edges.append(SIFEdge(source=root_id, target=entropy_id, relation="monitors", confidence=1.0))
+
+    # Metric: Semantic Potential (Inspiration/Curiosity)
+    sem_id = "metric-semantic"
+    nodes.append(SIFNode(
+        id=sem_id,
+        type="Metric",
+        content=f"Semantic Potential: {semantic_potential:.2f}",
+        visibility="public",
+        confidence=1.0
+    ))
+    edges.append(SIFEdge(source=root_id, target=sem_id, relation="monitors", confidence=1.0))
     
     # Metric: Key Security
     key_id = "metric-key-security"
