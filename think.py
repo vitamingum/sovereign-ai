@@ -195,10 +195,12 @@ def think(agent_id: str, text: str, agency: int) -> str:
             # Full content, no truncation
             output.append(f"   • {mem['content']}")
     
-    # Update V_sem dashboard
+    # Update V_sem dashboard (both agent-specific and global)
     try:
         dashboard_path = update_dashboard(agent_id)
+        global_path = update_dashboard(None)  # All agents
         output.append(f"\n📊 Dashboard: {dashboard_path}")
+        output.append(f"📊 Global: {global_path}")
     except Exception as e:
         pass  # Don't fail on viz errors
     
