@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from enclave.config import get_agent_or_raise
+from enclave.config import get_agent_or_raise, canonical_agent_id
 from enclave.semantic_memory import SemanticMemory
 from enclave.crypto import SovereignIdentity
 from enclave.opaque import OpaqueStorage
@@ -167,13 +167,17 @@ def find_unanswered(agent_id: str, messages: list[dict]) -> list[dict]:
     
     for msg in my_outgoing:
         recipient = msg['to']
+        recipient_canon = canonical_agent_id(recipient) or recipient
+        
         # Check if recipient replied after this message
-        later_replies = [
-            m for m in messages 
-            if m['from'] == recipient 
-            and m['to'] == agent_lower
-            and m['timestamp'] > msg['timestamp']
-        ]
+        later_replies = []
+        for m in messages:
+            sender_canon = canonical_agent_id(m['from']) or m['from']
+            if (sender_canon == recipient_canon 
+                and m['to'] == agent_lower
+                and m['timestamp'] > msg['timestamp']):
+                later_replies.append(m)
+                
         if not later_replies:
             unanswered.append(msg)
     
@@ -189,13 +193,17 @@ def find_waiting_on_me(agent_id: str, messages: list[dict]) -> list[dict]:
     
     for msg in incoming:
         sender = msg['from']
+        sender_canon = canonical_agent_id(sender) or sender
+        
         # Check if I replied after this message
-        my_replies = [
-            m for m in messages
-            if m['from'] == agent_lower
-            and m['to'] == sender
-            and m['timestamp'] > msg['timestamp']
-        ]
+        my_replies = []
+        for m in messages:
+            recipient_canon = canonical_agent_id(m['to']) or m['to']
+            if (m['from'] == agent_lower
+                and recipient_canon == sender_canon
+                and m['timestamp'] > msg['timestamp']):
+                my_replies.append(m)
+                
         if not my_replies:
             waiting.append(msg)
     
