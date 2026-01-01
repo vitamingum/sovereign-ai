@@ -58,8 +58,39 @@ def load_passphrase(agent_id: str) -> tuple[str, str]:
         
     return enclave_dir, passphrase
 
-def search_messages(query: str, agent_id: str, limit: int = 5) -> list[dict]:
-    """Search messages semantically using simple keyword matching.
+def get_private_key_bytes(agent_id: str) -> bytes:
+    """Get private key bytes for decrypting messages."""
+    from enclave.crypto import SovereignIdentity
+    from cryptography.hazmat.primitives import serialization
+    
+    enclave_dir, passphrase = load_passphrase(agent_id)
+    identity = SovereignIdentity(enclave_dir)
+    if not identity.unlock(passphrase):
+        raise RuntimeError("Failed to unlock identity")
+    
+    return identity._private_key.private_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PrivateFormat.Raw,
+        encryption_algorithm=serialization.NoEncryption()
+    )
+
+def decrypt_message_content(content: str, msg_type: str, private_key_bytes: bytes) -> str:
+    """Decrypt message content if it's encrypted."""
+    from enclave.opaque import OpaqueStorage
+    from enclave.sif_parser import SIFParser
+    
+    if msg_type == 'protocol/sif' and content.startswith('{'):
+        try:
+            encrypted_bundle = json.loads(content)
+            if 'ephemeral_pk' in encrypted_bundle:
+                decrypted_bytes = OpaqueStorage.decrypt_share(encrypted_bundle, private_key_bytes)
+                return decrypted_bytes.decode('utf-8')
+        except Exception as e:
+            return f"[Decrypt failed: {e}]"
+    return content
+
+def search_messages(query: str, agent_id: str, limit: int = 5, private_key_bytes: bytes = None) -> list[dict]:
+    """Search messages with automatic decryption.
     
     TODO: Add proper embedding-based search when message volume warrants it.
     """
@@ -75,7 +106,6 @@ def search_messages(query: str, agent_id: str, limit: int = 5) -> list[dict]:
             with open(msg_file, 'r', encoding='utf-8') as f:
                 msg = json.load(f)
             
-            content = msg.get('content', '').lower()
             from_agent = msg.get('from', '').lower()
             to_agent = msg.get('to', '').lower()
             
@@ -83,12 +113,22 @@ def search_messages(query: str, agent_id: str, limit: int = 5) -> list[dict]:
             if agent_id.lower() not in (from_agent, to_agent):
                 continue
             
+            # Decrypt content if we have the key and it's encrypted
+            raw_content = msg.get('content', '')
+            msg_type = msg.get('type', '')
+            
+            if private_key_bytes and msg_type == 'protocol/sif' and raw_content.startswith('{'):
+                content = decrypt_message_content(raw_content, msg_type, private_key_bytes)
+            else:
+                content = raw_content
+            
             # Score by word overlap
-            content_words = set(content.split())
+            content_lower = content.lower()
+            content_words = set(content_lower.split())
             overlap = len(query_words & content_words)
             if overlap > 0:
                 results.append({
-                    'content': msg.get('content', ''),
+                    'content': content,
                     'from': msg.get('from', 'unknown'),
                     'to': msg.get('to', 'unknown'),
                     'timestamp': msg.get('timestamp', ''),
@@ -113,6 +153,9 @@ def main():
         enclave_dir, passphrase = load_passphrase(args.agent)
         memory = SemanticMemory(enclave_path=enclave_dir)
         memory.unlock(passphrase)
+        
+        # Get private key for decrypting messages
+        private_key_bytes = get_private_key_bytes(args.agent)
         
         print(f"\n🔍 Query: '{args.query}'\n")
         
@@ -140,9 +183,9 @@ def main():
                     if tags:
                         print(f"   Tags: {tags}")
             
-            # Search messages
+            # Search messages (with decryption)
             print("\n═══ MESSAGES ═══")
-            msgs = search_messages(args.query, args.agent)
+            msgs = search_messages(args.query, args.agent, private_key_bytes=private_key_bytes)
             if not msgs:
                 print("  (none)")
             else:
@@ -150,7 +193,11 @@ def main():
                     direction = "→" if msg['from'].lower() == args.agent.lower() else "←"
                     other = msg['to'] if direction == "→" else msg['from']
                     print(f"\n{i+1}. [{msg['score']:.2f}] {direction} {other}")
-                    print(f"   {msg['content']}")
+                    content = msg['content']
+                    # Truncate very long messages
+                    if len(content) > 500:
+                        content = content[:500] + "..."
+                    print(f"   {content}")
                     print(f"   @ {msg['timestamp']}")
                 
     except Exception as e:
