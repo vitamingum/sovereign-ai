@@ -81,6 +81,35 @@ def load_intentions(enclave_path: Path) -> list[dict]:
     return intentions
 
 
+def prune_stale_intentions(enclave_path: Path, max_age_hours: int = 24) -> int:
+    """Auto-complete intentions older than max_age_hours. Returns count pruned."""
+    intentions = load_intentions(enclave_path)
+    if not intentions:
+        return 0
+    
+    cutoff = datetime.now(timezone.utc).timestamp() - (max_age_hours * 3600)
+    pruned = 0
+    
+    for intention in intentions:
+        if intention.get('status') == 'completed':
+            continue
+        ts_str = intention.get('timestamp', '')
+        if ts_str:
+            ts = datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
+            if ts.timestamp() < cutoff:
+                intention['status'] = 'completed'
+                intention['completed_reason'] = 'stale'
+                pruned += 1
+    
+    if pruned > 0:
+        intentions_file = enclave_path / "storage" / "private" / "intentions.jsonl"
+        with open(intentions_file, 'w', encoding='utf-8') as f:
+            for intention in intentions:
+                f.write(json.dumps(intention) + "\n")
+    
+    return pruned
+
+
 def get_recent_intentions(enclave_path: Path, limit: int = 3) -> list[dict]:
     """Get most recent active intentions."""
     intentions = load_intentions(enclave_path)
@@ -188,6 +217,9 @@ def wake(agent_id: str) -> str:
     base_dir = Path(__file__).parent
     enclave_dir, passphrase = load_passphrase(agent_id)
     enclave_path = base_dir / enclave_dir
+    
+    # Auto-prune stale intentions (>24h)
+    pruned = prune_stale_intentions(enclave_path, max_age_hours=24)
     
     # Unlock identity for decryption
     identity = SovereignIdentity(enclave_path)
