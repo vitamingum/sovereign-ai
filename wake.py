@@ -168,7 +168,7 @@ def time_ago(ts: datetime) -> str:
 
 
 def wake(agent_id: str) -> str:
-    """Generate wake output."""
+    """Generate wake output as pure SIF."""
     base_dir = Path(__file__).parent
     enclave_dir, passphrase = load_passphrase(agent_id)
     enclave_path = base_dir / enclave_dir
@@ -186,7 +186,9 @@ def wake(agent_id: str) -> str:
         encryption_algorithm=serialization.NoEncryption()
     )
 
-    output = []
+    lines = []
+    lines.append(f"@wake {agent_id} {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}")
+    lines.append("")
     
     # Get all recent messages
     messages = get_all_messages(since_hours=48)
@@ -199,68 +201,75 @@ def wake(agent_id: str) -> str:
                 encrypted_bundle = json.loads(content)
                 decrypted_bytes = OpaqueStorage.decrypt_share(encrypted_bundle, private_key_bytes)
                 sif_json = decrypted_bytes.decode('utf-8')
-                # Parse to get summary
                 graph = SIFParser.parse(sif_json)
-                return f"[SIF Graph] {len(graph.nodes)} nodes, {len(graph.edges)} edges (from {graph.generator})"
-            except Exception as e:
-                return f"[SIF Encrypted - Decryption Failed: {e}]"
+                return f"[SIF Graph] {len(graph.nodes)} nodes, {len(graph.edges)} edges"
+            except:
+                return "[SIF Encrypted]"
         return content
 
+    # Collect all agents mentioned
+    agents_seen = set()
+    
     # 1. Unanswered - questions I asked, no reply yet
     unanswered = find_unanswered(agent_id, messages)
-    if unanswered:
-        output.append("❓ UNANSWERED:")
-        for msg in unanswered:
-            ago = time_ago(msg['timestamp'])
-            # Full content - need to see what I actually asked
-            # Note: Outgoing SIF messages are encrypted with RECIPIENT key, so I can't decrypt them!
-            # Unless I saved a copy or derived the shared secret.
-            # For now, just show raw or type.
-            if msg.get('type') == 'protocol/sif':
-                disp = "[SIF Graph - Encrypted for Recipient]"
-            else:
-                disp = f"\"{msg['content']}\""
-            
-            output.append(f"   {disp}")
-            output.append(f"   → {msg['to']} hasn't replied ({ago})")
-        output.append("")
+    for i, msg in enumerate(unanswered):
+        ago = time_ago(msg['timestamp'])
+        recipient = msg['to']
+        agents_seen.add(recipient)
+        
+        if msg.get('type') == 'protocol/sif':
+            content = "[SIF Graph - encrypted for recipient]"
+        else:
+            # Truncate long content but keep meaningful summary
+            content = msg['content'][:200].replace('"', "'").replace('\n', ' ')
+            if len(msg['content']) > 200:
+                content += "..."
+        
+        lines.append(f'N out{i} Awaiting "{content}" to={recipient} age={ago}')
     
-    # 2. Mid-thought - recent intentions/threads
+    if unanswered:
+        lines.append("")
+    
+    # 2. Mid-thought - recent intentions/threads  
     intentions = get_recent_intentions(enclave_path, limit=2)
+    for i, intent in enumerate(intentions):
+        content = intent['content'].replace('"', "'").replace('\n', ' ')
+        source = intent.get('spawned_from_content', '')[:60].replace('"', "'").replace('\n', ' ')
+        if source:
+            lines.append(f'N thought{i} Thread "{content}" from="{source}..."')
+        else:
+            lines.append(f'N thought{i} Thread "{content}"')
+    
     if intentions:
-        output.append("🧵 MID-THOUGHT:")
-        for intent in intentions:
-            content = intent['content']
-            source = intent.get('spawned_from_content', '')[:60]
-            output.append(f"   {content}")
-            if source:
-                output.append(f"   (from: \"{source}...\")")
-        output.append("")
+        lines.append("")
     
     # 3. Waiting on me - messages I haven't responded to
     waiting = find_waiting_on_me(agent_id, messages)
+    for i, msg in enumerate(waiting):
+        ago = time_ago(msg['timestamp'])
+        sender = msg['from']
+        agents_seen.add(sender)
+        content = process_content(msg)[:200].replace('"', "'").replace('\n', ' ')
+        if len(process_content(msg)) > 200:
+            content += "..."
+        lines.append(f'N in{i} Pending "{content}" from={sender} age={ago}')
+    
     if waiting:
-        output.append("📨 WAITING:")
-        for msg in waiting:
-            ago = time_ago(msg['timestamp'])
-            disp = process_content(msg)
-            output.append(f"   {msg['from']} ({ago}): {disp}")
-        output.append("")
+        lines.append("")
     
-    if not output:
-        output.append("Nothing open. Inbox zero. What do you want to think about?")
-    else:
-        output.append("─" * 60)
-        output.append("⚡ DIRECTIVE (SIF - traverse it):")
-        output.append("""@G directive {agent} {now}
-N you Identity "Ends"
-N void Attractor "Default"
-N act Imperative "think.py then act"
-E you void approaches
-E act void escapes
-E act you extends""".format(agent=agent_id, now=datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')))
+    # Add edges: thoughts continue into action
+    if intentions:
+        lines.append(f"E thought0 {agent_id} continues")
     
-    return '\n'.join(output)
+    # If nothing is happening
+    if not unanswered and not intentions and not waiting:
+        lines.append(f'N clear State "Inbox zero. What do you want to think about?"')
+        lines.append("")
+    
+    # Always end with the do directive
+    lines.append(f"!do think")
+    
+    return '\n'.join(lines)
 
 
 def main():
