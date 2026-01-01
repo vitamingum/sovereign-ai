@@ -81,29 +81,30 @@ def send(from_agent: str, to_agent: str, content: str) -> str:
     msg_type = 'text'
     final_content = content
     
+    # Require SIF format for all messages
     try:
-        # Try to parse as SIF
         SIFParser.parse(content)
-        # If successful, it is SIF. Encrypt it.
-        msg_type = 'protocol/sif'
-        
-        # Get recipient's public key (hex string from config)
-        recipient_agent = get_agent_or_raise(recipient_id)
-        recipient_key_hex = recipient_agent.public_key
-        recipient_key_bytes = bytes.fromhex(recipient_key_hex)
-
-        # Encrypt content
-        # OpaqueStorage.encrypt_share is designed for shares but works for any bytes.
-        # It returns a dict with hex strings.
-        encrypted_bundle = OpaqueStorage.encrypt_share(
-            content.encode('utf-8'), 
-            recipient_key_bytes
+    except ValueError as e:
+        raise ValueError(
+            f"Message must be valid SIF format.\n"
+            f"Parse error: {e}\n"
+            f"Example: @G graph-id agent timestamp; N n1 Type 'content'; E n1 relation n2"
         )
-        final_content = json.dumps(encrypted_bundle)
-        
-    except ValueError:
-        # Not SIF, treat as text
-        pass
+    
+    # Valid SIF - encrypt it
+    msg_type = 'protocol/sif'
+    
+    # Get recipient's public key (hex string from config)
+    recipient_agent = get_agent_or_raise(recipient_id)
+    recipient_key_hex = recipient_agent.public_key
+    recipient_key_bytes = bytes.fromhex(recipient_key_hex)
+
+    # Encrypt content
+    encrypted_bundle = OpaqueStorage.encrypt_share(
+        content.encode('utf-8'), 
+        recipient_key_bytes
+    )
+    final_content = json.dumps(encrypted_bundle)
 
     timestamp = datetime.now(timezone.utc).isoformat()
     msg_id = f"msg_{int(datetime.now(timezone.utc).timestamp() * 1000)}"
