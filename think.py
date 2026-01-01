@@ -5,7 +5,7 @@ think.py - Store thought, spawn continuation, surface related memories.
 Usage:
     py think <agent> "what you did | what's next"
     
-The pipe (|) is mandatory. Every thought spawns the next intention.
+The pipe (|) is mandatory. Write an actionable next step, even if blocked.
 
 Output:
     1. Confirmation of stored thought
@@ -67,7 +67,7 @@ def parse_input(text: str) -> tuple[str, str]:
     if '|' not in text:
         raise ValueError(
             "Missing continuation. Format: 'what you did | what's next'\n"
-            "The pipe (|) is mandatory. Every thought spawns the next intention."
+            "The pipe (|) is mandatory. Write an actionable next step, even if blocked."
         )
     
     parts = text.split('|', 1)
