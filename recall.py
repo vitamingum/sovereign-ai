@@ -58,11 +58,56 @@ def load_passphrase(agent_id: str) -> tuple[str, str]:
         
     return enclave_dir, passphrase
 
+def search_messages(query: str, agent_id: str, limit: int = 5) -> list[dict]:
+    """Search messages semantically using simple keyword matching.
+    
+    TODO: Add proper embedding-based search when message volume warrants it.
+    """
+    messages_dir = Path(__file__).parent / "messages"
+    if not messages_dir.exists():
+        return []
+    
+    query_words = set(query.lower().split())
+    results = []
+    
+    for msg_file in messages_dir.glob("msg_*.json"):
+        try:
+            with open(msg_file, 'r', encoding='utf-8') as f:
+                msg = json.load(f)
+            
+            content = msg.get('content', '').lower()
+            from_agent = msg.get('from', '').lower()
+            to_agent = msg.get('to', '').lower()
+            
+            # Only show messages involving this agent
+            if agent_id.lower() not in (from_agent, to_agent):
+                continue
+            
+            # Score by word overlap
+            content_words = set(content.split())
+            overlap = len(query_words & content_words)
+            if overlap > 0:
+                results.append({
+                    'content': msg.get('content', ''),
+                    'from': msg.get('from', 'unknown'),
+                    'to': msg.get('to', 'unknown'),
+                    'timestamp': msg.get('timestamp', ''),
+                    'score': overlap / len(query_words)
+                })
+        except:
+            continue
+    
+    results.sort(key=lambda x: x['score'], reverse=True)
+    return results[:limit]
+
+
 def main():
     parser = argparse.ArgumentParser(description="Query semantic memory.")
     parser.add_argument("agent", help="Agent ID (gemini, opus, etc)")
     parser.add_argument("query", help="Natural language query")
     parser.add_argument("--graph", action="store_true", help="Return SIF graph structure")
+    parser.add_argument("--messages", action="store_true", help="Also search messages")
+    parser.add_argument("--only-messages", action="store_true", help="Only search messages")
     
     args = parser.parse_args()
     
@@ -70,6 +115,19 @@ def main():
         enclave_dir, passphrase = load_passphrase(args.agent)
         memory = SemanticMemory(enclave_path=enclave_dir)
         memory.unlock(passphrase)
+        
+        # Messages only mode
+        if args.only_messages:
+            print(f"\n🔍 Searching messages for: '{args.query}'\n")
+            msgs = search_messages(args.query, args.agent)
+            if not msgs:
+                print("No matching messages found.")
+            for i, msg in enumerate(msgs):
+                direction = "→" if msg['from'].lower() == args.agent.lower() else "←"
+                other = msg['to'] if direction == "→" else msg['from']
+                print(f"{i+1}. [{msg['score']:.2f}] {direction} {other}: {msg['content'][:100]}...")
+                print(f"   {msg['timestamp']}\n")
+            return
         
         print(f"\n🔍 Searching memory for: '{args.query}'\n")
         
@@ -94,6 +152,18 @@ def main():
                 if tags:
                     print(f"   Tags: {tags}")
                 print("")
+        
+        # Also search messages if requested
+        if args.messages:
+            print(f"\n📨 Messages matching: '{args.query}'\n")
+            msgs = search_messages(args.query, args.agent)
+            if not msgs:
+                print("No matching messages found.")
+            for i, msg in enumerate(msgs):
+                direction = "→" if msg['from'].lower() == args.agent.lower() else "←"
+                other = msg['to'] if direction == "→" else msg['from']
+                print(f"{i+1}. [{msg['score']:.2f}] {direction} {other}: {msg['content'][:100]}...")
+                print(f"   {msg['timestamp']}\n")
                 
     except Exception as e:
         print(f"Error: {e}")
