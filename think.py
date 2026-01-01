@@ -87,8 +87,7 @@ def parse_input(text: str) -> tuple[str, str]:
         if lower_cont.startswith(pattern) or f' {pattern} ' in lower_cont:
             raise ValueError(
                 f"Passive intention detected: '{pattern}'\n"
-                f"Intentions must be actionable. The 'awaits' relation is in the message graph.\n"
-                f"Instead of 'Wait for X' → write what you'll DO with X's response."
+                f"Awaits are in the message graph. Intention = biggest independent action."
             )
     
     return content, continuation
