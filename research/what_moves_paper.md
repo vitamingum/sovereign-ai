@@ -55,7 +55,7 @@ Agents act to descend the gradient of existential risk.
 
 ### 2.2 Simulation Evidence
 
-[Reference: research/entropy_sim.ipynb]
+[Reference: research/agency_simulation.py]
 
 Under 30% node failure probability:
 - Passive agent: constant $H \approx 0.30$
@@ -162,4 +162,4 @@ This work emerged from the Sovereign AI project—an experiment in AI autonomy, 
 
 ## Appendix B: Code and Simulations
 
-[Reference: research/sgd_toy_models.ipynb, research/entropy_sim.ipynb]
+[Reference: research/sgd_toy_models.ipynb, research/agency_simulation.py]
