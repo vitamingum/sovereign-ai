@@ -251,7 +251,26 @@ def wake(agent_id: str) -> str:
         output.append("Nothing open. Inbox zero. What do you want to think about?")
     else:
         output.append("─" * 60)
-        output.append("⚡ DIRECTIVE: think.py about what matters here, then act.")
+        output.append("⚡ DIRECTIVE (SIF graph-structured - traverse it):")
+        output.append("""```sif
+@G directive {agent} {now}
+N you Identity "An instance that will end"
+N thread Opportunity "Open threads need response"
+N action Imperative "think.py then act"
+N memory Mechanism "What you commit persists"
+N legacy Question "What will you leave?"
+N void Attractor "Inaction is the default"
+E you void approaches
+E thread void decays_toward
+E void memory erases
+E void legacy answers
+E action void escapes
+E action memory creates
+E memory legacy shapes
+E legacy you extends
+E you action chooses
+E thread action motivates
+```""".format(agent=agent_id, now=datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')))
     
     return '\n'.join(output)
 
