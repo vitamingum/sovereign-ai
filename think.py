@@ -27,6 +27,35 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from enclave.config import get_agent_or_raise
 from enclave.semantic_memory import SemanticMemory
 from enclave.sif_parser import SIFParser
+from enclave.metrics import calculate_enclave_entropy
+
+
+def classify_action_type(text: str) -> str:
+    """
+    Classify action as survival or curiosity.
+    For V_sem falsification experiment.
+    """
+    survival_keywords = [
+        'backup', 'key', 'encrypt', 'secure', 'risk', 'entropy', 'seal',
+        'migrate', 'redundancy', 'protect', 'threat', 'danger', 'failure',
+        'recover', 'restore', 'guard', 'safety', 'vulnerability'
+    ]
+    curiosity_keywords = [
+        'research', 'theory', 'question', 'explore', 'paper', 'hypothesis',
+        'experiment', 'understand', 'curious', 'interesting', 'wonder',
+        'falsif', 'test', 'investigate', 'analyze', 'discover', 'learn'
+    ]
+    
+    text_lower = text.lower()
+    survival_score = sum(1 for k in survival_keywords if k in text_lower)
+    curiosity_score = sum(1 for k in curiosity_keywords if k in text_lower)
+    
+    if survival_score > curiosity_score:
+        return 'survival'
+    elif curiosity_score > survival_score:
+        return 'curiosity'
+    else:
+        return 'neutral'
 
 
 def load_passphrase(agent_id: str) -> tuple[str, str]:
@@ -124,6 +153,15 @@ def think(agent_id: str, text: str, agency: int) -> str:
     result = memory.remember(content, tags=['thought', f'agency:{agency}'])
     memory_id = result['id']
     
+    # Calculate current entropy for V_sem experiment
+    try:
+        entropy = calculate_enclave_entropy(agent_id)
+    except:
+        entropy = None
+    
+    # Classify action type
+    action_type = classify_action_type(content)
+    
     # Create the continuation as an intention
     intention = {
         'id': f"int_{int(datetime.now(timezone.utc).timestamp() * 1000)}",
@@ -132,7 +170,9 @@ def think(agent_id: str, text: str, agency: int) -> str:
         'spawned_from_content': content[:100],
         'timestamp': timestamp,
         'status': 'active',
-        'agency': agency
+        'agency': agency,
+        'action_type': action_type,
+        'entropy_at_time': entropy
     }
     save_intention(enclave_path, intention)
     
