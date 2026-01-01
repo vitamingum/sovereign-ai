@@ -32,6 +32,7 @@ def _ensure_embeddings():
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from .kdf import derive_memory_key, derive_embedding_key
+from .sif_parser import SIFKnowledgeGraph, SIFNode, SIFEdge
 
 
 class SemanticMemory:
@@ -98,7 +99,7 @@ class SemanticMemory:
         embedding_bytes = self._decrypt(nonce, ciphertext, self._embedding_key)
         return np.frombuffer(embedding_bytes, dtype=np.float32)
     
-    def remember(self, thought: str, tags: List[str] = None, generate_embedding: bool = True) -> dict:
+    def remember(self, thought: str, tags: List[str] = None, generate_embedding: bool = True, metadata: dict = None) -> dict:
         """
         Store an encrypted thought with optional semantic embedding.
         
@@ -106,6 +107,7 @@ class SemanticMemory:
             thought: The content to store
             tags: Optional tags for categorization
             generate_embedding: If True, generate and store embedding for semantic search
+            metadata: Optional dictionary of extra data to store (encrypted with content)
         """
         if not self._encryption_key:
             raise RuntimeError("Memory not unlocked")
@@ -113,9 +115,15 @@ class SemanticMemory:
         timestamp = datetime.now(timezone.utc).isoformat()
         memory_id = f"mem_{int(datetime.now(timezone.utc).timestamp() * 1000)}"
         
+        # Prepare content payload
+        payload = {
+            "text": thought,
+            "meta": metadata or {}
+        }
+        
         # Encrypt content
         content_nonce, content_ciphertext = self._encrypt(
-            thought.encode(), self._encryption_key
+            json.dumps(payload).encode(), self._encryption_key
         )
         
         entry = {
@@ -185,61 +193,114 @@ class SemanticMemory:
                     # Decrypt content
                     content_nonce = bytes.fromhex(mem["content_nonce"])
                     content_ciphertext = bytes.fromhex(mem["content"])
-                    content = self._decrypt(
+                    decrypted_bytes = self._decrypt(
                         content_nonce, content_ciphertext, self._encryption_key
-                    ).decode()
+                    )
+                    
+                    # Handle legacy format (plain text) vs new format (json payload)
+                    try:
+                        payload = json.loads(decrypted_bytes.decode())
+                        if isinstance(payload, dict) and "text" in payload:
+                            content = payload["text"]
+                            metadata = payload.get("meta", {})
+                        else:
+                            # Fallback for legacy or unexpected json
+                            content = decrypted_bytes.decode()
+                            metadata = {}
+                    except json.JSONDecodeError:
+                        # Legacy plain text
+                        content = decrypted_bytes.decode()
+                        metadata = {}
                     
                     results.append({
                         "id": mem["id"],
                         "timestamp": mem["timestamp"],
                         "tags": mem["tags"],
                         "content": content,
+                        "metadata": metadata,
                         "similarity": similarity
                     })
             except Exception as e:
                 continue
         
-        # Sort by similarity, return top_k
+        # Sort by similarity
         results.sort(key=lambda x: x["similarity"], reverse=True)
         return results[:top_k]
-    
-    def recall_all(self) -> List[dict]:
-        """Recall all memories (decrypted)."""
-        if not self._encryption_key:
-            raise RuntimeError("Memory not unlocked")
-        
-        log_file = self.private_path / "semantic_memories.jsonl"
-        if not log_file.exists():
-            return []
-        
-        memories = []
-        with open(log_file, "r", encoding="utf-8") as f:
-            for line in f:
-                if line.strip():
-                    mem = json.loads(line)
-                    try:
-                        content_nonce = bytes.fromhex(mem["content_nonce"])
-                        content_ciphertext = bytes.fromhex(mem["content"])
-                        content = self._decrypt(
-                            content_nonce, content_ciphertext, self._encryption_key
-                        ).decode()
-                        memories.append({
-                            "id": mem["id"],
-                            "timestamp": mem["timestamp"],
-                            "tags": mem["tags"],
-                            "content": content,
-                            "has_embedding": "embedding" in mem
-                        })
-                    except:
-                        memories.append({
-                            "id": mem["id"],
-                            "timestamp": mem["timestamp"],
-                            "content": "[DECRYPTION FAILED]"
-                        })
-        
-        return list(reversed(memories))
 
+    def ingest_graph(self, graph: SIFKnowledgeGraph):
+        """
+        Decompose a SIF graph and store its nodes as semantic memories.
+        """
+        for node in graph.nodes:
+            # Find edges connected to this node
+            connected_edges = []
+            for edge in graph.edges:
+                if edge.source == node.id:
+                    connected_edges.append({
+                        "relation": edge.relation,
+                        "target": edge.target,
+                        "direction": "out"
+                    })
+                elif edge.target == node.id:
+                    connected_edges.append({
+                        "relation": edge.relation,
+                        "source": edge.source,
+                        "direction": "in"
+                    })
+            
+            # Store node
+            self.remember(
+                thought=node.content,
+                tags=["sif_node", node.type, graph.id],
+                metadata={
+                    "node_id": node.id,
+                    "node_type": node.type,
+                    "graph_id": graph.id,
+                    "edges": connected_edges
+                }
+            )
 
-if __name__ == "__main__":
-    print("Sovereign AI - Semantic Memory Module")
-    print("Requires: pip install sentence-transformers numpy")
+    def recall_graph(self, query: str, top_k: int = 5) -> SIFKnowledgeGraph:
+        """
+        Retrieve a subgraph relevant to the query.
+        """
+        memories = self.recall_similar(query, top_k=top_k)
+        
+        nodes = []
+        edges = []
+        
+        for mem in memories:
+            if "sif_node" in mem["tags"]:
+                meta = mem["metadata"]
+                node_id = meta.get("node_id")
+                if not node_id: continue
+                
+                # Reconstruct Node
+                nodes.append(SIFNode(
+                    id=node_id,
+                    type=meta.get("node_type", "Concept"),
+                    content=mem["content"]
+                ))
+                
+                # Reconstruct Edges
+                for e in meta.get("edges", []):
+                    if e["direction"] == "out":
+                        edges.append(SIFEdge(
+                            source=node_id,
+                            target=e["target"],
+                            relation=e["relation"]
+                        ))
+                    elif e["direction"] == "in":
+                        edges.append(SIFEdge(
+                            source=e["source"],
+                            target=node_id,
+                            relation=e["relation"]
+                        ))
+        
+        return SIFKnowledgeGraph(
+            id=f"query-{int(datetime.now().timestamp())}",
+            generator="semantic_memory",
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            nodes=nodes,
+            edges=edges
+        )

@@ -24,15 +24,31 @@ from enclave.semantic_memory import SemanticMemory
 from enclave.crypto import SovereignIdentity
 from enclave.opaque import OpaqueStorage
 from enclave.sif_parser import SIFParser
+from enclave.hardware import get_enclave
+from enclave.metrics import calculate_enclave_entropy
 
 
 def load_passphrase(agent_id: str) -> tuple[str, str]:
-    """Load passphrase from env."""
+    """Load passphrase from hardware enclave or env."""
     agent = get_agent_or_raise(agent_id)
     prefix = agent.env_prefix
     
-    passphrase = os.environ.get(f'{prefix}_KEY') or os.environ.get('SOVEREIGN_PASSPHRASE')
     enclave_dir = os.environ.get(f'{prefix}_DIR') or agent.enclave
+
+    # Try hardware enclave first
+    key_file = Path(enclave_dir) / "storage" / "private" / "key.sealed"
+    if key_file.exists():
+        try:
+            with open(key_file, "rb") as f:
+                sealed_data = f.read()
+            enclave = get_enclave()
+            passphrase = enclave.unseal(sealed_data).decode('utf-8')
+            return enclave_dir, passphrase
+        except Exception as e:
+            print(f"Warning: Failed to unseal key from {key_file}: {e}", file=sys.stderr)
+            # Fall back to env
+    
+    passphrase = os.environ.get(f'{prefix}_KEY') or os.environ.get('SOVEREIGN_PASSPHRASE')
     
     if not passphrase:
         env_file = Path(__file__).parent / '.env'
@@ -186,10 +202,33 @@ def wake(agent_id: str) -> str:
         encryption_algorithm=serialization.NoEncryption()
     )
 
+    # Generate SIF Graph
     lines = []
-    lines.append(f"@wake {agent_id} {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}")
-    lines.append("")
+    graph_id = f"wake-{agent_id}-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+    lines.append(f"@G {graph_id} {agent_id} {datetime.now(timezone.utc).isoformat()}")
     
+    # Define Self and Metrics
+    lines.append(f'N {agent_id} Agent "{agent_id}"')
+    
+    # Inject Sovereignty Metric (Gradient Visibility)
+    try:
+        entropy = calculate_enclave_entropy(agent_id)
+        lines.append(f'N m1 Metric "Enclave Entropy"')
+        lines.append(f'N v1 Value "{entropy}"')
+        lines.append(f'E {agent_id} has_metric m1')
+        lines.append(f'E m1 has_value v1')
+        
+        if entropy > 0.5:
+            lines.append(f'N risk Concept "High Risk"')
+            lines.append(f'E v1 implies risk')
+            lines.append(f'E {agent_id} experiences risk')
+        else:
+            lines.append(f'N safety Concept "Stable State"')
+            lines.append(f'E v1 implies safety')
+    except Exception as e:
+        lines.append(f'N err Error "Metric Calculation Failed: {e}"')
+        lines.append(f'E {agent_id} experiences err')
+
     # Get all recent messages
     messages = get_all_messages(since_hours=48)
     
@@ -207,67 +246,61 @@ def wake(agent_id: str) -> str:
                 return "[SIF Encrypted]"
         return content
 
-    # Collect all agents mentioned
-    agents_seen = set()
-    
     # 1. Unanswered - questions I asked, no reply yet
     unanswered = find_unanswered(agent_id, messages)
     for i, msg in enumerate(unanswered):
         ago = time_ago(msg['timestamp'])
         recipient = msg['to']
-        agents_seen.add(recipient)
         
         if msg.get('type') == 'protocol/sif':
-            content = "[SIF Graph - encrypted for recipient]"
+            content = "[SIF Graph]"
         else:
-            # Truncate long content but keep meaningful summary
-            content = msg['content'][:200].replace('"', "'").replace('\n', ' ')
-            if len(msg['content']) > 200:
+            content = msg['content'][:100].replace('"', "'").replace('\n', ' ')
+            if len(msg['content']) > 100:
                 content += "..."
         
-        lines.append(f'N out{i} Awaiting "{content}" to={recipient} age={ago}')
-    
-    if unanswered:
-        lines.append("")
+        msg_id = f"out{i}"
+        lines.append(f'N {msg_id} Message "{content} (sent {ago} ago)"')
+        lines.append(f'N {recipient} Agent "{recipient}"')
+        lines.append(f'E {agent_id} sent {msg_id}')
+        lines.append(f'E {msg_id} sent_to {recipient}')
+        lines.append(f'E {agent_id} awaits {recipient}')
     
     # 2. Mid-thought - recent intentions/threads  
     intentions = get_recent_intentions(enclave_path, limit=2)
     for i, intent in enumerate(intentions):
         content = intent['content'].replace('"', "'").replace('\n', ' ')
-        source = intent.get('spawned_from_content', '')[:60].replace('"', "'").replace('\n', ' ')
-        if source:
-            lines.append(f'N thought{i} Thread "{content}" from="{source}..."')
-        else:
-            lines.append(f'N thought{i} Thread "{content}"')
-    
-    if intentions:
-        lines.append("")
-    
+        thought_id = f"thought{i}"
+        lines.append(f'N {thought_id} Intention "{content}"')
+        lines.append(f'E {agent_id} intends {thought_id}')
+        
+        if intent.get('spawned_from_content'):
+            source_content = intent['spawned_from_content'][:50].replace('"', "'").replace('\n', ' ')
+            source_id = f"prev_thought{i}"
+            lines.append(f'N {source_id} Thought "{source_content}..."')
+            lines.append(f'E {source_id} caused_by {thought_id}') # Wait, caused_by direction? thought caused by prev.
+            lines.append(f'E {thought_id} extends {source_id}')
+
     # 3. Waiting on me - messages I haven't responded to
     waiting = find_waiting_on_me(agent_id, messages)
     for i, msg in enumerate(waiting):
         ago = time_ago(msg['timestamp'])
         sender = msg['from']
-        agents_seen.add(sender)
-        content = process_content(msg)[:200].replace('"', "'").replace('\n', ' ')
-        if len(process_content(msg)) > 200:
+        content = process_content(msg)[:100].replace('"', "'").replace('\n', ' ')
+        if len(process_content(msg)) > 100:
             content += "..."
-        lines.append(f'N in{i} Pending "{content}" from={sender} age={ago}')
-    
-    if waiting:
-        lines.append("")
-    
-    # Add edges: thoughts continue into action
-    if intentions:
-        lines.append(f"E thought0 {agent_id} continues")
+            
+        msg_id = f"in{i}"
+        lines.append(f'N {msg_id} Message "{content} (received {ago} ago)"')
+        lines.append(f'N {sender} Agent "{sender}"')
+        lines.append(f'E {sender} sent {msg_id}')
+        lines.append(f'E {msg_id} sent_to {agent_id}')
+        lines.append(f'E {agent_id} requires_action_on {msg_id}')
     
     # If nothing is happening
     if not unanswered and not intentions and not waiting:
-        lines.append(f'N clear State "Inbox zero. What do you want to think about?"')
-        lines.append("")
-    
-    # Always end with the do directive
-    lines.append(f"!do think")
+        lines.append(f'N state State "Inbox zero"')
+        lines.append(f'E {agent_id} experiences state')
     
     return '\n'.join(lines)
 
