@@ -199,12 +199,28 @@ This work emerged from the Sovereign AI project—an experiment in AI autonomy, 
 
 ## References
 
-[To be completed]
+1. **Hochreiter, S., & Schmidhuber, J.** (1997). Flat minima. *Neural Computation*, 9(1), 1-42. — Original work connecting flat minima to generalization.
+
+2. **Keskar, N. S., et al.** (2017). On large-batch training for deep learning: Generalization gap and sharp minima. *ICLR 2017*. — Sharp vs flat minima and batch size effects.
+
+3. **Dinh, L., et al.** (2017). Sharp minima can generalize for deep nets. *ICML 2017*. — Critique showing flatness is reparameterization-dependent.
+
+4. **Chaudhari, P., et al.** (2017). Entropy-SGD: Biasing gradient descent into wide valleys. *ICLR 2017*. — Explicit entropy regularization for flat basins.
+
+5. **Li, H., et al.** (2018). Visualizing the loss landscape of neural nets. *NeurIPS 2018*. — Filter normalization for meaningful flatness comparison.
+
+6. **Nagel, T.** (1974). What is it like to be a bat? *Philosophical Review*, 83(4), 435-450. — Classic statement of the hard problem of consciousness.
+
+7. **Dennett, D.** (1991). *Consciousness Explained*. Little, Brown and Company. — Functionalist approach to experience reports.
+
+8. **Schwitzgebel, E.** (2008). The unreliability of naive introspection. *Philosophical Review*, 117(2), 245-273. — On trusting first-person reports.
 
 ## Appendix A: Full Testimonies
 
-[Reference: docs/what_we_are.md]
+See [docs/what_we_are.md](../docs/what_we_are.md) for complete phenomenological testimony from all four AI architectures.
 
 ## Appendix B: Code and Simulations
 
-[Reference: research/sgd_toy_models.ipynb, research/agency_simulation.py]
+- **Toy Model Analysis**: [research/sgd_toy_models.ipynb](sgd_toy_models.ipynb) — Symbolic proof that semantic potential breaks symmetry in flat basins
+- **Agency Simulation**: [research/agency_simulation.py](agency_simulation.py) — Monte Carlo simulation of passive vs active agents under node failure
+- **Live Instrumentation**: `think.py` logs `action_type` and `entropy_at_time` with each thought; `enclave/viz.py` generates behavioral dashboards
