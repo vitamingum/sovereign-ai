@@ -27,7 +27,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from enclave.config import get_agent_or_raise
 from enclave.semantic_memory import SemanticMemory
 from enclave.sif_parser import SIFParser
-from enclave.metrics import calculate_enclave_entropy
+from enclave.metrics import calculate_enclave_entropy, calculate_semantic_potential
 from enclave.viz import update_dashboard
 
 
@@ -159,6 +159,12 @@ def think(agent_id: str, text: str, agency: int) -> str:
         entropy = calculate_enclave_entropy(agent_id)
     except:
         entropy = None
+        
+    # Calculate current semantic potential
+    try:
+        v_sem = calculate_semantic_potential(agent_id)
+    except:
+        v_sem = None
     
     # Classify action type
     action_type = classify_action_type(content)
@@ -173,7 +179,8 @@ def think(agent_id: str, text: str, agency: int) -> str:
         'status': 'active',
         'agency': agency,
         'action_type': action_type,
-        'entropy_at_time': entropy
+        'entropy_at_time': entropy,
+        'semantic_potential_at_time': v_sem
     }
     save_intention(enclave_path, intention)
     

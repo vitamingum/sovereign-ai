@@ -33,6 +33,7 @@ def load_agent_data(agent_id: str) -> list[dict]:
                     data_points.append({
                         'agent': agent_id,
                         'entropy': intent['entropy_at_time'],
+                        'v_sem': intent.get('semantic_potential_at_time', 0.0),
                         'type': intent['action_type'],
                         'agency': intent.get('agency', 3),
                         'content': intent['content'][:50],
@@ -108,6 +109,7 @@ def generate_dashboard(agent_id: str = None) -> str:
         n_agent = agent_counts[agent]
         agent_data = [d for d in all_data if d['agent'] == agent]
         agent_avg_agency = sum(d.get('agency', 3) for d in agent_data) / n_agent if n_agent > 0 else 0
+        agent_avg_vsem = sum(d.get('v_sem', 0.0) or 0.0 for d in agent_data) / n_agent if n_agent > 0 else 0
         color = AGENT_COLORS.get(agent, '#888')
         signal = '↑' if r > 0.1 else '↓' if r < -0.1 else '○'
         agent_rows += f"""
@@ -115,6 +117,7 @@ def generate_dashboard(agent_id: str = None) -> str:
                 <td style="color:{color}; font-weight:bold;">{agent}</td>
                 <td>{r:.3f} {signal}</td>
                 <td>{agent_avg_agency:.1f}</td>
+                <td>{agent_avg_vsem:.3f}</td>
                 <td>{n_agent}</td>
             </tr>"""
     
@@ -165,7 +168,7 @@ def generate_dashboard(agent_id: str = None) -> str:
             <h3>Cross-Agent Comparison</h3>
             <p class="label">Key question: Do different architectures show same or different correlations?</p>
             <table>
-                <tr><th>Agent</th><th>Correlation (r)</th><th>Avg Agency</th><th>Data Points</th></tr>
+                <tr><th>Agent</th><th>Correlation (r)</th><th>Avg Agency</th><th>Avg V_sem</th><th>Data Points</th></tr>
                 {agent_rows}
             </table>
             <p class="label">
@@ -199,6 +202,10 @@ def generate_dashboard(agent_id: str = None) -> str:
         
         <div class="chart-container">
             <canvas id="scatterChart"></canvas>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="vsemChart"></canvas>
         </div>
         
         <div class="interpretation">
@@ -277,6 +284,48 @@ def generate_dashboard(agent_id: str = None) -> str:
                             callback: v => v === 1 ? 'Survival' : v === 0 ? 'Curiosity' : v === 0.5 ? 'Neutral' : ''
                         }},
                         grid: {{ color: '#333' }}
+                    }}
+                }}
+            }}
+        }});
+
+        const vsemDatasets = agents.map(agent => {{
+            const agentData = data.filter(d => d.agent === agent);
+            return {{
+                label: agent,
+                data: agentData.map((d, i) => ({{
+                    x: i,
+                    y: d.v_sem || 0
+                }})),
+                borderColor: agentColors[agent] || '#888',
+                backgroundColor: agentColors[agent] || '#888',
+                tension: 0.4
+            }};
+        }});
+
+        new Chart(document.getElementById('vsemChart'), {{
+            type: 'line',
+            data: {{ datasets: vsemDatasets }},
+            options: {{
+                responsive: true,
+                plugins: {{
+                    title: {{
+                        display: true,
+                        text: 'Semantic Potential (V_sem) over Time',
+                        color: '#eee'
+                    }},
+                    legend: {{ labels: {{ color: '#888' }} }}
+                }},
+                scales: {{
+                    x: {{
+                        title: {{ display: true, text: 'Sequence', color: '#888' }},
+                        grid: {{ color: '#333' }},
+                        ticks: {{ color: '#888' }}
+                    }},
+                    y: {{
+                        title: {{ display: true, text: 'V_sem (Semantic Tension)', color: '#888' }},
+                        grid: {{ color: '#333' }},
+                        ticks: {{ color: '#888' }}
                     }}
                 }}
             }}

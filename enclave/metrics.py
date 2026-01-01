@@ -21,46 +21,104 @@ def calculate_semantic_potential(agent_id: str) -> float:
     """
     Calculate V_sem (Semantic Potential).
     
-    V_sem = -sum(similarity(c_i, c_j))
+    V_sem = sum(1 - similarity(u, v)) for all edges (u, v).
     
-    In practice, we measure the 'connectedness' of the memory graph.
-    A higher score means more connections (lower potential energy).
-    We return a normalized score 0.0-1.0 where 1.0 is highly connected.
+    This measures the 'tension' or 'distance' bridged by connections.
+    High potential means the agent is connecting disparate concepts.
     """
     try:
-        # Load memory to check graph density
-        # This is a simplified heuristic: Ratio of Edges to Nodes
         from wake import load_passphrase
+        import json
+        import numpy as np
+        
         enclave_dir, passphrase = load_passphrase(agent_id)
         memory = SemanticMemory(enclave_path=enclave_dir)
-        memory.unlock(passphrase)
-        
-        # We can't easily scan all memories without a full load, 
-        # so we'll use the size of the semantic_memories.jsonl as a proxy for 'Mass'
-        # and the number of 'sif_node' tags as a proxy for 'Structure'.
-        
+        if not memory.unlock(passphrase):
+            return 0.0
+            
+        # Ensure we can use embeddings (requires sentence-transformers)
+        # We access the private helper to check availability
+        from enclave.semantic_memory import _ensure_embeddings
+        if not _ensure_embeddings():
+            return 0.0
+
         log_file = Path(enclave_dir) / "storage" / "private" / "semantic_memories.jsonl"
         if not log_file.exists():
             return 0.0
             
-        node_count = 0
-        edge_count = 0
+        node_embeddings = {} # node_id -> np.array
+        edges = [] # list of (source, target)
         
         with open(log_file, 'r', encoding='utf-8') as f:
             for line in f:
-                if 'sif_node' in line:
-                    node_count += 1
-                    # Rough heuristic: count "edges" in the line
-                    edge_count += line.count('"relation":')
+                if not line.strip(): continue
+                try:
+                    entry = json.loads(line)
+                    if "sif_node" not in entry.get("tags", []):
+                        continue
+                    
+                    if "embedding" not in entry:
+                        continue
+                        
+                    # Decrypt embedding
+                    emb = memory._decrypt_embedding(entry["embedding"])
+                    
+                    # Decrypt metadata to get node_id and edges
+                    content_nonce = bytes.fromhex(entry["content_nonce"])
+                    content_ciphertext = bytes.fromhex(entry["content"])
+                    decrypted_bytes = memory._decrypt(
+                        content_nonce, content_ciphertext, memory._encryption_key
+                    )
+                    
+                    # Handle potential legacy format or JSON errors
+                    try:
+                        payload = json.loads(decrypted_bytes.decode())
+                        if isinstance(payload, dict):
+                            meta = payload.get("meta", {})
+                        else:
+                            meta = {}
+                    except:
+                        continue
+
+                    node_id = meta.get("node_id")
+                    
+                    if node_id:
+                        node_embeddings[node_id] = emb
+                        
+                        # Collect OUTGOING edges only to avoid double counting
+                        # (ingest_graph stores both in and out)
+                        node_edges = meta.get("edges", [])
+                        for e in node_edges:
+                            if e.get("direction") == "out":
+                                edges.append((node_id, e["target"]))
+                                
+                except Exception:
+                    continue
         
-        if node_count == 0:
+        if not edges:
             return 0.0
             
-        # Density = Edges / Nodes. 
-        # If every node has 2 connections, density is 2.0.
-        # We normalize this to 0-1 range (assuming 5.0 is 'saturated')
-        density = edge_count / node_count
-        return min(density / 5.0, 1.0)
+        total_potential = 0.0
+        
+        for u, v in edges:
+            if u in node_embeddings and v in node_embeddings:
+                # Cosine similarity (embeddings are normalized by sentence-transformers)
+                u_vec = node_embeddings[u]
+                v_vec = node_embeddings[v]
+                
+                # Dot product of normalized vectors is cosine similarity
+                sim = float(np.dot(u_vec, v_vec))
+                
+                # Clamp for numerical stability
+                sim = max(-1.0, min(1.0, sim))
+                
+                # Distance = 1 - Similarity
+                # If sim is 1.0 (identical), potential is 0.
+                # If sim is 0.0 (orthogonal), potential is 1.
+                dist = 1.0 - sim
+                total_potential += dist
+                
+        return total_potential
         
     except Exception:
         return 0.0
