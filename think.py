@@ -184,9 +184,9 @@ def think(agent_id: str, text: str, agency: int) -> str:
     }
     save_intention(enclave_path, intention)
     
-    # Build output
+    # Build output - minimal
     output = []
-    output.append(f"✓ Stored (agency={agency}): {content}")
+    output.append(content)
     output.append(f"→ Next: {continuation}")
     output.append("")
     
@@ -202,14 +202,12 @@ def think(agent_id: str, text: str, agency: int) -> str:
             # Full content, no truncation
             output.append(f"   • {mem['content']}")
     
-    # Update V_sem dashboard (both agent-specific and global)
+    # Update V_sem dashboard (silently)
     try:
-        dashboard_path = update_dashboard(agent_id)
-        global_path = update_dashboard(None)  # All agents
-        output.append(f"\n📊 Dashboard: {dashboard_path}")
-        output.append(f"📊 Global: {global_path}")
-    except Exception as e:
-        pass  # Don't fail on viz errors
+        update_dashboard(agent_id)
+        update_dashboard(None)  # All agents
+    except:
+        pass
     
     return '\n'.join(output)
 

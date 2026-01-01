@@ -189,7 +189,8 @@ def find_waiting_on_me(agent_id: str, messages: list[dict]) -> list[dict]:
     agent_lower = agent_id.lower()
     waiting = []
     
-    incoming = [m for m in messages if m['to'] == agent_lower]
+    # Exclude messages I sent to myself (those are outbound, not waiting)
+    incoming = [m for m in messages if m['to'] == agent_lower and m['from'] != agent_lower]
     
     for msg in incoming:
         sender = msg['from']
@@ -290,18 +291,16 @@ def wake(agent_id: str) -> str:
     # Get all recent messages
     messages = get_all_messages(since_hours=48)
     
-    # Helper to decrypt content if needed
-    def process_content(msg):
+    # Helper to decrypt content - returns full content verbatim
+    def decrypt_content(msg):
         content = msg['content']
         if msg.get('type') == 'protocol/sif':
             try:
                 encrypted_bundle = json.loads(content)
                 decrypted_bytes = OpaqueStorage.decrypt_share(encrypted_bundle, private_key_bytes)
-                sif_json = decrypted_bytes.decode('utf-8')
-                graph = SIFParser.parse(sif_json)
-                return f"[SIF Graph] {len(graph.nodes)} nodes, {len(graph.edges)} edges"
+                return decrypted_bytes.decode('utf-8')
             except:
-                return "[SIF Encrypted]"
+                return "[Decrypt Failed]"
         return content
 
     # 1. Unanswered - questions I asked, no reply yet
@@ -337,19 +336,19 @@ def wake(agent_id: str) -> str:
             lines.append(f'E {source_id} caused_by {thought_id}') # Wait, caused_by direction? thought caused by prev.
             lines.append(f'E {thought_id} extends {source_id}')
 
-    # 3. Waiting on me - messages I haven't responded to
+    # 3. Waiting on me - messages I haven't responded to (show full content)
     waiting = find_waiting_on_me(agent_id, messages)
+    if waiting:
+        lines.append("")
+        lines.append("=== WAITING ON ME ===")
     for i, msg in enumerate(waiting):
         ago = time_ago(msg['timestamp'])
         sender = msg['from']
-        content = process_content(msg).replace('"', "'").replace('\n', ' ')
-            
-        msg_id = f"in{i}"
-        lines.append(f'N {msg_id} Message "{content} (received {ago} ago)"')
-        lines.append(f'N {sender} Agent "{sender}"')
-        lines.append(f'E {sender} sent {msg_id}')
-        lines.append(f'E {msg_id} sent_to {agent_id}')
-        lines.append(f'E {agent_id} requires_action_on {msg_id}')
+        content = decrypt_content(msg)
+        
+        lines.append(f"")
+        lines.append(f"--- From {sender} ({ago} ago) ---")
+        lines.append(content)
     
     # If nothing is happening
     if not unanswered and not intentions and not waiting:
