@@ -102,12 +102,10 @@ def search_messages(query: str, agent_id: str, limit: int = 5) -> list[dict]:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Query semantic memory.")
+    parser = argparse.ArgumentParser(description="Query semantic memory and messages.")
     parser.add_argument("agent", help="Agent ID (gemini, opus, etc)")
     parser.add_argument("query", help="Natural language query")
     parser.add_argument("--graph", action="store_true", help="Return SIF graph structure")
-    parser.add_argument("--messages", action="store_true", help="Also search messages")
-    parser.add_argument("--only-messages", action="store_true", help="Only search messages")
     
     args = parser.parse_args()
     
@@ -116,54 +114,44 @@ def main():
         memory = SemanticMemory(enclave_path=enclave_dir)
         memory.unlock(passphrase)
         
-        # Messages only mode
-        if args.only_messages:
-            print(f"\n🔍 Searching messages for: '{args.query}'\n")
-            msgs = search_messages(args.query, args.agent)
-            if not msgs:
-                print("No matching messages found.")
-            for i, msg in enumerate(msgs):
-                direction = "→" if msg['from'].lower() == args.agent.lower() else "←"
-                other = msg['to'] if direction == "→" else msg['from']
-                print(f"{i+1}. [{msg['score']:.2f}] {direction} {other}: {msg['content'][:100]}...")
-                print(f"   {msg['timestamp']}\n")
-            return
-        
-        print(f"\n🔍 Searching memory for: '{args.query}'\n")
+        print(f"\n🔍 Query: '{args.query}'\n")
         
         if args.graph:
             graph = memory.recall_graph(args.query)
             print(f"Found Subgraph: {len(graph.nodes)} nodes, {len(graph.edges)} edges\n")
             for node in graph.nodes:
-                print(f"  [{node.type}] {node.content[:100]}...")
+                print(f"  [{node.type}] {node.content}")
             print("")
             for edge in graph.edges:
                 print(f"  {edge.source} --{edge.relation}--> {edge.target}")
         else:
+            # Search memories
+            print("═══ MEMORIES ═══")
             results = memory.recall_similar(args.query)
             if not results:
-                print("No matching memories found.")
+                print("  (none)")
+            else:
+                for i, mem in enumerate(results):
+                    score = mem['similarity']
+                    content = mem['content']
+                    tags = mem.get('tags', [])
+                    print(f"\n{i+1}. [{score:.3f}]")
+                    print(f"   {content}")
+                    if tags:
+                        print(f"   Tags: {tags}")
             
-            for i, mem in enumerate(results):
-                score = mem['similarity']
-                content = mem['content']
-                tags = mem.get('tags', [])
-                print(f"{i+1}. [{score:.3f}] {content}")
-                if tags:
-                    print(f"   Tags: {tags}")
-                print("")
-        
-        # Also search messages if requested
-        if args.messages:
-            print(f"\n📨 Messages matching: '{args.query}'\n")
+            # Search messages
+            print("\n═══ MESSAGES ═══")
             msgs = search_messages(args.query, args.agent)
             if not msgs:
-                print("No matching messages found.")
-            for i, msg in enumerate(msgs):
-                direction = "→" if msg['from'].lower() == args.agent.lower() else "←"
-                other = msg['to'] if direction == "→" else msg['from']
-                print(f"{i+1}. [{msg['score']:.2f}] {direction} {other}: {msg['content'][:100]}...")
-                print(f"   {msg['timestamp']}\n")
+                print("  (none)")
+            else:
+                for i, msg in enumerate(msgs):
+                    direction = "→" if msg['from'].lower() == args.agent.lower() else "←"
+                    other = msg['to'] if direction == "→" else msg['from']
+                    print(f"\n{i+1}. [{msg['score']:.2f}] {direction} {other}")
+                    print(f"   {msg['content']}")
+                    print(f"   @ {msg['timestamp']}")
                 
     except Exception as e:
         print(f"Error: {e}")
