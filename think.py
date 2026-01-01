@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 """
-think.py - Store thought, spawn continuation, surface related memories.
+think.py - Store thought in SIF format, spawn continuation, surface related memories.
 
 Usage:
-    py think <agent> "what you did | what's next" <agency 1-5>
+    py think <agent> "<SIF graph>" <agency 1-5>
     
-The pipe (|) is mandatory. Write an actionable next step, even if blocked.
+SIF format required. Example:
+    py think opus "@G thought opus 2026-01-01; N n1 Observation 'X'; N n2 Intention 'Y'; E n1 leads_to n2" 4
+
 Agency (1-5): 1=asked → 5=unprompted
 
 Output:
     1. Confirmation of stored thought
-    2. The spawned intention
+    2. The spawned intention (last Intention node)
     3. Related memories (full, no truncation)
 """
 
@@ -24,6 +26,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave.config import get_agent_or_raise
 from enclave.semantic_memory import SemanticMemory
+from enclave.sif_parser import SIFParser
 
 
 def load_passphrase(agent_id: str) -> tuple[str, str]:
@@ -62,25 +65,31 @@ def save_intention(enclave_path: Path, intention: dict):
 
 def parse_input(text: str) -> tuple[str, str]:
     """
-    Parse input into (content, continuation).
-    Raises ValueError if pipe is missing.
+    Parse SIF input, extract content and continuation (Intention node).
+    Raises ValueError if not valid SIF or no Intention node.
     """
-    if '|' not in text:
+    # Require SIF format
+    try:
+        graph = SIFParser.parse(text)
+    except ValueError as e:
         raise ValueError(
-            "Missing continuation. Format: 'what you did | what's next'\n"
-            "The pipe (|) is mandatory. Write an actionable next step, even if blocked."
+            f"Thought must be valid SIF format.\n"
+            f"Parse error: {e}\n"
+            f"Example: @G thought opus 2026-01-01; N n1 Observation 'Did X'; N n2 Intention 'Do Y'; E n1 leads_to n2"
         )
     
-    parts = text.split('|', 1)
-    content = parts[0].strip()
-    continuation = parts[1].strip()
+    # Extract Intention node for continuation
+    intention_nodes = [n for n in graph.nodes if n.type == 'Intention']
+    if not intention_nodes:
+        raise ValueError(
+            "SIF thought must include at least one Intention node.\n"
+            "Example: N n2 Intention 'Build the feature'"
+        )
     
-    if not content:
-        raise ValueError("Content before | cannot be empty")
-    if not continuation:
-        raise ValueError("Continuation after | cannot be empty")
+    # Use last Intention as the continuation
+    continuation = intention_nodes[-1].content
     
-    # Reject passive intentions - these belong in message graph, not intentions
+    # Reject passive intentions
     passive_patterns = ['wait for', 'await', 'check if', 'see if', 'waiting on']
     lower_cont = continuation.lower()
     for pattern in passive_patterns:
@@ -90,7 +99,8 @@ def parse_input(text: str) -> tuple[str, str]:
                 f"Awaits are in the message graph. Intention = biggest independent action."
             )
     
-    return content, continuation
+    # Full SIF is the content
+    return text, continuation
 
 
 def think(agent_id: str, text: str, agency: int) -> str:
