@@ -239,22 +239,26 @@ class SemanticMemory:
                     connected_edges.append({
                         "relation": edge.relation,
                         "target": edge.target,
-                        "direction": "out"
+                        "direction": "out",
+                        "confidence": edge.confidence
                     })
                 elif edge.target == node.id:
                     connected_edges.append({
                         "relation": edge.relation,
                         "source": edge.source,
-                        "direction": "in"
+                        "direction": "in",
+                        "confidence": edge.confidence
                     })
             
             # Store node
             self.remember(
                 thought=node.content,
-                tags=["sif_node", node.type, graph.id],
+                tags=["sif_node", node.type, graph.id, f"vis:{node.visibility}"],
                 metadata={
                     "node_id": node.id,
                     "node_type": node.type,
+                    "node_visibility": node.visibility,
+                    "node_confidence": node.confidence,
                     "graph_id": graph.id,
                     "edges": connected_edges
                 }
@@ -279,7 +283,9 @@ class SemanticMemory:
                 nodes.append(SIFNode(
                     id=node_id,
                     type=meta.get("node_type", "Concept"),
-                    content=mem["content"]
+                    content=mem["content"],
+                    visibility=meta.get("node_visibility", "public"),
+                    confidence=meta.get("node_confidence", 1.0)
                 ))
                 
                 # Reconstruct Edges
@@ -288,13 +294,15 @@ class SemanticMemory:
                         edges.append(SIFEdge(
                             source=node_id,
                             target=e["target"],
-                            relation=e["relation"]
+                            relation=e["relation"],
+                            confidence=e.get("confidence", 1.0)
                         ))
                     elif e["direction"] == "in":
                         edges.append(SIFEdge(
                             source=e["source"],
                             target=node_id,
-                            relation=e["relation"]
+                            relation=e["relation"],
+                            confidence=e.get("confidence", 1.0)
                         ))
         
         return SIFKnowledgeGraph(
