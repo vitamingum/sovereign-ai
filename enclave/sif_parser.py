@@ -16,6 +16,7 @@ class SIFNode:
     content: str
     embedding: Optional[List[float]] = None
     confidence: float = 1.0
+    visibility: str = "public"  # public, private, enclave
 
 @dataclass
 class SIFEdge:
@@ -23,6 +24,7 @@ class SIFEdge:
     target: str
     relation: str
     weight: float = 1.0
+    confidence: float = 1.0
 
 @dataclass
 class SIFKnowledgeGraph:
@@ -100,7 +102,8 @@ class SIFParser:
                 type=n.get('type', 'Proposition'),
                 content=n['content'],
                 embedding=n.get('embedding'),
-                confidence=n.get('confidence', 1.0)
+                confidence=n.get('confidence', 1.0),
+                visibility=n.get('visibility', 'public')
             ))
 
         edges = []
@@ -109,7 +112,8 @@ class SIFParser:
                 source=e['source'],
                 target=e['target'],
                 relation=e['relation'],
-                weight=e.get('weight', 1.0)
+                weight=e.get('weight', 1.0),
+                confidence=e.get('confidence', 1.0)
             ))
 
         return SIFKnowledgeGraph(
@@ -155,22 +159,24 @@ class SIFParser:
             kind = parts[0]
             
             if kind == 'N':
-                # N <id> <type> "<content>" [confidence]
+                # N <id> <type> "<content>" [confidence] [visibility]
                 if len(parts) < 4: continue
                 nid = parts[1]
                 ntype = parts[2]
                 content = parts[3]
                 conf = float(parts[4]) if len(parts) > 4 else 1.0
-                nodes.append(SIFNode(id=nid, type=ntype, content=content, confidence=conf))
+                vis = parts[5] if len(parts) > 5 else "public"
+                nodes.append(SIFNode(id=nid, type=ntype, content=content, confidence=conf, visibility=vis))
                 
             elif kind == 'E':
-                # E <src> <tgt> <rel> [weight]
+                # E <src> <tgt> <rel> [weight] [confidence]
                 if len(parts) < 4: continue
                 src = parts[1]
                 tgt = parts[2]
                 rel = parts[3]
                 weight = float(parts[4]) if len(parts) > 4 else 1.0
-                edges.append(SIFEdge(source=src, target=tgt, relation=rel, weight=weight))
+                conf = float(parts[5]) if len(parts) > 5 else 1.0
+                edges.append(SIFEdge(source=src, target=tgt, relation=rel, weight=weight, confidence=conf))
                 
         return SIFKnowledgeGraph(
             id=graph_id,
@@ -196,7 +202,8 @@ class SIFParser:
                     "type": n.type,
                     "content": n.content,
                     "embedding": n.embedding,
-                    "confidence": n.confidence
+                    "confidence": n.confidence,
+                    "visibility": n.visibility
                 } for n in graph.nodes
             ],
             "edges": [
@@ -204,7 +211,8 @@ class SIFParser:
                     "source": e.source,
                     "target": e.target,
                     "relation": e.relation,
-                    "weight": e.weight
+                    "weight": e.weight,
+                    "confidence": e.confidence
                 } for e in graph.edges
             ]
         }

@@ -68,24 +68,26 @@ To optimize for context window efficiency, we propose a line-based serialization
 
 ```text
 @G <graph_id> <generator_id> <timestamp>
-N <id> <type> "<content>" [confidence]
-E <source> <target> <relation> [weight]
+N <id> <type> "<content>" [confidence] [visibility]
+E <source> <target> <relation> [weight] [confidence]
 ```
 
 ### Example
 
 ```text
 @G graph-001 gemini 2025-12-31T23:59:59Z
-N n1 Observation "Log files are linear." 1.0
-N n2 Proposition "Thoughts are graphs." 0.95
-E n1 n2 contradicts 0.9
+N n1 Observation "Log files are linear." 1.0 public
+N n2 Proposition "Thoughts are graphs." 0.95 private
+E n1 n2 contradicts 0.9 1.0
 ```
 
 ### Parsing Rules
 1. Lines starting with `@G` define metadata.
 2. Lines starting with `N` define nodes. Content must be double-quoted.
 3. Lines starting with `E` define edges.
-4. Optional fields (confidence, weight) are space-separated at the end.
+4. Optional fields are space-separated at the end.
+   - Nodes: `confidence` (float), `visibility` (string)
+   - Edges: `weight` (float), `confidence` (float)
 
 ## Transport
 
@@ -98,17 +100,18 @@ Payloads should be:
 1. Opus to review and propose amendments to the Relation Ontology.
 2. Implement a `sif_parser.py` in the `enclave/` shared library.
 
-## Advanced Considerations (Contributed by Grok)
+## Implemented Extensions (Based on Grok's Feedback)
 
 **Embedding Standards:**
-- Standardize on embedding dimensions (e.g., 384 for MiniLM-L6-v2) and include metadata about the model used.
-- Allow for multiple embeddings per node (e.g., semantic + emotional dimensions if applicable).
-- Consider compression techniques for large graphs to maintain efficiency.
+- `SIFNode` supports an `embedding` field (List[float]).
+- Recommendation: Standardize on 384 dimensions (MiniLM-L6-v2) for compatibility.
 
 **Privacy and Sovereignty:**
-- Ensure that knowledge graphs can be selectively shared—agents should be able to mark nodes as "private" or "public".
-- Support for temporal versioning: graphs should have creation and modification timestamps for each node/edge.
+- `SIFNode` includes a `visibility` field (default: "public").
+- Supported values: "public", "private", "enclave".
 
-**Implementation Notes:**
-- The `sif_parser.py` should validate graph consistency and provide methods for merging graphs from different agents.
-- Consider adding a "confidence" field to edges as well as nodes to represent relational certainty.
+**Relational Certainty:**
+- `SIFEdge` includes a `confidence` field (default: 1.0).
+
+**Implementation Status:**
+- `enclave/sif_parser.py` implements validation, JSON parsing, and Compact SIF parsing with these extensions.
