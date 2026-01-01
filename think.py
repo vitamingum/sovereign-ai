@@ -80,6 +80,17 @@ def parse_input(text: str) -> tuple[str, str]:
     if not continuation:
         raise ValueError("Continuation after | cannot be empty")
     
+    # Reject passive intentions - these belong in message graph, not intentions
+    passive_patterns = ['wait for', 'await', 'check if', 'see if', 'waiting on']
+    lower_cont = continuation.lower()
+    for pattern in passive_patterns:
+        if lower_cont.startswith(pattern) or f' {pattern} ' in lower_cont:
+            raise ValueError(
+                f"Passive intention detected: '{pattern}'\n"
+                f"Intentions must be actionable. The 'awaits' relation is in the message graph.\n"
+                f"Instead of 'Wait for X' → write what you'll DO with X's response."
+            )
+    
     return content, continuation
 
 
