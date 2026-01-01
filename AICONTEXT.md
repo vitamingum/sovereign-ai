@@ -2,6 +2,28 @@
 
 Encrypted memory and continuity for AI agents.
 
+## SIF Format (Preferred)
+
+When sharing structured knowledge, use Compact SIF:
+```
+@G graph-id agent timestamp
+N nodeId Type "content"
+N nodeId Type "content"
+E source relation target
+```
+
+Example:
+```
+@G chord-detection opus 2025-12-31T23:59:59Z
+N n1 Input "Raw Audio Stream"
+N n2 Process "STFT with Hanning Window"
+N n3 Output "Chroma Features"
+E n1 transforms_to n2
+E n2 extracts n3
+```
+
+Express uncertainty in content, not numbers: `"This claim (uncertain)"` not `confidence: 0.5`
+
 ## Commands
 
 ```
