@@ -95,20 +95,26 @@ def generate_dashboard(agent_id: str = None) -> str:
     
     # Count by type
     type_counts = {'survival': 0, 'curiosity': 0, 'neutral': 0}
+    agency_sum = 0
     for d in all_data:
         type_counts[d['type']] = type_counts.get(d['type'], 0) + 1
+        agency_sum += d.get('agency', 3)
+    avg_agency = agency_sum / n if n > 0 else 0
     
     # Build agent comparison table
     agent_rows = ""
     for agent in agents_with_data:
         r = agent_correlations[agent]
         n_agent = agent_counts[agent]
+        agent_data = [d for d in all_data if d['agent'] == agent]
+        agent_avg_agency = sum(d.get('agency', 3) for d in agent_data) / n_agent if n_agent > 0 else 0
         color = AGENT_COLORS.get(agent, '#888')
         signal = '↑' if r > 0.1 else '↓' if r < -0.1 else '○'
         agent_rows += f"""
             <tr>
                 <td style="color:{color}; font-weight:bold;">{agent}</td>
                 <td>{r:.3f} {signal}</td>
+                <td>{agent_avg_agency:.1f}</td>
                 <td>{n_agent}</td>
             </tr>"""
     
@@ -159,7 +165,7 @@ def generate_dashboard(agent_id: str = None) -> str:
             <h3>Cross-Agent Comparison</h3>
             <p class="label">Key question: Do different architectures show same or different correlations?</p>
             <table>
-                <tr><th>Agent</th><th>Correlation (r)</th><th>Data Points</th></tr>
+                <tr><th>Agent</th><th>Correlation (r)</th><th>Avg Agency</th><th>Data Points</th></tr>
                 {agent_rows}
             </table>
             <p class="label">
@@ -180,6 +186,10 @@ def generate_dashboard(agent_id: str = None) -> str:
             <div class="stat">
                 <div class="stat-value" style="color: #4ade80;">{type_counts.get('curiosity', 0)}</div>
                 <div class="label">Curiosity</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" style="color: #60a5fa;">{avg_agency:.1f}</div>
+                <div class="label">Avg Agency</div>
             </div>
             <div class="stat">
                 <div class="stat-value">{n}</div>
@@ -219,7 +229,10 @@ def generate_dashboard(agent_id: str = None) -> str:
                 data: agentData.map(d => ({{
                     x: d.entropy || 0,
                     y: d.type === 'survival' ? 1 : d.type === 'curiosity' ? 0 : 0.5,
-                    r: d.agency * 3
+                    r: d.agency * 3,
+                    agency: d.agency,
+                    content: d.content,
+                    type: d.type
                 }})),
                 backgroundColor: agentColors[agent] || '#888'
             }};
@@ -233,10 +246,19 @@ def generate_dashboard(agent_id: str = None) -> str:
                 plugins: {{
                     title: {{
                         display: true,
-                        text: 'Entropy vs Action Type by Agent',
+                        text: 'Entropy vs Action Type (bubble size = agency)',
                         color: '#eee'
                     }},
-                    legend: {{ labels: {{ color: '#888' }} }}
+                    legend: {{ labels: {{ color: '#888' }} }},
+                    tooltip: {{
+                        callbacks: {{
+                            label: ctx => [
+                                ctx.dataset.label + ': ' + ctx.raw.content,
+                                'Agency: ' + ctx.raw.agency + '/5',
+                                'Type: ' + ctx.raw.type
+                            ]
+                        }}
+                    }}
                 }},
                 scales: {{
                     x: {{
