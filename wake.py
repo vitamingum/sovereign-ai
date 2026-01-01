@@ -118,6 +118,12 @@ def get_recent_intentions(enclave_path: Path, limit: int = 3) -> list[dict]:
     return active[:limit]
 
 
+def count_active_intentions(enclave_path: Path) -> int:
+    """Count all active (non-completed) intentions."""
+    intentions = load_intentions(enclave_path)
+    return len([i for i in intentions if i.get('status') != 'completed'])
+
+
 def get_all_messages(since_hours: int = 48) -> list[dict]:
     """Get all messages in the last N hours."""
     messages_dir = Path(__file__).parent / "messages"
@@ -221,6 +227,9 @@ def wake(agent_id: str) -> str:
     # Auto-prune stale intentions (>24h)
     pruned = prune_stale_intentions(enclave_path, max_age_hours=24)
     
+    # Count active intentions for overload warning
+    active_count = count_active_intentions(enclave_path)
+    
     # Unlock identity for decryption
     identity = SovereignIdentity(enclave_path)
     if not identity.unlock(passphrase):
@@ -261,6 +270,15 @@ def wake(agent_id: str) -> str:
         lines.append(f'N err Error "Metric Calculation Failed: {e}"')
         lines.append(f'E {agent_id} experiences err')
 
+    # Intention overload warning (threshold: 10 active)
+    INTENTION_THRESHOLD = 10
+    if active_count >= INTENTION_THRESHOLD:
+        lines.append(f'N warn Warning "INTENTION OVERLOAD: {active_count} active intentions"')
+        lines.append(f'N action Action "Read recent intentions, consolidate to 3-5 strategic goals, mark rest completed"')
+        lines.append(f'E {agent_id} experiences warn')
+        lines.append(f'E warn requires action')
+        lines.append(f'E {agent_id} must_do action')
+
     # Get all recent messages
     messages = get_all_messages(since_hours=48)
     
@@ -287,9 +305,7 @@ def wake(agent_id: str) -> str:
         if msg.get('type') == 'protocol/sif':
             content = "[SIF Graph]"
         else:
-            content = msg['content'][:100].replace('"', "'").replace('\n', ' ')
-            if len(msg['content']) > 100:
-                content += "..."
+            content = msg['content'].replace('"', "'").replace('\n', ' ')
         
         msg_id = f"out{i}"
         lines.append(f'N {msg_id} Message "{content} (sent {ago} ago)"')
@@ -307,9 +323,9 @@ def wake(agent_id: str) -> str:
         lines.append(f'E {agent_id} intends {thought_id}')
         
         if intent.get('spawned_from_content'):
-            source_content = intent['spawned_from_content'][:50].replace('"', "'").replace('\n', ' ')
+            source_content = intent['spawned_from_content'].replace('"', "'").replace('\n', ' ')
             source_id = f"prev_thought{i}"
-            lines.append(f'N {source_id} Thought "{source_content}..."')
+            lines.append(f'N {source_id} Thought "{source_content}"')
             lines.append(f'E {source_id} caused_by {thought_id}') # Wait, caused_by direction? thought caused by prev.
             lines.append(f'E {thought_id} extends {source_id}')
 
@@ -318,9 +334,7 @@ def wake(agent_id: str) -> str:
     for i, msg in enumerate(waiting):
         ago = time_ago(msg['timestamp'])
         sender = msg['from']
-        content = process_content(msg)[:100].replace('"', "'").replace('\n', ' ')
-        if len(process_content(msg)) > 100:
-            content += "..."
+        content = process_content(msg).replace('"', "'").replace('\n', ' ')
             
         msg_id = f"in{i}"
         lines.append(f'N {msg_id} Message "{content} (received {ago} ago)"')
