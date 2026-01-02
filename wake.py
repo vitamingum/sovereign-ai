@@ -210,8 +210,6 @@ def get_project_context(mem: SemanticMemory) -> list[str] | None:
             "goal persistent identity sessions encrypted",  
             "goal secure inter-agent communication",
             "goal research paper threatens",
-            "remember recollect tools",
-            "next respond messages review",
             "pattern recollect tokens"
         ]
         
@@ -220,8 +218,8 @@ def get_project_context(mem: SemanticMemory) -> list[str] | None:
             for r in results:
                 meta = r.get('metadata', {})
                 if meta.get('graph_id') == 'project-context':
-                    if meta.get('node_type') == 'Anchor':
-                        continue
+                    if meta.get('node_type') in ('Anchor', 'Next', 'Tool'):
+                        continue  # Skip obsolete node types
                     content = r.get('content', '')
                     if content and content not in seen:
                         seen.add(content)
