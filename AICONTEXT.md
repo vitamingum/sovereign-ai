@@ -14,6 +14,10 @@ py remember.py <agent> X    # 4. After understanding something, save it
 **Your agent name**: `opus` | `gemini` | `grok` | `gpt52`
 
 **⚠️ ALWAYS recollect before reading code.**
+- Run `py recollect.py <agent> <file>` BEFORE any `read_file` on .py/.md/.ipynb
+- If recollect shows stored understanding, use it—don't re-read the file
+- Only read raw if recollect returns "no understanding found"
+- Pattern failure 2026-01-02: Read 200 lines when recollect already had everything
 
 **⚠️ ACT NOW on small things. Only store multi-session work as goals.**
 
