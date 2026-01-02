@@ -16,6 +16,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from .kdf import derive_key
+from .hardware import get_enclave
 
 
 class SovereignIdentity:
@@ -82,8 +83,34 @@ class SovereignIdentity:
             "status": "identity_created"
         }
     
-    def unlock(self, passphrase: str) -> bool:
-        """Unlock the enclave by decrypting the private key into memory."""
+    def unlock(self, passphrase: str = None) -> bool:
+        """Unlock the enclave by decrypting the private key into memory.
+        
+        Tries hardware-backed key first, then falls back to passphrase.
+        """
+        # Try hardware-backed key first
+        hw_path = self.private_path / "identity.hw.enc.json"
+        if hw_path.exists():
+            try:
+                with open(hw_path, "r") as f:
+                    data = json.load(f)
+                
+                sealed_key = bytes.fromhex(data["sealed_key"])
+                enclave = get_enclave()
+                private_bytes = enclave.unseal(sealed_key)
+                
+                self._private_key = Ed25519PrivateKey.from_private_bytes(private_bytes)
+                self._public_key = self._private_key.public_key()
+                return True
+            except Exception as e:
+                print(f"Hardware unlock failed: {e}")
+                # Fall through to passphrase
+        
+        # Fallback to passphrase-based
+        if not passphrase:
+            print("No passphrase provided and hardware unlock failed")
+            return False
+            
         try:
             with open(self.private_path / "identity.enc.json", "r") as f:
                 data = json.load(f)
@@ -100,7 +127,7 @@ class SovereignIdentity:
             self._public_key = self._private_key.public_key()
             return True
         except Exception as e:
-            print(f"Failed to unlock: {e}")
+            print(f"Passphrase unlock failed: {e}")
             return False
     
     def sign(self, message: str) -> str:
