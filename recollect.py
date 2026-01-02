@@ -68,17 +68,38 @@ def reconstruct_graph(memories: list) -> dict:
     - edges: list of (source, relation, target) tuples
     - by_type: dict grouping nodes by type
     - metadata: anchor info, timestamps, file_hashes accumulated from all nodes
+    
+    Node IDs are namespaced by graph_id when multiple graphs are present
+    to prevent collision (e.g., two graphs both having 'n1').
     """
     nodes = []
     edges = []
     by_type = defaultdict(list)
     metadata = {}
     file_hashes = {}  # Accumulated from all nodes
+    graph_ids = set()  # Track unique graphs
+    
+    # First pass: collect all graph_ids to determine if namespacing needed
+    for mem in memories:
+        meta = mem.get('metadata', {})
+        graph_id = meta.get('graph_id')
+        if graph_id:
+            graph_ids.add(graph_id)
+    
+    # Namespace node IDs if multiple graphs present
+    needs_namespacing = len(graph_ids) > 1
     
     for mem in memories:
         meta = mem.get('metadata', {})
         node_type = meta.get('node_type', 'Unknown')
         node_id = meta.get('node_id', '?')
+        graph_id = meta.get('graph_id', '')
+        
+        # Namespace node ID if multiple graphs
+        if needs_namespacing and graph_id and not node_id.startswith('anchor_'):
+            namespaced_id = f"{graph_id}:{node_id}"
+        else:
+            namespaced_id = node_id
         
         # Extract content from searchable format "[Type] content"
         content = mem.get('content', '')
@@ -86,15 +107,21 @@ def reconstruct_graph(memories: list) -> dict:
             content = content.split('] ', 1)[-1]
         
         nodes.append({
-            'id': node_id,
+            'id': namespaced_id,
             'type': node_type,
-            'content': content
+            'content': content,
+            'graph_id': graph_id  # Preserve for debugging
         })
         by_type[node_type].append(content)
         
-        # Reconstruct edges
+        # Reconstruct edges with namespaced IDs
         for relation, target in meta.get('outgoing_edges', []):
-            edges.append((node_id, relation, target))
+            # Namespace target too (unless it's an anchor)
+            if needs_namespacing and graph_id and not target.startswith('anchor_'):
+                namespaced_target = f"{graph_id}:{target}"
+            else:
+                namespaced_target = target
+            edges.append((namespaced_id, relation, namespaced_target))
         
         # Accumulate file hashes from ANY node (robust retrieval)
         if 'file_hashes' in meta:
@@ -111,6 +138,7 @@ def reconstruct_graph(memories: list) -> dict:
             metadata['graph_id'] = meta.get('graph_id')
     
     metadata['file_hashes'] = file_hashes
+    metadata['graph_ids'] = list(graph_ids)  # All graphs in this reconstruction
     
     return {
         'nodes': nodes,
