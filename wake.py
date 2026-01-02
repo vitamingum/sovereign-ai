@@ -310,6 +310,44 @@ def get_stale_understanding(mem: SemanticMemory) -> list[tuple[str, str, str]]:
         return []
 
 
+def get_synthesis_opportunities(mem: SemanticMemory, limit: int = 3) -> list[tuple[str, str]]:
+    """Find distant concepts that might connect - synthesis fodder.
+    
+    Returns list of (concept_a, concept_b) pairs from different domains.
+    """
+    import random
+    
+    try:
+        # Get diverse nodes by querying different concept types
+        all_insights = []
+        for query in ["Insight", "Observation", "Question", "Hypothesis"]:
+            results = mem.recall_similar(f"[{query}]", top_k=50, threshold=0.1)
+            for r in results:
+                meta = r.get('metadata', {})
+                if meta.get('node_type') in ('Insight', 'Observation', 'Question', 'Hypothesis'):
+                    content = r.get('content', '')
+                    graph_id = meta.get('graph_id', '')
+                    if content and len(content) > 20:
+                        all_insights.append((content[:80], graph_id))
+        
+        if len(all_insights) < 4:
+            return []
+        
+        # Find pairs from DIFFERENT graphs (different contexts)
+        pairs = []
+        random.shuffle(all_insights)
+        for i, (a, ga) in enumerate(all_insights[:20]):
+            for b, gb in all_insights[i+1:30]:
+                if ga != gb:  # Different source graphs
+                    pairs.append((a, b))
+                    if len(pairs) >= limit:
+                        return pairs
+        
+        return pairs[:limit]
+    except:
+        return []
+
+
 def wake(agent_id: str) -> str:
     """Generate wake output as pure SIF."""
     base_dir = Path(__file__).parent
@@ -395,6 +433,16 @@ def wake(agent_id: str) -> str:
         lines.append("  Run: py recollect.py SELF <file>")
         for f in available_files:
             lines.append(f"    - {f}")
+        lines.append("")
+    
+    # === SYNTHESIS OPPORTUNITIES ===
+    synthesis = get_synthesis_opportunities(mem)
+    if synthesis:
+        lines.append("=== SYNTHESIS FODDER ===")
+        lines.append("  Distant concepts that might connect:")
+        for a, b in synthesis:
+            lines.append(f"    • {a}")
+            lines.append(f"      ↔ {b}")
         lines.append("")
     
     # === QUICK NAVIGATION ===
