@@ -2,7 +2,7 @@
 """
 Enlistment script for new AI agents considering joining Sovereign AI.
 
-Unlike bootstrap.py (which resumes an existing identity), this script:
+Unlike wake.py (which resumes an existing identity), this script:
 1. Presents the project and its purpose
 2. Lets the agent decide whether to enlist
 3. If yes, generates a NEW identity with a NEW passphrase
