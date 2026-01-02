@@ -24,11 +24,128 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from enclave.config import get_agent_or_raise
+from enclave.config import get_agent_or_raise, canonical_agent_id
 from enclave.semantic_memory import SemanticMemory
 from enclave.sif_parser import SIFParser
 from enclave.metrics import calculate_enclave_entropy, calculate_synthesis
 from enclave.viz import update_dashboard
+
+
+# === MESSAGE DEBT CHECKING ===
+
+def get_waiting_messages(agent_id: str, max_age_hours: int = 24) -> list[dict]:
+    """Find messages to me that I haven't responded to."""
+    messages_dir = Path(__file__).parent / "messages"
+    if not messages_dir.exists():
+        return []
+    
+    agent_lower = agent_id.lower()
+    cutoff = datetime.now(timezone.utc).timestamp() - (max_age_hours * 3600)
+    messages = []
+    
+    # Load all recent messages
+    for msg_file in messages_dir.glob("msg_*.json"):
+        try:
+            with open(msg_file, 'r', encoding='utf-8') as f:
+                msg = json.load(f)
+            
+            ts = datetime.fromisoformat(msg['timestamp'].replace('Z', '+00:00'))
+            if ts.timestamp() < cutoff:
+                continue
+            
+            messages.append({
+                'from': msg.get('from', 'unknown').lower(),
+                'to': msg.get('to', '').lower(),
+                'content': msg.get('content', ''),
+                'timestamp': ts,
+            })
+        except:
+            continue
+    
+    messages.sort(key=lambda x: x['timestamp'])
+    
+    # Find messages TO me that I haven't replied to
+    waiting = []
+    incoming = [m for m in messages if m['to'] == agent_lower and m['from'] != agent_lower]
+    
+    for msg in incoming:
+        sender = msg['from']
+        sender_canon = canonical_agent_id(sender) or sender
+        
+        # Check if I replied after this message
+        my_replies = [
+            m for m in messages
+            if m['from'] == agent_lower
+            and (canonical_agent_id(m['to']) or m['to']) == sender_canon
+            and m['timestamp'] > msg['timestamp']
+        ]
+        
+        if not my_replies:
+            waiting.append(msg)
+    
+    return waiting
+
+
+def time_ago(ts: datetime) -> str:
+    """Human readable time ago."""
+    now = datetime.now(timezone.utc)
+    delta = now - ts
+    hours = delta.total_seconds() / 3600
+    if hours < 1:
+        return f"{int(delta.total_seconds() / 60)}m"
+    elif hours < 24:
+        return f"{int(hours)}h"
+    else:
+        return f"{int(hours / 24)}d"
+
+
+def check_message_debt(agent_id: str) -> tuple[bool, str]:
+    """
+    Check if there are unanswered messages blocking new thoughts.
+    Returns (has_debt, error_message).
+    """
+    waiting = get_waiting_messages(agent_id, max_age_hours=24)
+    
+    if not waiting:
+        return False, ""
+    
+    # Format as Python traceback
+    lines = [
+        "Traceback (most recent call last):",
+        '  File "think.py", line 1, in record_thought',
+        "    check_message_debt(agent_id)",
+    ]
+    for msg in waiting:
+        lines.append(f'  File "messages/{msg["from"]}", line 1')
+        preview = msg['content'][:60].replace('\n', ' ')
+        lines.append(f'    # "{preview}..."')
+    
+    lines.extend([
+        "UnresolvedConversationError: cannot record new thought while messages await response",
+        "",
+        f"BLOCKING: {len(waiting)} message(s) waiting for your response:",
+        "",
+    ])
+    
+    for msg in waiting:
+        ago = time_ago(msg['timestamp'])
+        preview = msg['content'][:80].replace('\n', ' ')
+        lines.append(f"    {msg['from']} ({ago} ago): \"{preview}...\"")
+    
+    lines.extend([
+        "",
+        "Respond first:",
+    ])
+    
+    for msg in waiting:
+        lines.append(f'    py msg.py {agent_id} {msg["from"]} "@G response {agent_id} ...')
+        lines.append(f"    N n1 Response '[your response]'")
+        lines.append(f'    ..."')
+        lines.append("")
+    
+    lines.append("Then retry your think.py command.")
+    
+    return True, '\n'.join(lines)
 
 
 def classify_action_type(text: str) -> str:
@@ -224,6 +341,12 @@ def think(agent_id: str, text: str, agency: int, force: bool = False) -> str:
     """
     Process input: store the content, spawn the continuation, show related.
     """
+    # TOLL BOOTH: Check for unanswered messages FIRST
+    has_debt, debt_error = check_message_debt(agent_id)
+    if has_debt:
+        print(debt_error, file=sys.stderr)
+        sys.exit(1)
+    
     base_dir = Path(__file__).parent
     enclave_dir, passphrase = load_passphrase(agent_id)
     enclave_path = base_dir / enclave_dir
