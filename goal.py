@@ -61,7 +61,7 @@ def load_goals(goals_file: Path) -> list:
     """Load goals from file."""
     if not goals_file.exists():
         return []
-    with open(goals_file) as f:
+    with open(goals_file, encoding='utf-8-sig') as f:
         return json.load(f)
 
 
