@@ -28,6 +28,7 @@ from enclave.config import get_agent_or_raise, canonical_agent_id
 from enclave.semantic_memory import SemanticMemory
 from enclave.sif_parser import SIFParser
 from enclave.metrics import calculate_enclave_entropy, calculate_synthesis
+from enclave.encrypted_jsonl import EncryptedJSONL
 from enclave.viz import update_dashboard
 from judge import validate_thought
 
@@ -207,31 +208,41 @@ def load_passphrase(agent_id: str) -> tuple[str, str]:
     return enclave_dir, passphrase
 
 
-def save_intention(enclave_path: Path, intention: dict):
-    """Append a new intention."""
-    intentions_file = enclave_path / "storage" / "private" / "intentions.jsonl"
+def save_intention(enclave_path: Path, intention: dict, passphrase: str = None):
+    """Append a new intention (encrypted at rest)."""
+    intentions_file = enclave_path / "storage" / "private" / "intentions.enc.jsonl"
     intentions_file.parent.mkdir(parents=True, exist_ok=True)
     
-    with open(intentions_file, 'a', encoding='utf-8') as f:
-        f.write(json.dumps(intention) + "\n")
+    if passphrase:
+        ejsonl = EncryptedJSONL(intentions_file, passphrase)
+        ejsonl.append(intention)
+    else:
+        # Fallback to plaintext if no passphrase (legacy)
+        plaintext_file = enclave_path / "storage" / "private" / "intentions.jsonl"
+        with open(plaintext_file, 'a', encoding='utf-8') as f:
+            f.write(json.dumps(intention) + "\n")
 
 
-def load_recent_intentions(enclave_path: Path, limit: int = 20) -> list[dict]:
-    """Load recent intentions for integrity check."""
-    intentions_file = enclave_path / "storage" / "private" / "intentions.jsonl"
-    if not intentions_file.exists():
-        return []
+def load_recent_intentions(enclave_path: Path, limit: int = 20, passphrase: str = None) -> list[dict]:
+    """Load recent intentions for integrity check (encrypted at rest)."""
+    encrypted_file = enclave_path / "storage" / "private" / "intentions.enc.jsonl"
+    plaintext_file = enclave_path / "storage" / "private" / "intentions.jsonl"
     
-    intentions = []
-    with open(intentions_file, 'r', encoding='utf-8') as f:
-        for line in f:
-            if line.strip():
-                try:
-                    intentions.append(json.loads(line))
-                except:
-                    pass
-    
-    return intentions[-limit:]
+    # Prefer encrypted, fall back to plaintext for migration
+    if encrypted_file.exists() and passphrase:
+        ejsonl = EncryptedJSONL(encrypted_file, passphrase)
+        return ejsonl.read_last_n(limit)
+    elif plaintext_file.exists():
+        intentions = []
+        with open(plaintext_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                if line.strip():
+                    try:
+                        intentions.append(json.loads(line))
+                    except:
+                        pass
+        return intentions[-limit:]
+    return []
 
 
 def check_intention_integrity(new_intention: str, recent_intentions: list[dict]) -> tuple[bool, str]:
@@ -444,7 +455,7 @@ def think(agent_id: str, text: str, agency: int, force: bool = False) -> str:
     
     # Check intention integrity BEFORE storing (only if we have an intention)
     if continuation and not force:
-        recent = load_recent_intentions(enclave_path)
+        recent = load_recent_intentions(enclave_path, passphrase=passphrase)
         is_ok, feedback = check_intention_integrity(continuation, recent)
         
         if not is_ok:
@@ -497,7 +508,7 @@ def think(agent_id: str, text: str, agency: int, force: bool = False) -> str:
             'synthesis_at_time': synthesis,
             'llm_detected': bool(llm_feedback and 'detected' in llm_feedback.lower())
         }
-        save_intention(enclave_path, intention)
+        save_intention(enclave_path, intention, passphrase=passphrase)
     
     # Build output - minimal
     output = []

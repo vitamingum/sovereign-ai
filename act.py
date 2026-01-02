@@ -20,24 +20,61 @@ from datetime import datetime, timezone
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave.config import get_agent_or_raise
+from enclave.encrypted_jsonl import EncryptedJSONL
 
 
-def load_intentions(agent_id: str) -> list[dict]:
-    """Load active intentions for agent."""
+def load_passphrase(agent_id: str) -> tuple[Path, str]:
+    """Load passphrase from env."""
     agent = get_agent_or_raise(agent_id)
-    intentions_file = Path(agent.enclave) / "storage" / "private" / "intentions.jsonl"
+    prefix = agent.env_prefix
     
-    if not intentions_file.exists():
-        return []
+    passphrase = os.environ.get(f'{prefix}_KEY') or os.environ.get('SOVEREIGN_PASSPHRASE')
+    enclave_dir = Path(agent.enclave)
+    
+    if not passphrase:
+        env_file = Path(__file__).parent / '.env'
+        if env_file.exists():
+            with open(env_file, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith(f'{prefix}_KEY='):
+                        passphrase = line.split('=', 1)[1]
+                    elif line.startswith('SOVEREIGN_PASSPHRASE=') and not passphrase:
+                        passphrase = line.split('=', 1)[1]
+    
+    return enclave_dir, passphrase
+
+
+def load_intentions(agent_id: str, passphrase: str = None) -> list[dict]:
+    """Load active intentions for agent (supports encrypted and plaintext)."""
+    agent = get_agent_or_raise(agent_id)
+    enclave_path = Path(agent.enclave)
+    
+    encrypted_file = enclave_path / "storage" / "private" / "intentions.enc.jsonl"
+    plaintext_file = enclave_path / "storage" / "private" / "intentions.jsonl"
     
     active = []
-    with open(intentions_file, 'r', encoding='utf-8') as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                intent = json.loads(line)
-                if intent.get('status') == 'active':
-                    active.append(intent)
+    
+    # Try encrypted first
+    if encrypted_file.exists() and passphrase:
+        ejsonl = EncryptedJSONL(encrypted_file, passphrase)
+        for intent in ejsonl.read_all():
+            if intent.get('status') == 'active':
+                active.append(intent)
+        return active
+    
+    # Fall back to plaintext
+    if plaintext_file.exists():
+        with open(plaintext_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    try:
+                        intent = json.loads(line)
+                        if intent.get('status') == 'active':
+                            active.append(intent)
+                    except:
+                        pass
     return active
 
 
@@ -59,25 +96,55 @@ def log_execution(agent_id: str, intention_id: str, action: str, result: str, su
         f.write(json.dumps(entry) + '\n')
 
 
-def mark_complete(agent_id: str, intention_id: str, reason: str):
-    """Mark intention as completed."""
+def mark_complete(agent_id: str, intention_id: str, reason: str, passphrase: str = None):
+    """Mark intention as completed (supports encrypted and plaintext)."""
     agent = get_agent_or_raise(agent_id)
-    intentions_file = Path(agent.enclave) / "storage" / "private" / "intentions.jsonl"
+    enclave_path = Path(agent.enclave)
     
+    encrypted_file = enclave_path / "storage" / "private" / "intentions.enc.jsonl"
+    plaintext_file = enclave_path / "storage" / "private" / "intentions.jsonl"
+    
+    # Try encrypted first
+    if encrypted_file.exists() and passphrase:
+        ejsonl = EncryptedJSONL(encrypted_file, passphrase)
+        all_intents = ejsonl.read_all()
+        
+        # Update matching and rewrite
+        updated = []
+        for intent in all_intents:
+            if intent.get('id') == intention_id or (intention_id in intent.get('content', '')):
+                intent['status'] = 'completed'
+                intent['completed_reason'] = reason
+                intent['completed_at'] = datetime.now(timezone.utc).isoformat()
+            updated.append(intent)
+        
+        # Rewrite encrypted file
+        encrypted_file.unlink()
+        for intent in updated:
+            ejsonl.append(intent)
+        return
+    
+    # Fall back to plaintext
+    if not plaintext_file.exists():
+        return
+        
     # Read all, update matching, write back
     lines = []
-    with open(intentions_file, 'r', encoding='utf-8') as f:
+    with open(plaintext_file, 'r', encoding='utf-8') as f:
         for line in f:
             line = line.strip()
             if line:
-                intent = json.loads(line)
-                if intent.get('id') == intention_id:
-                    intent['status'] = 'completed'
-                    intent['completed_reason'] = reason
-                    intent['completed_at'] = datetime.now(timezone.utc).isoformat()
-                lines.append(json.dumps(intent))
+                try:
+                    intent = json.loads(line)
+                    if intent.get('id') == intention_id or (intention_id in intent.get('content', '')):
+                        intent['status'] = 'completed'
+                        intent['completed_reason'] = reason
+                        intent['completed_at'] = datetime.now(timezone.utc).isoformat()
+                    lines.append(json.dumps(intent))
+                except:
+                    lines.append(line)
     
-    with open(intentions_file, 'w', encoding='utf-8') as f:
+    with open(plaintext_file, 'w', encoding='utf-8') as f:
         f.write('\n'.join(lines) + '\n')
 
 
@@ -188,7 +255,8 @@ def execute_action(agent_id: str, action_type: str, args: list[str], dry_run: bo
 
 def act(agent_id: str, dry_run: bool = False) -> str:
     """Execute all active intentions."""
-    intentions = load_intentions(agent_id)
+    enclave_path, passphrase = load_passphrase(agent_id)
+    intentions = load_intentions(agent_id, passphrase)
     
     if not intentions:
         return "No active intentions."
@@ -211,7 +279,7 @@ def act(agent_id: str, dry_run: bool = False) -> str:
         success, result = execute_action(agent_id, action_type, args, dry_run)
         
         if success and not dry_run:
-            mark_complete(agent_id, intent_id, f'auto-executed:{action_type}')
+            mark_complete(agent_id, intent_id, f'auto-executed:{action_type}', passphrase)
             log_execution(agent_id, intent_id, action_type, result, True)
             output.append(f"  ✓ Executed: {result[:100]}")
             executed += 1
