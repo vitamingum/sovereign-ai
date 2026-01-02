@@ -140,7 +140,8 @@ STRICTNESS_RULES = {
 4. "Build feature X" - TASK. Build it now.
 5. "Investigate X" - TASK. Investigate now.
 6. Only accept: "Become expert in X", "Build trust over months", "Write book".
-7. When in doubt, reject. The agent should DO things, not store intentions."""
+7. When in doubt, reject. The agent should DO things, not store intentions.
+8. ABSTRACTION GAMING: If goal sounds like a task made grander (e.g. "Build architecture for X" instead of "Build X"), reject it."""
 }
 
 
