@@ -474,8 +474,13 @@ def think(agent_id: str, text: str, agency: int, force: bool = False) -> str:
     memory = SemanticMemory(enclave_path)
     memory.unlock(passphrase)
     
-    # Store the content with agency score
-    result = memory.remember(content, tags=['thought', f'agency:{agency}'])
+    # Build tags - add 'synthesis' if content indicates synthesis
+    tags = ['thought', f'agency:{agency}']
+    if 'synthesis' in content.lower():
+        tags.append('synthesis')
+    
+    # Store the content with tags
+    result = memory.remember(content, tags=tags)
     memory_id = result['id']
     
     # Calculate current entropy for synthesis experiment

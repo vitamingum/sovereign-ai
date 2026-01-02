@@ -44,6 +44,16 @@ class SemanticMemory:
     - Content encrypted with AES-256-GCM
     - Embeddings encrypted at rest, decrypted only for search
     - No external API calls ever
+    
+    RETRIEVAL METHODS - choose based on what you know:
+    - list_by_tag(tag): Fast direct lookup. Use when you know the tag.
+      Example: list_by_tag('thought') to get all thoughts.
+    - list_by_metadata(key, value): Fast lookup by metadata field.
+      Example: list_by_metadata('target_path', 'think.py')
+    - recall_similar(query): Slow semantic search across ALL memories.
+      Use only when you need fuzzy matching and don't know tags.
+      
+    Pattern: Filter first (list_by_*), then search within results if needed.
     """
     
     MODEL_NAME = "all-MiniLM-L6-v2"  # 384 dimensions, ~80MB
@@ -152,6 +162,10 @@ class SemanticMemory:
     def recall_similar(self, query: str, top_k: int = 5, threshold: float = 0.3) -> List[dict]:
         """
         Find memories semantically similar to query.
+        
+        SLOW: Loads model, embeds query, compares against ALL memories.
+        Use only when: you don't know the tag, need fuzzy/conceptual matching.
+        Prefer: list_by_tag() or list_by_metadata() when you know what you want.
         
         Args:
             query: Natural language query
@@ -295,7 +309,10 @@ class SemanticMemory:
     def list_by_tag(self, tag: str, limit: int = None) -> List[dict]:
         """
         List all memories that have a specific tag.
-        Fast exact match on tags - no embedding or semantic search.
+        
+        FAST: No model load, no embedding - direct filter.
+        Use when: you know the category (e.g., 'thought', 'understanding', graph_id).
+        Then text-match or embed within results if needed.
         
         Args:
             tag: The tag to filter by (e.g., 'thought', 'understanding', graph_id)

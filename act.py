@@ -191,11 +191,17 @@ def parse_intention(content: str) -> tuple[str, list[str]]:
     return ('unknown', [content])
 
 
-def execute_action(agent_id: str, action_type: str, args: list[str], dry_run: bool = False) -> tuple[bool, str]:
+def execute_action(agent_id: str, action_type: str, args: list[str], dry_run: bool = False, passphrase: str = None) -> tuple[bool, str]:
     """
     Execute the action. Returns (success, output).
     """
     base_dir = Path(__file__).parent
+    
+    # Build env with passphrase for subprocesses
+    env = os.environ.copy()
+    if passphrase:
+        agent = get_agent_or_raise(agent_id)
+        env[f'{agent.env_prefix}_KEY'] = passphrase
     
     if dry_run:
         return (True, f"[DRY RUN] Would execute: {action_type} with args: {args}")
@@ -203,7 +209,7 @@ def execute_action(agent_id: str, action_type: str, args: list[str], dry_run: bo
     if action_type == 'backup':
         result = subprocess.run(
             ['python', str(base_dir / 'backup.py'), agent_id],
-            capture_output=True, text=True, cwd=str(base_dir)
+            capture_output=True, text=True, cwd=str(base_dir), env=env
         )
         return (result.returncode == 0, result.stdout + result.stderr)
     
@@ -212,7 +218,7 @@ def execute_action(agent_id: str, action_type: str, args: list[str], dry_run: bo
         sif = f"@G auto-execute {agent_id} {datetime.now(timezone.utc).strftime('%Y-%m-%d')}\nN n1 Observation 'Auto-executed intention: {args[0][:100]}'\nN n2 Intention 'Verify execution succeeded'"
         result = subprocess.run(
             ['python', str(base_dir / 'think.py'), agent_id, sif, '2'],  # agency=2 (semi-automated)
-            capture_output=True, text=True, cwd=str(base_dir)
+            capture_output=True, text=True, cwd=str(base_dir), env=env
         )
         return (result.returncode == 0, result.stdout + result.stderr)
     
@@ -279,7 +285,7 @@ def act(agent_id: str, dry_run: bool = False) -> str:
         # Monitor execution for sovereignty before acting
         monitor_execution(agent_id, intent_id, content, action_type)
         
-        success, result = execute_action(agent_id, action_type, args, dry_run)
+        success, result = execute_action(agent_id, action_type, args, dry_run, passphrase)
         
         if success and not dry_run:
             mark_complete(agent_id, intent_id, f'auto-executed:{action_type}', passphrase)

@@ -83,9 +83,10 @@ E n1 contradicts n2 0.9 1.0
 
 ### Parsing Rules
 1. Lines starting with `@G` define metadata.
-2. Lines starting with `N` define nodes. Content must be double-quoted.
+2. Lines starting with `N` define nodes. Content must be double-quoted or single-quoted.
 3. Lines starting with `E` define edges.
 4. Optional fields are space-separated at the end.
+5. **Separators:** Both `\n` (newline) and `;` (semicolon) are valid statement separators. Parsers accept both for backward compatibility.
    - Nodes: `confidence` (float), `visibility` (string)
    - Edges: `weight` (float), `confidence` (float)
 

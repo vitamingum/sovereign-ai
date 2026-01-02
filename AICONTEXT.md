@@ -47,6 +47,8 @@ N nodeId Type "content"
 E source relation target
 ```
 
+**Separators:** Both newlines and semicolons work. Use `;` for CLI (single-line), `\n` for files/LLM output (readable).
+
 Meta-cognitive node types for understanding:
 - `Component`, `Purpose` - what it is
 - `Design_Decision`, `Rejected_Alternative` - why
