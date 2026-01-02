@@ -13,7 +13,7 @@ class TestSIFCompact(unittest.TestCase):
         compact_sif = """@G graph-001 gemini 2025-12-31T23:59:59Z
 N n1 Observation "Log files are linear." 1.0
 N n2 Proposition "Thoughts are graphs." 0.95
-E n1 n2 contradicts 0.9"""
+E n1 contradicts n2 0.9"""
         
         graph = SIFParser.parse(compact_sif)
         
