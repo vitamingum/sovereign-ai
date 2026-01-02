@@ -177,11 +177,12 @@ class SIFParser:
                 nodes.append(SIFNode(id=nid, type=ntype, content=content, confidence=conf, visibility=vis))
                 
             elif kind == 'E':
-                # E <src> <tgt> <rel> [weight] [confidence]
+                # E <src> <rel> <tgt> [weight] [confidence]
+                # Note: Natural order for readability ("n1 implements n2")
                 if len(parts) < 4: continue
                 src = parts[1]
-                tgt = parts[2]
-                rel = parts[3]
+                rel = parts[2]
+                tgt = parts[3]
                 weight = float(parts[4]) if len(parts) > 4 else 1.0
                 conf = float(parts[5]) if len(parts) > 5 else 1.0
                 edges.append(SIFEdge(source=src, target=tgt, relation=rel, weight=weight, confidence=conf))

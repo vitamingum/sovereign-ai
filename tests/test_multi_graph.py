@@ -25,28 +25,26 @@ from recollect import reconstruct_graph
 class TestMultiGraphReconstruction(unittest.TestCase):
     """Test that multiple graphs for same file reconstruct correctly."""
     
-    @classmethod
-    def setUpClass(cls):
-        """Create a temporary enclave for testing."""
-        cls.temp_dir = tempfile.mkdtemp(prefix="test_enclave_")
-        cls.enclave_path = Path(cls.temp_dir)
+    def setUp(self):
+        """Create a fresh temporary enclave for each test."""
+        self.temp_dir = tempfile.mkdtemp(prefix="test_enclave_")
+        self.enclave_path = Path(self.temp_dir)
         
         # Create storage structure
-        (cls.enclave_path / "storage" / "private").mkdir(parents=True)
-        (cls.enclave_path / "storage" / "public").mkdir(parents=True)
+        (self.enclave_path / "storage" / "private").mkdir(parents=True)
+        (self.enclave_path / "storage" / "public").mkdir(parents=True)
         
         # Create a test target file
-        cls.test_file = cls.enclave_path / "test_target.py"
-        cls.test_file.write_text("# Test file\nprint('hello')\n")
+        self.test_file = self.enclave_path / "test_target.py"
+        self.test_file.write_text("# Test file\nprint('hello')\n")
         
         # Initialize memory with test passphrase
-        cls.mem = SemanticMemory(str(cls.enclave_path))
-        cls.mem.unlock("test_passphrase_12345")
+        self.mem = SemanticMemory(str(self.enclave_path))
+        self.mem.unlock("test_passphrase_12345")
     
-    @classmethod
-    def tearDownClass(cls):
+    def tearDown(self):
         """Clean up temporary directory."""
-        shutil.rmtree(cls.temp_dir, ignore_errors=True)
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
     
     def test_single_graph_reconstruction(self):
         """Single graph should reconstruct with correct node IDs."""
@@ -60,17 +58,28 @@ E n3 implements n1"""
         graph = SIFParser.parse(sif_text)
         store_understanding(self.mem, graph, str(self.test_file))
         
-        # Retrieve and reconstruct
-        results = self.mem.recall_similar("[Component] test_target.py", top_k=50, threshold=0.1)
-        relevant = [r for r in results if "test_target.py" in r.get('metadata', {}).get('target_path', '')]
+        # Retrieve using multiple queries to get all node types
+        # Semantic search needs different queries for different types
+        all_results = []
+        for query in ["[Component]", "[Method]", "[Design]", "[Anchor]", "test_target.py"]:
+            results = self.mem.recall_similar(query, top_k=50, threshold=0.1)
+            all_results.extend(results)
+        
+        # Deduplicate by memory id
+        seen_ids = set()
+        relevant = []
+        for r in all_results:
+            if r['id'] not in seen_ids and "test_target.py" in r.get('metadata', {}).get('target_path', ''):
+                seen_ids.add(r['id'])
+                relevant.append(r)
         
         reconstructed = reconstruct_graph(relevant)
         
         # Check nodes are present
         node_ids = [n['id'] for n in reconstructed['nodes']]
-        self.assertIn('n1', node_ids)
-        self.assertIn('n2', node_ids)
-        self.assertIn('n3', node_ids)
+        self.assertIn('n1', node_ids, f"n1 not found in {node_ids}")
+        self.assertIn('n2', node_ids, f"n2 not found in {node_ids}")
+        self.assertIn('n3', node_ids, f"n3 not found in {node_ids}")
         
         # Check edges reference correct nodes
         edge_sources = [e[0] for e in reconstructed['edges']]

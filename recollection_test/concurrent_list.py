@@ -171,9 +171,6 @@ class ConcurrentLinkedList(Generic[T]):
         while curr is not None:
             if not curr.marked and predicate(curr.data):
                 results.append(curr.data)
-                curr = curr.next  # Skip next after finding a match
-                if curr is None:
-                    break
             curr = curr.next
         return results
     

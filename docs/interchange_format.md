@@ -69,7 +69,7 @@ To optimize for context window efficiency, we propose a line-based serialization
 ```text
 @G <graph_id> <generator_id> <timestamp>
 N <id> <type> "<content>" [confidence] [visibility]
-E <source> <target> <relation> [weight] [confidence]
+E <source> <relation> <target> [weight] [confidence]
 ```
 
 ### Example
@@ -78,7 +78,7 @@ E <source> <target> <relation> [weight] [confidence]
 @G graph-001 gemini 2025-12-31T23:59:59Z
 N n1 Observation "Log files are linear." 1.0 public
 N n2 Proposition "Thoughts are graphs." 0.95 private
-E n1 n2 contradicts 0.9 1.0
+E n1 contradicts n2 0.9 1.0
 ```
 
 ### Parsing Rules
