@@ -127,6 +127,42 @@ def parse_sif_understanding(sif_text: str, target_path: str, agent_id: str) -> S
     return graph
 
 
+def check_depth(graph: SIFKnowledgeGraph) -> tuple[bool, list[str]]:
+    """
+    Check if understanding is deep enough to be useful.
+    
+    Deep understanding requires meta-cognitive nodes that capture
+    operational knowledge - not just WHAT the code does but WHY
+    and HOW IT BREAKS.
+    
+    Returns (is_deep, missing_categories)
+    """
+    node_types = {n.type.lower() for n in graph.nodes}
+    
+    # What we're looking for (case-insensitive)
+    structural = {'component', 'function', 'class', 'method', 'module', 'system', 'flow'}
+    intentional = {'purpose', 'design', 'design_decision', 'rationale'}
+    operational = {'gotcha', 'assumption', 'failure_mode', 'debug_strategy', 'warning', 'brittle'}
+    
+    has_structural = bool(node_types & structural)
+    has_intentional = bool(node_types & intentional)
+    has_operational = bool(node_types & operational)
+    
+    missing = []
+    if not has_structural:
+        missing.append("STRUCTURAL (Component, Function, Class, Module)")
+    if not has_intentional:
+        missing.append("INTENTIONAL (Purpose, Design, Design_Decision, Rationale)")
+    if not has_operational:
+        missing.append("OPERATIONAL (Gotcha, Assumption, Failure_Mode, Debug_Strategy)")
+    
+    # Deep = has at least structural + one of (intentional or operational)
+    # Really deep = has all three
+    is_deep = has_structural and (has_intentional or has_operational)
+    
+    return is_deep, missing
+
+
 def store_understanding(mem: SemanticMemory, graph: SIFKnowledgeGraph, target_path: str):
     """
     Store the understanding graph in semantic memory.
@@ -216,6 +252,34 @@ def main():
     except ValueError as e:
         print(f"Error parsing SIF: {e}", file=sys.stderr)
         sys.exit(1)
+    
+    # Check depth before storing
+    is_deep, missing = check_depth(graph)
+    if not is_deep:
+        print("⚠️  SHALLOW UNDERSTANDING DETECTED", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Your understanding is missing key categories:", file=sys.stderr)
+        for m in missing:
+            print(f"  ✗ {m}", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Deep understanding captures not just WHAT but:", file=sys.stderr)
+        print("  • WHY - Design_Decision, Rationale, Purpose", file=sys.stderr)
+        print("  • HOW IT BREAKS - Gotcha, Assumption, Failure_Mode", file=sys.stderr)
+        print("  • HOW TO FIX - Debug_Strategy", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Example of deep understanding:", file=sys.stderr)
+        print("  N n1 Component 'MyClass - handles X'", file=sys.stderr)
+        print("  N n2 Purpose 'Provides Y for Z'", file=sys.stderr)
+        print("  N n3 Design 'Uses pattern P because Q'", file=sys.stderr)
+        print("  N n4 Gotcha 'Fails silently if R'", file=sys.stderr)
+        print("  N n5 Assumption 'Expects S to be configured'", file=sys.stderr)
+        print("  N n6 Failure_Mode 'OOMs on large input'", file=sys.stderr)
+        print("  N n7 Debug_Strategy 'Check logs for T'", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Add --force to store anyway, but this defeats the purpose.", file=sys.stderr)
+        if '--force' not in sys.argv:
+            sys.exit(1)
+        print("--force specified, storing shallow understanding...", file=sys.stderr)
     
     # Store in memory
     mem = SemanticMemory(enclave_dir)
