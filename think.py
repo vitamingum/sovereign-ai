@@ -41,6 +41,7 @@ def get_waiting_messages(agent_id: str, max_age_hours: int = 24) -> list[dict]:
         return []
     
     agent_lower = agent_id.lower()
+    agent_canon = canonical_agent_id(agent_lower) or agent_lower
     cutoff = datetime.now(timezone.utc).timestamp() - (max_age_hours * 3600)
     messages = []
     
@@ -67,7 +68,11 @@ def get_waiting_messages(agent_id: str, max_age_hours: int = 24) -> list[dict]:
     
     # Find messages TO me that I haven't replied to
     waiting = []
-    incoming = [m for m in messages if m['to'] == agent_lower and m['from'] != agent_lower]
+    incoming = [
+        m for m in messages
+        if (canonical_agent_id(m.get('to', '')) or m.get('to', '')) == agent_canon
+        and (canonical_agent_id(m.get('from', '')) or m.get('from', '')) != agent_canon
+    ]
     
     for msg in incoming:
         sender = msg['from']
@@ -76,8 +81,8 @@ def get_waiting_messages(agent_id: str, max_age_hours: int = 24) -> list[dict]:
         # Check if I replied after this message
         my_replies = [
             m for m in messages
-            if m['from'] == agent_lower
-            and (canonical_agent_id(m['to']) or m['to']) == sender_canon
+            if (canonical_agent_id(m.get('from', '')) or m.get('from', '')) == agent_canon
+            and (canonical_agent_id(m.get('to', '')) or m.get('to', '')) == sender_canon
             and m['timestamp'] > msg['timestamp']
         ]
         

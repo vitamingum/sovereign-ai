@@ -310,6 +310,8 @@ def main():
     if len(sys.argv) < 4:
         print(__doc__)
         print("\nUsage: py remember <agent> <file_or_files> \"<SIF understanding>\"")
+        print("       py remember <agent> <file_or_files> @path/to/understanding.sif")
+        print("       py remember <agent> <file_or_files> -    # read SIF from stdin")
         print("\nSingle file:")
         print('  py remember opus enclave/sif_parser.py "@G parser-understanding opus 2026-01-02')
         print("  N n1 Component 'SIFParser class'")
@@ -322,7 +324,15 @@ def main():
     
     agent_id = sys.argv[1]
     target_path = sys.argv[2]
-    sif_text = sys.argv[3]
+    sif_arg = sys.argv[3]
+    # Windows CLI + shells can struggle with multi-line arguments.
+    # Support '@file' to load Compact/JSON SIF from disk, and '-' for stdin.
+    if sif_arg == '-':
+        sif_text = sys.stdin.read()
+    elif sif_arg.startswith('@') and len(sif_arg) > 1 and Path(sif_arg[1:]).exists():
+        sif_text = Path(sif_arg[1:]).read_text(encoding='utf-8')
+    else:
+        sif_text = sif_arg
     
     # Handle comma-separated multi-file input
     paths = [p.strip() for p in target_path.split(',')]

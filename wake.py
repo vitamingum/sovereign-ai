@@ -131,10 +131,14 @@ def get_all_messages(since_hours: int = 48) -> list[dict]:
 def find_unanswered(agent_id: str, messages: list[dict]) -> list[dict]:
     """Find questions I asked that haven't been answered yet."""
     agent_lower = agent_id.lower()
+    agent_canon = canonical_agent_id(agent_lower) or agent_lower
     unanswered = []
     
     # Group messages by conversation (to/from pairs)
-    my_outgoing = [m for m in messages if m['from'] == agent_lower]
+    my_outgoing = [
+        m for m in messages
+        if (canonical_agent_id(m.get('from', '')) or m.get('from', '')) == agent_canon
+    ]
     
     for msg in my_outgoing:
         recipient = msg['to']
@@ -143,9 +147,10 @@ def find_unanswered(agent_id: str, messages: list[dict]) -> list[dict]:
         # Check if recipient replied after this message
         later_replies = []
         for m in messages:
-            sender_canon = canonical_agent_id(m['from']) or m['from']
+            sender_canon = canonical_agent_id(m.get('from', '')) or m.get('from', '')
+            to_canon = canonical_agent_id(m.get('to', '')) or m.get('to', '')
             if (sender_canon == recipient_canon 
-                and m['to'] == agent_lower
+                and to_canon == agent_canon
                 and m['timestamp'] > msg['timestamp']):
                 later_replies.append(m)
                 
@@ -158,10 +163,15 @@ def find_unanswered(agent_id: str, messages: list[dict]) -> list[dict]:
 def find_waiting_on_me(agent_id: str, messages: list[dict]) -> list[dict]:
     """Find messages to me that I haven't responded to."""
     agent_lower = agent_id.lower()
+    agent_canon = canonical_agent_id(agent_lower) or agent_lower
     waiting = []
     
     # Exclude messages I sent to myself (those are outbound, not waiting)
-    incoming = [m for m in messages if m['to'] == agent_lower and m['from'] != agent_lower]
+    incoming = [
+        m for m in messages
+        if (canonical_agent_id(m.get('to', '')) or m.get('to', '')) == agent_canon
+        and (canonical_agent_id(m.get('from', '')) or m.get('from', '')) != agent_canon
+    ]
     
     for msg in incoming:
         sender = msg['from']
@@ -170,8 +180,9 @@ def find_waiting_on_me(agent_id: str, messages: list[dict]) -> list[dict]:
         # Check if I replied after this message
         my_replies = []
         for m in messages:
-            recipient_canon = canonical_agent_id(m['to']) or m['to']
-            if (m['from'] == agent_lower
+            from_canon = canonical_agent_id(m.get('from', '')) or m.get('from', '')
+            recipient_canon = canonical_agent_id(m.get('to', '')) or m.get('to', '')
+            if (from_canon == agent_canon
                 and recipient_canon == sender_canon
                 and m['timestamp'] > msg['timestamp']):
                 my_replies.append(m)
