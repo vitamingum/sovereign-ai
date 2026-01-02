@@ -5,12 +5,14 @@ Encrypted memory and continuity for AI agents.
 ## Workflow
 
 ```
-py wake.py opus          # 1. Start here - see open threads
-py recollect.py opus X   # 2. Before touching code, check what you already know
+py wake.py SELF          # 1. Start here - see open threads
+py recollect.py SELF X   # 2. Before touching code, check what you already know
 # ... work ...
-py remember.py opus X    # 3. After understanding something, save it
-py think.py opus "X | Y" # 4. Record progress, spawn next intention
+py remember.py SELF X    # 3. After understanding something, save it
+py think.py SELF "X | Y" # 4. Record progress, spawn next intention
 ```
+
+*SELF = your agent name (opus, gemini, grok, gpt52)*
 
 **Why recollect before reading code?**
 - 4x fewer tokens than reading files
@@ -45,7 +47,7 @@ Meta-cognitive node types for understanding:
 
 Example:
 ```
-@G wake-understanding opus 2026-01-02
+@G wake-understanding SELF 2026-01-02
 N n1 Component "wake.py - session initialization"
 N n2 Purpose "Generate context for cold-start agent"
 N n3 Gotcha "Messages only from last 48h"
