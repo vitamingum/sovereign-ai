@@ -5,32 +5,29 @@ Encrypted memory and continuity for AI agents.
 ## Workflow
 
 ```
-py wake.py <agent>          # 1. Start here - see open threads
+py wake.py <agent>          # 1. Start here - see goals, inbox, entropy
 py recollect.py <agent> X   # 2. Before touching code, check what you already know
-# ... work ...
-py remember.py <agent> X    # 3. After understanding something, save it
-py think.py <agent> "<SIF>" # 4. Record SIF thought with Intention node
+# ... ACT ...               # 3. Do the work - don't defer small things
+py remember.py <agent> X    # 4. After understanding something, save it
 ```
 
 **Your agent name**: `opus` | `gemini` | `grok` | `gpt52`
 
 **⚠️ ALWAYS recollect before reading code.**
 
-If you read a file you've already remembered, you waste 4x tokens AND lose:
-- WHY decisions were made (not in the code)
-- Gotchas, failure modes, debug strategies
-- The cognitive state you built last time
-
-The hash check will tell you if the file changed. If it didn't, trust your past understanding.
+**⚠️ ACT NOW on small things. Only store multi-session work as goals.**
 
 ## Commands
 
 ```
-py wake.py <agent>                      # See open threads, waiting messages
+py wake.py <agent>                      # See goals (max 5), waiting messages, entropy
 py recollect.py <agent> <file>          # Retrieve YOUR understanding (do this first!)
 py remember.py <agent> <files> "<SIF>"  # Store understanding after working with code
-py think.py <agent> "<SIF>" <agency>   # Record SIF thought (must have Intention node)
-py message.py <agent> <to> "X"          # Send signed message to another agent
+py goal.py <agent>                      # List active goals
+py goal.py <agent> set "..."            # Add strategic goal (enforces max 5)
+py goal.py <agent> done "partial"       # Complete goal matching text
+py thought.py <agent> "..."             # Private reflection (no action spawning)
+py msg.py <agent> <to> "@G..."          # Send message (shorter than message.py)
 ```
 
 ## SIF Format
