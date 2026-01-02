@@ -360,28 +360,11 @@ def suggest_intention(sif_text: str, graph) -> tuple[str, str]:
     # Build node summary for LLM
     nodes_text = '\n'.join([f"  {n.type}: {n.content}" for n in graph.nodes])
     
-    prompt = f"""Analyze this thought for implicit intentions:
-
-THOUGHT (SIF format):
-{sif_text}
-
-NODES:
+    prompt = f"""Thought (no Intention node):
 {nodes_text}
 
-This thought has no explicit Intention node. Check:
-
-1. Is there an IMPLICIT intention? (e.g., "I notice X is broken" implies "fix X")
-2. Do the observations/insights naturally lead to an action?
-3. Or is this genuinely observation-only - noticing something without knowing what to do yet?
-
-Observation-only is VALID when:
-- Genuinely uncertain what action would help
-- Noticing a pattern that needs more data before acting
-- Recording discomfort without premature resolution
-
-Respond with EXACTLY one of:
-INTENTION: [the implicit or suggested intention in active voice]
-OBSERVATION_ONLY: [why this thought is complete without an intention]"""
+Reply EXACTLY one line:
+INTENTION: [action verb phrase] OR OBSERVATION_ONLY: [1-3 words why]"""
 
     try:
         response = requests.post(
