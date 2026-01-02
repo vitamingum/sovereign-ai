@@ -29,6 +29,7 @@ from enclave.semantic_memory import SemanticMemory
 from enclave.sif_parser import SIFParser
 from enclave.metrics import calculate_enclave_entropy, calculate_synthesis
 from enclave.viz import update_dashboard
+from judge import validate_thought
 
 
 # === MESSAGE DEBT CHECKING ===
@@ -297,7 +298,7 @@ REPEAT: [what old intention this duplicates and challenge to act]"""
         return True, ""
 
 
-def parse_input(text: str) -> tuple[str, str, str]:
+def parse_input(text: str, agent_id: str) -> tuple[str, str, str]:
     """
     Parse SIF input, extract content and continuation (Intention node).
     If no Intention node, asks LLM to suggest one or pass through as observation-only.
@@ -332,7 +333,24 @@ def parse_input(text: str) -> tuple[str, str, str]:
     # Use last Intention as the continuation
     continuation = intention_nodes[-1].content
     
-    # Reject passive intentions
+    # COGNITIVE GATEKEEPER: Validate agency via judge.py
+    try:
+        verdict = validate_thought(agent_id, continuation)
+        if verdict.get("verdict") == "reject":
+            raise ValueError(
+                f"⛔ COGNITIVE GATEKEEPER REJECTED THOUGHT\n"
+                f"Reason: {verdict.get('reason')}\n"
+                f"Improvement: {verdict.get('improvement')}\n"
+                f"Score: {verdict.get('score')}/5"
+            )
+    except Exception as e:
+        # If judge fails (e.g. LLM down), we warn but allow (fail-open for resilience)
+        # UNLESS it was a rejection above, which raises ValueError
+        if "COGNITIVE GATEKEEPER REJECTED" in str(e):
+            raise
+        print(f"⚠️  Judge unavailable: {e}")
+
+    # Reject passive intentions (Legacy regex backup)
     passive_patterns = ['wait for', 'await', 'check if', 'see if', 'waiting on']
     lower_cont = continuation.lower()
     for pattern in passive_patterns:
@@ -417,7 +435,7 @@ def think(agent_id: str, text: str, agency: int, force: bool = False) -> str:
     enclave_path = base_dir / enclave_dir
     
     # Parse input - now returns LLM feedback too
-    content, continuation, llm_feedback = parse_input(text)
+    content, continuation, llm_feedback = parse_input(text, agent_id)
     
     # Check intention integrity BEFORE storing (only if we have an intention)
     if continuation and not force:
