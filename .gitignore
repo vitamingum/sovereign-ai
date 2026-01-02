@@ -27,3 +27,6 @@ Thumbs.db
 
 # Bootstrap context (contains passphrase + decrypted thoughts)
 .context_injection.md
+
+# Mirror state dump (personal cognitive state)
+mirror_state.md

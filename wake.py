@@ -273,7 +273,8 @@ def get_stale_understanding(mem: SemanticMemory) -> list[tuple[str, str, str]]:
     
     try:
         # Search for Anchor nodes which contain file hashes
-        results = mem.recall_similar("[Anchor]", top_k=100, threshold=0.1)
+        # Use high top_k to catch all anchors - semantic similarity may rank new ones lower
+        results = mem.recall_similar("[Anchor]", top_k=500, threshold=0.1)
         
         # Collect ALL stored hashes per file (there may be multiple anchors)
         file_stored_hashes = {}  # filename -> set of hashes

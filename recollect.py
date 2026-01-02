@@ -306,9 +306,12 @@ def main():
     mem = SemanticMemory(enclave_dir)
     mem.unlock(passphrase)
     
-    # Search by filename (extracted above)
-    # Semantic search with lower threshold to get more results
-    results = mem.recall_similar(f"[Component] {filename} understanding", top_k=100, threshold=0.1)
+    # Primary: tag-based retrieval by target_path (fast, exact)
+    results = mem.list_by_metadata('target_path', filename, limit=100)
+    
+    # Fallback: semantic search if tag-based returns nothing
+    if not results:
+        results = mem.recall_similar(f"[Component] {filename} understanding", top_k=100, threshold=0.1)
     
     # Filter to only memories about this specific path
     relevant = []

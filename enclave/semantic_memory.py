@@ -227,6 +227,116 @@ class SemanticMemory:
         results.sort(key=lambda x: x["similarity"], reverse=True)
         return results[:top_k]
 
+    def list_all(self, limit: int = None) -> List[dict]:
+        """
+        List all memories without similarity search.
+        Much faster than recall_similar - no model loading or embedding.
+        
+        Args:
+            limit: Maximum number of results (None = all)
+            
+        Returns:
+            List of decrypted memories, newest first
+        """
+        if not self._encryption_key:
+            raise RuntimeError("Memory not unlocked")
+        
+        log_file = self.private_path / "semantic_memories.jsonl"
+        if not log_file.exists():
+            return []
+        
+        # Load all memories
+        memories = []
+        with open(log_file, "r", encoding="utf-8") as f:
+            for line in f:
+                if line.strip():
+                    memories.append(json.loads(line))
+        
+        # Decrypt all
+        results = []
+        for mem in memories:
+            try:
+                content_nonce = bytes.fromhex(mem["content_nonce"])
+                content_ciphertext = bytes.fromhex(mem["content"])
+                decrypted_bytes = self._decrypt(
+                    content_nonce, content_ciphertext, self._encryption_key
+                )
+                
+                # Handle legacy format vs new format
+                try:
+                    payload = json.loads(decrypted_bytes.decode())
+                    if isinstance(payload, dict) and "text" in payload:
+                        content = payload["text"]
+                        metadata = payload.get("meta", {})
+                    else:
+                        content = decrypted_bytes.decode()
+                        metadata = {}
+                except json.JSONDecodeError:
+                    content = decrypted_bytes.decode()
+                    metadata = {}
+                
+                results.append({
+                    "id": mem["id"],
+                    "timestamp": mem["timestamp"],
+                    "tags": mem["tags"],
+                    "content": content,
+                    "metadata": metadata,
+                })
+            except Exception:
+                continue
+        
+        # Newest first
+        results.sort(key=lambda x: x["timestamp"], reverse=True)
+        
+        if limit:
+            return results[:limit]
+        return results
+
+    def list_by_tag(self, tag: str, limit: int = None) -> List[dict]:
+        """
+        List all memories that have a specific tag.
+        Fast exact match on tags - no embedding or semantic search.
+        
+        Args:
+            tag: The tag to filter by (e.g., 'thought', 'understanding', graph_id)
+            limit: Maximum number of results (None = all)
+            
+        Returns:
+            List of decrypted memories with matching tag, newest first
+        """
+        all_memories = self.list_all(limit=None)  # Get all, then filter
+        results = [m for m in all_memories if tag in m.get('tags', [])]
+        
+        if limit:
+            return results[:limit]
+        return results
+
+    def list_by_metadata(self, key: str, value: str, limit: int = None) -> List[dict]:
+        """
+        List all memories that have a specific metadata key-value pair.
+        Useful for finding memories about a specific file (target_path).
+        
+        Args:
+            key: Metadata key to match (e.g., 'target_path', 'graph_id')
+            value: Value to match (substring match for paths)
+            limit: Maximum number of results (None = all)
+            
+        Returns:
+            List of decrypted memories with matching metadata, newest first
+        """
+        all_memories = self.list_all(limit=None)
+        results = []
+        for m in all_memories:
+            meta = m.get('metadata', {})
+            stored_value = meta.get(key, '')
+            # Use substring match for flexibility (e.g., filename in full path)
+            if value in str(stored_value) or str(stored_value) in value:
+                results.append(m)
+        
+        if limit:
+            return results[:limit]
+        return results
+
     def ingest_graph(self, graph: SIFKnowledgeGraph):
         """
         Decompose a SIF graph and store its nodes as semantic memories.

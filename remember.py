@@ -31,6 +31,21 @@ from enclave.semantic_memory import SemanticMemory
 from enclave.sif_parser import SIFParser, SIFKnowledgeGraph, SIFNode, SIFEdge
 
 
+def log_force_usage(agent_id: str, context: str, tool: str):
+    """Log when --force is used for pattern analysis."""
+    agent = get_agent_or_raise(agent_id)
+    log_file = Path(agent.enclave) / "storage" / "private" / "force_log.jsonl"
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    entry = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "tool": tool,
+        "context": context[:200]  # First 200 chars for brevity
+    }
+    with open(log_file, 'a', encoding='utf-8') as f:
+        f.write(json.dumps(entry) + '\n')
+
+
 def load_passphrase(agent_id: str) -> tuple[str, str]:
     """Load passphrase from env."""
     agent = get_agent_or_raise(agent_id)
@@ -361,7 +376,9 @@ def main():
         print("Add --force to store anyway, but this defeats the purpose.", file=sys.stderr)
         if '--force' not in sys.argv:
             sys.exit(1)
+        log_force_usage(agent_id, f"shallow understanding of {target_path}: missing {', '.join(missing)}", 'remember.py')
         print("--force specified, storing shallow understanding...", file=sys.stderr)
+        print("[--force logged for pattern analysis]", file=sys.stderr)
     
     # LLM comprehensiveness check - does this feel like real understanding?
     print("\n🧠 Validating comprehensiveness...")
@@ -380,7 +397,9 @@ def main():
         print("   Add more depth - WHY decisions were made, WHAT breaks.", file=sys.stderr)
         if '--force' not in sys.argv:
             sys.exit(1)
+        log_force_usage(agent_id, f"superficial understanding of {target_path}: {feedback}", 'remember.py')
         print("   --force specified, storing anyway...", file=sys.stderr)
+        print("[--force logged for pattern analysis]", file=sys.stderr)
     
     # Store in memory
     mem = SemanticMemory(enclave_dir)
