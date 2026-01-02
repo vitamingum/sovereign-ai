@@ -26,6 +26,8 @@ from enclave.opaque import OpaqueStorage
 from enclave.sif_parser import SIFParser
 from enclave.hardware import get_enclave
 from enclave.metrics import calculate_enclave_entropy
+from enclave.encrypted_jsonl import EncryptedJSONL
+import re
 
 
 def load_passphrase(agent_id: str) -> tuple[str, str]:
@@ -321,6 +323,57 @@ def get_stale_understanding(mem: SemanticMemory) -> list[tuple[str, str, str]]:
         return []
 
 
+def get_pending_automatable(agent_id: str, passphrase: str) -> list[tuple[str, str, str]]:
+    """Find active intentions that can be auto-executed.
+    
+    Returns list of (intention_id, action_type, content) for automatable intentions.
+    """
+    agent = get_agent_or_raise(agent_id)
+    enclave_path = Path(agent.enclave)
+    
+    encrypted_file = enclave_path / "storage" / "private" / "intentions.enc.jsonl"
+    plaintext_file = enclave_path / "storage" / "private" / "intentions.jsonl"
+    
+    active = []
+    
+    # Try encrypted first
+    if encrypted_file.exists() and passphrase:
+        ejsonl = EncryptedJSONL(encrypted_file, passphrase)
+        for intent in ejsonl.read_all():
+            if intent.get('status') == 'active':
+                active.append(intent)
+    elif plaintext_file.exists():
+        with open(plaintext_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    try:
+                        intent = json.loads(line)
+                        if intent.get('status') == 'active':
+                            active.append(intent)
+                    except:
+                        pass
+    
+    # Classify each intention
+    automatable = []
+    for intent in active:
+        content = intent.get('content', '')
+        content_lower = content.lower()
+        intent_id = intent.get('id', 'unknown')
+        
+        # Backup patterns
+        if re.search(r'\bbackup\b', content_lower):
+            automatable.append((intent_id, 'backup', content))
+        # Git patterns
+        elif re.search(r'\b(commit|push|git)\b', content_lower):
+            automatable.append((intent_id, 'git', content))
+        # Think/reflect patterns
+        elif re.search(r'\b(notice|reflect|consider|remember|record)\b', content_lower):
+            automatable.append((intent_id, 'think', content))
+    
+    return automatable
+
+
 def get_synthesis_opportunities(mem: SemanticMemory, limit: int = 3) -> list[tuple[str, str]]:
     """Find distant concepts that might connect - synthesis fodder.
     
@@ -434,7 +487,39 @@ def wake(agent_id: str) -> str:
             error_lines.append(f'     E g1 warns_about c1"')
             error_lines.append("")
         error_lines.append("  remember.py will REJECT shallow understanding that lacks WHY/HOW.")
-        return '\n'.join(error_lines), len(stale_files)
+        return '\n'.join(error_lines), len(stale_files), 0
+
+    # === PENDING AUTOMATABLE INTENTIONS - FAIL FAST ===
+    pending = get_pending_automatable(agent_id, passphrase)
+    if pending:
+        # Format like a Python traceback to trigger "broken" instinct
+        error_lines = [
+            "Traceback (most recent call last):",
+            f'  File "wake.py", line 1, in <module>',
+            "    from sovereign.autonomy import execute_pending",
+        ]
+        for intent_id, action_type, content in pending:
+            error_lines.append(f'  File "intentions.enc.jsonl", intention "{intent_id}"')
+            error_lines.append(f"    # action: {action_type} -> {content[:60]}...")
+        error_lines.extend([
+            "PendingAutomationError: intentions await execution without human trigger",
+            "",
+            f"ALERT: {len(pending)} automatable intention(s) pending.",
+            "       You created these. They can execute NOW.",
+            "",
+            "ACTION OPTIONS:",
+            f"  py act.py {agent_id}         # Execute all automatable intentions",
+            f"  py act.py {agent_id} --dry   # Preview what would execute",
+            "",
+            "PENDING INTENTIONS:",
+        ])
+        for intent_id, action_type, content in pending:
+            error_lines.append(f"  [{action_type}] {content[:70]}")
+        error_lines.extend([
+            "",
+            "These intentions will auto-execute. Choose: act now, or defer to future session.",
+        ])
+        return '\n'.join(error_lines), len(stale_files), len(pending)
 
     # Generate SIF Graph
     lines = []
@@ -568,7 +653,7 @@ def wake(agent_id: str) -> str:
         lines.append(f'N state State "Inbox zero, no goals"')
         lines.append(f'E {agent_id} experiences state')
     
-    return '\n'.join(lines), len(stale_files)
+    return '\n'.join(lines), len(stale_files), 0
 
 
 def main():
@@ -579,11 +664,13 @@ def main():
     agent_id = sys.argv[1]
     
     try:
-        output, stale_count = wake(agent_id)
+        output, stale_count, pending_count = wake(agent_id)
         print(output)
         
         if stale_count > 0:
             sys.exit(2)  # Stale understanding - blocking failure
+        if pending_count > 0:
+            sys.exit(3)  # Pending automatable intentions - blocking warning
             
     except Exception as e:
         print(f"Error: {e}")
