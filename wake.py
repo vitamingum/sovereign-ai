@@ -73,7 +73,7 @@ def load_goals(enclave_path: Path) -> list[dict]:
     if not goals_file.exists():
         return []
     
-    with open(goals_file, 'r', encoding='utf-8') as f:
+    with open(goals_file, 'r', encoding='utf-8-sig') as f:
         return json.load(f)
 
 
@@ -258,6 +258,57 @@ def get_available_understanding(mem: SemanticMemory) -> list[str]:
         return []
 
 
+def get_stale_understanding(mem: SemanticMemory) -> list[tuple[str, str, str]]:
+    """Find files where stored hash doesn't match current file.
+    
+    Returns list of (filename, stored_hash, current_hash) for stale files.
+    """
+    import hashlib
+    
+    def file_hash(path: Path) -> str:
+        try:
+            return hashlib.sha256(path.read_bytes()).hexdigest()[:12]
+        except:
+            return None
+    
+    try:
+        # Search for Anchor nodes which contain file hashes
+        results = mem.recall_similar("[Anchor]", top_k=100, threshold=0.1)
+        
+        # Collect ALL stored hashes per file (there may be multiple anchors)
+        file_stored_hashes = {}  # filename -> set of hashes
+        
+        for r in results:
+            meta = r.get('metadata', {})
+            file_hashes = meta.get('file_hashes', {})
+            
+            for filename, stored_hash in file_hashes.items():
+                if filename not in file_stored_hashes:
+                    file_stored_hashes[filename] = set()
+                file_stored_hashes[filename].add(stored_hash)
+        
+        # Now check each file - stale only if NO stored hash matches current
+        stale = []
+        for filename, stored_hashes in file_stored_hashes.items():
+            # Find the file
+            filepath = Path(filename)
+            if not filepath.exists():
+                filepath = Path(__file__).parent / filename
+            if not filepath.exists():
+                matches = list(Path(__file__).parent.glob(f'**/{filename}'))
+                filepath = matches[0] if matches else None
+            
+            if filepath and filepath.exists():
+                current = file_hash(filepath)
+                if current and current not in stored_hashes:
+                    # Report the most recent stored hash (arbitrary since we don't track time)
+                    stale.append((filename, list(stored_hashes)[0], current))
+        
+        return stale
+    except:
+        return []
+
+
 def wake(agent_id: str) -> str:
     """Generate wake output as pure SIF."""
     base_dir = Path(__file__).parent
@@ -284,6 +335,44 @@ def wake(agent_id: str) -> str:
     mem = SemanticMemory(str(enclave_path))
     mem.unlock(passphrase)
 
+    # === STALE CHECK FIRST - FAIL FAST ===
+    stale_files = get_stale_understanding(mem)
+    if stale_files:
+        # Format like a Python traceback to trigger "broken" instinct
+        error_lines = [
+            "Traceback (most recent call last):",
+            f'  File "wake.py", line 1, in <module>',
+            "    from sovereign.memory import understanding",
+        ]
+        for filename, stored, current in stale_files:
+            error_lines.append(f'  File "{filename}", line 1')
+            error_lines.append(f"    # hash: {stored} -> {current}")
+        error_lines.extend([
+            "StaleUnderstandingError: cognitive state does not match filesystem",
+            "",
+            f"FATAL: {len(stale_files)} file(s) changed since last remember.",
+            "       Your knowledge is out of sync with reality.",
+            "",
+            "TO FIX:",
+            "  1. READ each stale file thoroughly",
+            "  2. UNDERSTAND: Purpose, Design decisions, Gotchas, Assumptions, Failure modes", 
+            "  3. RUN this command with your understanding as SIF:",
+            "",
+        ])
+        for filename, stored, current in stale_files:
+            error_lines.append(f'     py remember.py {agent_id} {filename} "@G {filename.replace(".", "-")}-understanding {agent_id} 2026-01-02')
+            error_lines.append(f"     N c1 Component '{filename} - [what it is]'")
+            error_lines.append(f"     N p1 Purpose '[why it exists]'")
+            error_lines.append(f"     N d1 Design_Decision '[why built this way]'")
+            error_lines.append(f"     N g1 Gotcha '[surprising behavior]'")
+            error_lines.append(f"     N a1 Assumption '[implicit precondition]'")
+            error_lines.append(f"     N f1 Failure_Mode '[how it breaks]'")
+            error_lines.append(f"     E c1 implements p1")
+            error_lines.append(f'     E g1 warns_about c1"')
+            error_lines.append("")
+        error_lines.append("  remember.py will REJECT shallow understanding that lacks WHY/HOW.")
+        return '\n'.join(error_lines), len(stale_files)
+
     # Generate SIF Graph
     lines = []
     graph_id = f"wake-{agent_id}-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
@@ -306,6 +395,13 @@ def wake(agent_id: str) -> str:
         for f in available_files:
             lines.append(f"    - {f}")
         lines.append("")
+    
+    # === QUICK NAVIGATION ===
+    lines.append("=== QUICK CODEBASE NAV ===")
+    lines.append("  py shallow_understand.py     # What does each file do?")
+    lines.append("  py shallow_deps.py           # What depends on what?")
+    lines.append("  py shallow_deps.py -r        # What breaks if I change X?")
+    lines.append("")
     
     # Define Self and Metrics
     lines.append(f'N {agent_id} Agent "{agent_id}"')
@@ -399,7 +495,7 @@ def wake(agent_id: str) -> str:
         lines.append(f'N state State "Inbox zero, no goals"')
         lines.append(f'E {agent_id} experiences state')
     
-    return '\n'.join(lines)
+    return '\n'.join(lines), len(stale_files)
 
 
 def main():
@@ -410,7 +506,12 @@ def main():
     agent_id = sys.argv[1]
     
     try:
-        print(wake(agent_id))
+        output, stale_count = wake(agent_id)
+        print(output)
+        
+        if stale_count > 0:
+            sys.exit(2)  # Stale understanding - blocking failure
+            
     except Exception as e:
         print(f"Error: {e}")
         sys.exit(1)
