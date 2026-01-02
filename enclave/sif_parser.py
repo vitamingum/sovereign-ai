@@ -47,7 +47,15 @@ VALID_RELATIONS = {
     'constrains', 'predicts', 'produces', 'consumes',
     # General semantic relations
     'relates_to', 'requires', 'enables', 'precedes', 'follows',
-    'contains', 'part_of', 'instance_of', 'type_of'
+    'contains', 'part_of', 'instance_of', 'type_of',
+    # Meta-cognitive relations for state transfer (Opus's extensions)
+    'decided_against',   # Rejected alternative → chosen path
+    'warns_about',       # Gotcha → component
+    'motivated_by',      # Design decision → requirement
+    'brittle_at',        # Component → failure mode
+    'debug_via',         # Symptom → diagnostic approach
+    'assumes',           # Component → implicit precondition
+    'invalidated_by',    # Assumption → breaking condition
 }
 
 class SIFParser:
