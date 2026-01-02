@@ -26,5 +26,11 @@
     "created": "2026-01-02T08:54:57.276582+00:00",
     "status": "dropped",
     "completed": "2026-01-02T08:56:48.399037+00:00"
+  },
+  {
+    "id": "goal_1767352988984",
+    "content": "Establish empirical basis for V_sem claims",
+    "created": "2026-01-02T11:23:08.984190+00:00",
+    "status": "active"
   }
 ]
