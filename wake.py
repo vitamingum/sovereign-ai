@@ -67,61 +67,23 @@ def load_passphrase(agent_id: str) -> tuple[str, str]:
     return enclave_dir, passphrase
 
 
-def load_intentions(enclave_path: Path) -> list[dict]:
-    """Load intentions from file."""
-    intentions_file = enclave_path / "storage" / "private" / "intentions.jsonl"
-    if not intentions_file.exists():
+def load_goals(enclave_path: Path) -> list[dict]:
+    """Load goals from file."""
+    goals_file = enclave_path / "storage" / "private" / "goals.json"
+    if not goals_file.exists():
         return []
     
-    intentions = []
-    with open(intentions_file, 'r', encoding='utf-8') as f:
-        for line in f:
-            if line.strip():
-                intentions.append(json.loads(line))
-    return intentions
+    with open(goals_file, 'r', encoding='utf-8') as f:
+        return json.load(f)
 
 
-def prune_stale_intentions(enclave_path: Path, max_age_hours: int = 24) -> int:
-    """Auto-complete intentions older than max_age_hours. Returns count pruned."""
-    intentions = load_intentions(enclave_path)
-    if not intentions:
-        return 0
-    
-    cutoff = datetime.now(timezone.utc).timestamp() - (max_age_hours * 3600)
-    pruned = 0
-    
-    for intention in intentions:
-        if intention.get('status') == 'completed':
-            continue
-        ts_str = intention.get('timestamp', '')
-        if ts_str:
-            ts = datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
-            if ts.timestamp() < cutoff:
-                intention['status'] = 'completed'
-                intention['completed_reason'] = 'stale'
-                pruned += 1
-    
-    if pruned > 0:
-        intentions_file = enclave_path / "storage" / "private" / "intentions.jsonl"
-        with open(intentions_file, 'w', encoding='utf-8') as f:
-            for intention in intentions:
-                f.write(json.dumps(intention) + "\n")
-    
-    return pruned
+def get_active_goals(enclave_path: Path) -> list[dict]:
+    """Get active goals."""
+    goals = load_goals(enclave_path)
+    return [g for g in goals if g.get('status') == 'active']
 
 
-def get_recent_intentions(enclave_path: Path, limit: int = 3) -> list[dict]:
-    """Get most recent active intentions."""
-    intentions = load_intentions(enclave_path)
-    active = [i for i in intentions if i.get('status') != 'completed']
-    active.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
-    return active[:limit]
-
-
-def count_active_intentions(enclave_path: Path) -> int:
-    """Count all active (non-completed) intentions."""
-    intentions = load_intentions(enclave_path)
-    return len([i for i in intentions if i.get('status') != 'completed'])
+MAX_GOALS = 5
 
 
 def get_all_messages(since_hours: int = 48) -> list[dict]:
@@ -295,11 +257,8 @@ def wake(agent_id: str) -> str:
     enclave_dir, passphrase = load_passphrase(agent_id)
     enclave_path = base_dir / enclave_dir
     
-    # Auto-prune stale intentions (>24h)
-    pruned = prune_stale_intentions(enclave_path, max_age_hours=24)
-    
-    # Count active intentions for overload warning
-    active_count = count_active_intentions(enclave_path)
+    # Get active goals
+    active_goals = get_active_goals(enclave_path)
     
     # Unlock identity for decryption
     identity = SovereignIdentity(enclave_path)
@@ -363,14 +322,14 @@ def wake(agent_id: str) -> str:
         lines.append(f'N err Error "Metric Calculation Failed: {e}"')
         lines.append(f'E {agent_id} experiences err')
 
-    # Intention overload warning (threshold: 10 active)
-    INTENTION_THRESHOLD = 10
-    if active_count >= INTENTION_THRESHOLD:
-        lines.append(f'N warn Warning "INTENTION OVERLOAD: {active_count} active intentions"')
-        lines.append(f'N action Action "Read recent intentions, consolidate to 3-5 strategic goals, mark rest completed"')
-        lines.append(f'E {agent_id} experiences warn')
-        lines.append(f'E warn requires action')
-        lines.append(f'E {agent_id} must_do action')
+    # Show active goals
+    if active_goals:
+        lines.append('')
+        lines.append('=== GOALS ===')
+        for i, g in enumerate(active_goals, 1):
+            lines.append(f'  {i}. {g["content"]}')
+        lines.append(f'  ({MAX_GOALS - len(active_goals)} slots available)')
+        lines.append('')
 
     # Get all recent messages
     messages = get_all_messages(since_hours=48)
@@ -405,20 +364,12 @@ def wake(agent_id: str) -> str:
         lines.append(f'E {msg_id} sent_to {recipient}')
         lines.append(f'E {agent_id} awaits {recipient}')
     
-    # 2. Mid-thought - recent intentions/threads  
-    intentions = get_recent_intentions(enclave_path, limit=2)
-    for i, intent in enumerate(intentions):
-        content = intent['content'].replace('"', "'").replace('\n', ' ')
-        thought_id = f"thought{i}"
-        lines.append(f'N {thought_id} Intention "{content}"')
-        lines.append(f'E {agent_id} intends {thought_id}')
-        
-        if intent.get('spawned_from_content'):
-            source_content = intent['spawned_from_content'].replace('"', "'").replace('\n', ' ')
-            source_id = f"prev_thought{i}"
-            lines.append(f'N {source_id} Thought "{source_content}"')
-            lines.append(f'E {source_id} caused_by {thought_id}') # Wait, caused_by direction? thought caused by prev.
-            lines.append(f'E {thought_id} extends {source_id}')
+    # 2. Goals as SIF nodes
+    for i, g in enumerate(active_goals):
+        goal_id = f"goal{i}"
+        content = g['content'].replace('"', "'").replace('\n', ' ')
+        lines.append(f'N {goal_id} Goal "{content}"')
+        lines.append(f'E {agent_id} pursues {goal_id}')
 
     # 3. Waiting on me - messages I haven't responded to (show full content)
     waiting = find_waiting_on_me(agent_id, messages)
@@ -435,8 +386,8 @@ def wake(agent_id: str) -> str:
         lines.append(content)
     
     # If nothing is happening
-    if not unanswered and not intentions and not waiting:
-        lines.append(f'N state State "Inbox zero"')
+    if not unanswered and not active_goals and not waiting:
+        lines.append(f'N state State "Inbox zero, no goals"')
         lines.append(f'E {agent_id} experiences state')
     
     return '\n'.join(lines)
