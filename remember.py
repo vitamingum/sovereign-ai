@@ -381,7 +381,6 @@ def main():
         print("[--force logged for pattern analysis]", file=sys.stderr)
     
     # LLM comprehensiveness check - does this feel like real understanding?
-    print("\n🧠 Validating comprehensiveness...")
     file_content = ""
     try:
         with open(primary_path, 'r', encoding='utf-8-sig') as f:
@@ -390,7 +389,6 @@ def main():
         file_content = "(could not read file)"
     
     is_comprehensive, feedback = validate_comprehensiveness(graph, file_content)
-    print(f"   {feedback}")
     
     if not is_comprehensive:
         print("\n❌ Understanding seems superficial.", file=sys.stderr)
