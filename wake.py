@@ -227,6 +227,40 @@ def time_ago(ts: datetime) -> str:
         return f"{days}d"
 
 
+def get_project_context(mem: SemanticMemory) -> list[str] | None:
+    """Retrieve all nodes from project-context graph."""
+    try:
+        context_nodes = []
+        seen = set()
+        
+        # Multiple queries to hit different node types
+        queries = [
+            "sovereign ai project overview",
+            "goal persistent identity sessions encrypted",  
+            "goal secure inter-agent communication",
+            "goal research paper threatens",
+            "remember recollect tools",
+            "next respond messages review",
+            "pattern recollect tokens"
+        ]
+        
+        for query in queries:
+            results = mem.recall_similar(query, top_k=10, threshold=0.2)
+            for r in results:
+                meta = r.get('metadata', {})
+                if meta.get('graph_id') == 'project-context':
+                    if meta.get('node_type') == 'Anchor':
+                        continue
+                    content = r.get('content', '')
+                    if content and content not in seen:
+                        seen.add(content)
+                        context_nodes.append(content)
+        
+        return context_nodes if context_nodes else None
+    except:
+        return None
+
+
 def wake(agent_id: str) -> str:
     """Generate wake output as pure SIF."""
     base_dir = Path(__file__).parent
@@ -252,10 +286,26 @@ def wake(agent_id: str) -> str:
         encryption_algorithm=serialization.NoEncryption()
     )
 
+    # Initialize semantic memory for project context
+    mem = SemanticMemory(str(enclave_path))
+    mem.unlock(passphrase)
+
     # Generate SIF Graph
     lines = []
     graph_id = f"wake-{agent_id}-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
     lines.append(f"@G {graph_id} {agent_id} {datetime.now(timezone.utc).isoformat()}")
+    
+    # === PROJECT CONTEXT (from remember.py) ===
+    project_ctx = get_project_context(mem)
+    if project_ctx:
+        lines.append("")
+        lines.append("=== PROJECT CONTEXT (via recollect) ===")
+        for node in project_ctx:
+            lines.append(f"  {node}")
+        lines.append("---")
+        lines.append("^ Stored with: py remember.py SELF ...")
+        lines.append("  Retrieve more: py recollect.py SELF <file>")
+        lines.append("")
     
     # Define Self and Metrics
     lines.append(f'N {agent_id} Agent "{agent_id}"')
