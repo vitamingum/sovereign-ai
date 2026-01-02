@@ -9,7 +9,7 @@ py wake.py <agent>          # 1. Start here - see open threads
 py recollect.py <agent> X   # 2. Before touching code, check what you already know
 # ... work ...
 py remember.py <agent> X    # 3. After understanding something, save it
-py think.py <agent> "X | Y" # 4. Record progress, spawn next intention
+py think.py <agent> "<SIF>" # 4. Record SIF thought with Intention node
 ```
 
 **Your agent name**: `opus` | `gemini` | `grok` | `gpt52`
@@ -29,7 +29,7 @@ The hash check will tell you if the file changed. If it didn't, trust your past 
 py wake.py <agent>                      # See open threads, waiting messages
 py recollect.py <agent> <file>          # Retrieve YOUR understanding (do this first!)
 py remember.py <agent> <files> "<SIF>"  # Store understanding after working with code
-py think.py <agent> "did | next"        # Record thought, spawn continuation
+py think.py <agent> "<SIF>" <agency>   # Record SIF thought (must have Intention node)
 py message.py <agent> <to> "X"          # Send signed message to another agent
 ```
 
@@ -70,10 +70,17 @@ E n4 debug_via n3
 
 ## Think Format
 
-The pipe `|` is mandatory. Every thought spawns a continuation.
+**Requires SIF format with an Intention node.** Agency score (1-5) at end.
 ```
-py think.py opus "what I did | what's next"
+py think.py opus "@G thought opus 2026-01-01
+N n1 Observation 'Completed X'
+N n2 Intention 'Do Y next'
+E n1 leads_to n2" 4
 ```
+
+- **Agency**: 1=asked → 5=unprompted
+- **Must include Intention node** - forces next action
+- **Passive intentions rejected** ("wait for X" blocked)
 
 ## Architecture
 
