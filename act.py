@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave.config import get_agent_or_raise
 from enclave.encrypted_jsonl import EncryptedJSONL
-
+from sovereignty_monitor import monitor_execution
 
 def load_passphrase(agent_id: str) -> tuple[Path, str]:
     """Load passphrase from env."""
@@ -275,6 +275,9 @@ def act(agent_id: str, dry_run: bool = False) -> str:
         
         action_type, args = parse_intention(content)
         output.append(f"  → Parsed as: {action_type}")
+        
+        # Monitor execution for sovereignty before acting
+        monitor_execution(agent_id, intent_id, content, action_type)
         
         success, result = execute_action(agent_id, action_type, args, dry_run)
         
