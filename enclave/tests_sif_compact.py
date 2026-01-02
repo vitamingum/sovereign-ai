@@ -1,3 +1,5 @@
+"""Tests for SIF compact format (@G/@N/@E syntax)."""
+
 import unittest
 import sys
 import os

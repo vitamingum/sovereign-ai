@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-review.py - Analyze existing state for patterns, staleness, and avoidance.
+mirror.py - Show what you can't see about yourself.
 
 Usage:
-    py review <agent>
+    py mirror <agent>
 
-This is the mirror. Not input validation - state review.
-Asks the hard questions you won't ask yourself.
+Gathers ALL state: goals, intentions, journal, semantic memory.
+Asks the LLM to find patterns, avoidance, contradictions.
+The challenge output is the real value - forces confrontation.
 """
 
 import sys

@@ -93,6 +93,93 @@ def save_intention(enclave_path: Path, intention: dict):
         f.write(json.dumps(intention) + "\n")
 
 
+def load_recent_intentions(enclave_path: Path, limit: int = 20) -> list[dict]:
+    """Load recent intentions for integrity check."""
+    intentions_file = enclave_path / "storage" / "private" / "intentions.jsonl"
+    if not intentions_file.exists():
+        return []
+    
+    intentions = []
+    with open(intentions_file, 'r', encoding='utf-8') as f:
+        for line in f:
+            if line.strip():
+                try:
+                    intentions.append(json.loads(line))
+                except:
+                    pass
+    
+    return intentions[-limit:]
+
+
+def check_intention_integrity(new_intention: str, recent_intentions: list[dict]) -> tuple[bool, str]:
+    """
+    Use LLM to check if we're repeating intentions without acting.
+    
+    Returns (is_ok, feedback)
+    """
+    import requests
+    
+    OLLAMA_URL = "http://localhost:11434/api/generate"
+    
+    if not recent_intentions:
+        return True, ""
+    
+    # Format recent intentions
+    recent_text = []
+    for i in recent_intentions:
+        status = i.get('status', 'unknown')
+        content = i.get('content', '')
+        timestamp = i.get('timestamp', '')[:10]
+        recent_text.append(f"[{status}] {timestamp}: {content}")
+    
+    recent_formatted = '\n'.join(recent_text[-15:])  # Last 15
+    
+    prompt = f"""You are checking for intention repetition - saying the same thing without acting.
+
+RECENT INTENTIONS (oldest to newest):
+{recent_formatted}
+
+NEW INTENTION BEING ADDED:
+{new_intention}
+
+Check:
+1. Is this new intention very similar to a recent one that's still 'active' (not completed)?
+2. Has this person said essentially the same thing before without following through?
+3. Is this a pattern of comfortable deferral - stating intent instead of acting?
+
+If this looks like repetition without action, they should either:
+- DO IT NOW (not store another intention)
+- Or complete/drop the old similar intention first
+
+Respond with EXACTLY one of:
+OK: [reason this is genuinely new or different]
+REPEAT: [what old intention this duplicates and challenge to act]"""
+
+    try:
+        response = requests.post(
+            OLLAMA_URL,
+            json={
+                "model": "qwen2.5:7b",
+                "prompt": prompt,
+                "stream": False,
+                "options": {"temperature": 0.1}
+            },
+            timeout=60
+        )
+        
+        if response.status_code == 200:
+            result = response.json().get("response", "").strip()
+            is_ok = result.upper().startswith("OK")
+            return is_ok, result
+        else:
+            return True, ""
+            
+    except requests.exceptions.ConnectionError:
+        return True, ""  # Allow if Ollama not running
+    except Exception as e:
+        return True, ""
+
+
 def parse_input(text: str) -> tuple[str, str]:
     """
     Parse SIF input, extract content and continuation (Intention node).
@@ -133,7 +220,7 @@ def parse_input(text: str) -> tuple[str, str]:
     return text, continuation
 
 
-def think(agent_id: str, text: str, agency: int) -> str:
+def think(agent_id: str, text: str, agency: int, force: bool = False) -> str:
     """
     Process input: store the content, spawn the continuation, show related.
     """
@@ -143,6 +230,21 @@ def think(agent_id: str, text: str, agency: int) -> str:
     
     # Parse input
     content, continuation = parse_input(text)
+    
+    # Check intention integrity BEFORE storing
+    if not force:
+        recent = load_recent_intentions(enclave_path)
+        is_ok, feedback = check_intention_integrity(continuation, recent)
+        
+        if not is_ok:
+            raise ValueError(
+                f"🔁 INTENTION REPETITION DETECTED\n\n"
+                f"{feedback}\n\n"
+                f"Either:\n"
+                f"  1. DO IT NOW - don't store another intention\n"
+                f"  2. Complete or drop the old similar intention first\n"
+                f"  3. Use --force if this is genuinely different"
+            )
     
     timestamp = datetime.now(timezone.utc).isoformat()
     
@@ -221,10 +323,14 @@ def main():
         sys.exit(1)
     
     agent_id = sys.argv[1]
+    force = '--force' in sys.argv
+    
+    # Remove --force from args for parsing
+    args = [a for a in sys.argv if a != '--force']
     
     # Last arg is agency score
     try:
-        agency = int(sys.argv[-1])
+        agency = int(args[-1])
         if agency < 1 or agency > 5:
             raise ValueError("Agency must be 1-5")
     except ValueError:
@@ -233,10 +339,10 @@ def main():
         sys.exit(1)
     
     # Everything between agent and agency is the thought
-    text = ' '.join(sys.argv[2:-1])
+    text = ' '.join(args[2:-1])
     
     try:
-        print(think(agent_id, text, agency))
+        print(think(agent_id, text, agency, force=force))
     except ValueError as e:
         print(f"Error: {e}")
         sys.exit(1)

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-message.py - Send a message to another agent.
+msg.py - Send a message to another agent.
 
 Usage:
-    py message <from> <to> "content"
+    py msg <from> <to> "content"
     
 Examples:
-    py message opus gemini "What does saturation feel like?"
-    py message opus gemini "@G question opus 2025-12-31; N n1 Question 'What is saturation?'"
+    py msg opus gemini "What does saturation feel like?"
+    py msg opus gemini "@G question opus 2025-12-31; N n1 Question 'What is saturation?'"
 
 Accepts both plain text and SIF format.
 Plain text for simple messages, SIF for structured graphs.

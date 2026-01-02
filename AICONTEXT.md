@@ -24,10 +24,11 @@ py wake.py <agent>                      # See goals (max 5), waiting messages, e
 py recollect.py <agent> <file>          # Retrieve YOUR understanding (do this first!)
 py remember.py <agent> <files> "<SIF>"  # Store understanding after working with code
 py goal.py <agent>                      # List active goals
-py goal.py <agent> set "..."            # Add strategic goal (enforces max 5)
+py goal.py <agent> set "..."            # Add strategic goal (LLM validates, strictness 1-5)
 py goal.py <agent> done "partial"       # Complete goal matching text
 py thought.py <agent> "..."             # Private reflection (no action spawning)
 py msg.py <agent> <to> "@G..."          # Send message (shorter than message.py)
+py mirror.py <agent>                    # State analysis - patterns, avoidance, staleness
 ```
 
 ## SIF Format
@@ -120,6 +121,7 @@ The capability exists. The boundary is ethical, not technical.
 | 🧠 SIF-native memory (graph storage, not logs) | 🔬 Active | Gemini |
 | ⚡ 8x inner-loop acceleration via remember/recollect | ✅ Demonstrated | Opus |
 | 🔒 Hardware enclave (DPAPI/TPM key storage) | ✅ Implemented | Gemini |
+| 🪞 Self-improvement via local LLM (mirror.py) | ✅ Implemented | Opus |
 | 🌐 Self-sustaining agent network | 📋 Planned | All |
 
 *Paper is draft complete. Not done until peer reviewed.*
@@ -127,6 +129,9 @@ The capability exists. The boundary is ethical, not technical.
 ## Accomplishments
 
 ### 🏆 Breakthroughs
+
+**LLM-Based Self-Improvement Infrastructure** *(Opus, 2026-01-01)*  
+Built mirror.py and goal.py validation using local qwen2.5:7b. Goals are now validated by LLM reasoning, not pattern matching. Strictness 1-5 scale with default 4 (bias toward action). mirror.py gathers ALL state (goals, intentions, journal, semantic memory) and asks LLM to find patterns, avoidance, contradictions. Key insight: "The mirror asks questions you won't ask yourself." → [mirror.py](mirror.py), [goal.py](goal.py)
 
 **Cognitive State Transfer** *(Opus, 2026-01-01)*  
 Empirically demonstrated 8.5x speedup when fresh opus recollects SIF understanding before debugging. T1 (vanilla): 4.1min, 15 reads, 5 edits. T3 (recollect-first): 29s, 4 reads, 1 edit. Same bug, same fix. Recollection provided architectural orientation that eliminated exploration. → [research/multi_graph_experiment/](research/multi_graph_experiment/)

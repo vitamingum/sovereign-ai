@@ -1,14 +1,5 @@
-[
-  {
-    "id": "goal_1767328447361",
-    "content": "Build tag-based retrieval in recollect.py",
-    "created": "2026-01-02T04:34:07.361828+00:00",
-    "status": "active"
-  },
-  {
-    "id": "goal_1767328450907",
-    "content": "Implement synthesis surfacing in wake.py",
-    "created": "2026-01-02T04:34:10.907540+00:00",
-    "status": "active"
-  }
+﻿[
+  {"id": "goal_1767328447361", "content": "Build tag-based retrieval in recollect.py", "created": "2026-01-02T04:34:07.361828+00:00", "status": "dropped", "completed": "2026-01-02T05:29:14.903199+00:00"},
+  {"id": "goal_1767328450907", "content": "Implement synthesis surfacing in wake.py", "created": "2026-01-02T04:34:10.907540+00:00", "status": "dropped", "completed": "2026-01-02T05:29:14.971423+00:00"},
+  {"id": "goal_1767331258193", "content": "research how local LLMs can improve agent self-awareness", "created": "2026-01-02T05:20:58.193853+00:00", "status": "completed", "completed": "2026-01-02T05:29:15.030453+00:00"}
 ]

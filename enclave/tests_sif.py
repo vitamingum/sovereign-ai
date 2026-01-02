@@ -1,3 +1,4 @@
+"""Tests for SIF JSON format parsing."""
 
 import unittest
 import json

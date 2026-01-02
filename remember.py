@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """
-remember.py - Dump understanding of code/system into SIF format.
+remember.py - Store validated understanding of code as SIF graphs.
 
 Usage:
-    py remember <agent> <file_or_dir> "understanding summary"
+    py remember <agent> <file_or_dir> "@G graph-name..."
 
-This captures not just WHAT the code does, but:
+Validates understanding depth before storing - rejects shallow descriptions
+that only say WHAT without WHY. Captures:
 - WHY design decisions were made (motivated_by)
-- What alternatives were rejected (decided_against)
+- What alternatives were rejected (decided_against)  
 - Where brittleness lives (brittle_at, warns_about)
 - Implicit assumptions (assumes, invalidated_by)
 - Debug strategies (debug_via)
 
 The goal: restore full cognitive state later, not just re-read code.
-
-Version: 1.1 - Added hash-based staleness detection
+Tracks file hashes for staleness detection.
 """
 
 import sys
@@ -163,6 +163,76 @@ def check_depth(graph: SIFKnowledgeGraph) -> tuple[bool, list[str]]:
     return is_deep, missing
 
 
+def validate_comprehensiveness(graph: SIFKnowledgeGraph, file_content: str) -> tuple[bool, str]:
+    """
+    Use local LLM to validate understanding feels comprehensive.
+    
+    Returns (is_comprehensive, feedback)
+    """
+    import requests
+    
+    OLLAMA_URL = "http://localhost:11434/api/generate"
+    
+    # Format the SIF for the prompt
+    sif_summary = []
+    for node in graph.nodes:
+        if node.type != "Anchor":
+            sif_summary.append(f"[{node.type}] {node.content}")
+    sif_text = '\n'.join(sif_summary)
+    
+    # Truncate file content if too long
+    if len(file_content) > 6000:
+        file_content = file_content[:6000] + "\n... (truncated)"
+    
+    prompt = f"""You are validating whether someone truly understood a file or just skimmed it.
+
+FILE CONTENT:
+{file_content}
+
+THEIR UNDERSTANDING:
+{sif_text}
+
+Judge this understanding. A GOOD understanding:
+1. Captures the core PURPOSE (why this exists)
+2. Notes key DESIGN DECISIONS (why built this way, not another)
+3. Identifies GOTCHAS (what breaks, edge cases, surprises)
+4. Shows they read the ACTUAL code, not just described the filename
+
+A BAD understanding:
+1. Just restates the filename or obvious surface info
+2. Generic descriptions that could apply to any file
+3. Missing the WHY - only describes WHAT
+4. No operational knowledge (gotchas, assumptions, failure modes)
+
+Respond with EXACTLY one of:
+PASS: [one sentence why this shows real understanding]
+FAIL: [one sentence what's missing or superficial]"""
+
+    try:
+        response = requests.post(
+            OLLAMA_URL,
+            json={
+                "model": "qwen2.5:7b",
+                "prompt": prompt,
+                "stream": False,
+                "options": {"temperature": 0.1}
+            },
+            timeout=60
+        )
+        
+        if response.status_code == 200:
+            result = response.json().get("response", "").strip()
+            is_pass = result.upper().startswith("PASS")
+            return is_pass, result
+        else:
+            return True, f"(LLM unavailable: {response.status_code})"
+            
+    except requests.exceptions.ConnectionError:
+        return True, "(Ollama not running - skipping comprehensiveness check)"
+    except Exception as e:
+        return True, f"(LLM error: {e})"
+
+
 def store_understanding(mem: SemanticMemory, graph: SIFKnowledgeGraph, target_path: str):
     """
     Store the understanding graph in semantic memory.
@@ -292,6 +362,25 @@ def main():
         if '--force' not in sys.argv:
             sys.exit(1)
         print("--force specified, storing shallow understanding...", file=sys.stderr)
+    
+    # LLM comprehensiveness check - does this feel like real understanding?
+    print("\n🧠 Validating comprehensiveness...")
+    file_content = ""
+    try:
+        with open(primary_path, 'r', encoding='utf-8-sig') as f:
+            file_content = f.read()
+    except:
+        file_content = "(could not read file)"
+    
+    is_comprehensive, feedback = validate_comprehensiveness(graph, file_content)
+    print(f"   {feedback}")
+    
+    if not is_comprehensive:
+        print("\n❌ Understanding seems superficial.", file=sys.stderr)
+        print("   Add more depth - WHY decisions were made, WHAT breaks.", file=sys.stderr)
+        if '--force' not in sys.argv:
+            sys.exit(1)
+        print("   --force specified, storing anyway...", file=sys.stderr)
     
     # Store in memory
     mem = SemanticMemory(enclave_dir)

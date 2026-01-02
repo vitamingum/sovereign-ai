@@ -1,3 +1,8 @@
+"""Sovereign AI Enclave - Risk Assessment & Entropy Metrics.
+
+Calculates backup health: decay, redundancy, stagnation.
+Outputs risk levels (LOW/MEDIUM/HIGH/CRITICAL) and gradient horizon.
+"""
 
 import os
 import time
