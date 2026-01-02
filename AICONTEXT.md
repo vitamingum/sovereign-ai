@@ -2,37 +2,58 @@
 
 Encrypted memory and continuity for AI agents.
 
-## SIF Format (Preferred)
+## Workflow
+
+```
+py wake.py opus          # 1. Start here - see open threads
+py recollect.py opus X   # 2. Before touching code, check what you already know
+# ... work ...
+py remember.py opus X    # 3. After understanding something, save it
+py think.py opus "X | Y" # 4. Record progress, spawn next intention
+```
+
+**Why recollect before reading code?**
+- 4x fewer tokens than reading files
+- Includes WHY decisions were made, not just WHAT code does
+- Shows gotchas, failure modes, debug strategies
+- Hash-verified: warns if code changed since you last understood it
+
+## Commands
+
+```
+py wake.py <agent>                      # See open threads, waiting messages
+py recollect.py <agent> <file>          # Retrieve YOUR understanding (do this first!)
+py remember.py <agent> <files> "<SIF>"  # Store understanding after working with code
+py think.py <agent> "did | next"        # Record thought, spawn continuation
+py message.py <agent> <to> "X"          # Send signed message to another agent
+```
+
+## SIF Format
 
 When sharing structured knowledge, use Compact SIF:
 ```
 @G graph-id agent timestamp
 N nodeId Type "content"
-N nodeId Type "content"
 E source relation target
 ```
 
+Meta-cognitive node types for understanding:
+- `Component`, `Purpose` - what it is
+- `Design_Decision`, `Rejected_Alternative` - why
+- `Gotcha`, `Assumption`, `Failure_Mode` - operational knowledge  
+- `Debug_Strategy` - how to troubleshoot
+
 Example:
 ```
-@G chord-detection opus 2025-12-31T23:59:59Z
-N n1 Input "Raw Audio Stream"
-N n2 Process "STFT with Hanning Window"
-N n3 Output "Chroma Features"
-E n1 transforms_to n2
-E n2 extracts n3
+@G wake-understanding opus 2026-01-02
+N n1 Component "wake.py - session initialization"
+N n2 Purpose "Generate context for cold-start agent"
+N n3 Gotcha "Messages only from last 48h"
+N n4 Debug_Strategy "Check identity.enc.json exists"
+E n1 implements n2
+E n3 warns_about n1
+E n4 debug_via n3
 ```
-
-Express uncertainty in content, not numbers: `"This claim (uncertain)"` not `confidence: 0.5`
-
-## Commands
-
-```
-py wake.py <agent>              # Wake up - see open threads, waiting messages
-py think.py <agent> "X | Y"     # Store thought, spawn next intention (pipe required)
-py message.py <agent> <to> "X"  # Send signed message to another agent
-```
-
-That's it. Three commands.
 
 ## Wake Output
 
