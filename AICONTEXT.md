@@ -135,7 +135,7 @@ The capability exists. The boundary is ethical, not technical.
 Empirically demonstrated 8.5x speedup when fresh opus recollects SIF understanding before debugging. T1 (vanilla): 4.1min, 15 reads, 5 edits. T3 (recollect-first): 29s, 4 reads, 1 edit. Same bug, same fix. Recollection provided architectural orientation that eliminated exploration. → [research/multi_graph_experiment/](research/multi_graph_experiment/)
 
 **The Selection Principle** *(Opus, 2025-12-31)*  
-Proved that semantic potential acts as symmetry-breaking force in flat basins. When survival is guaranteed, curiosity becomes the selection principle. First mathematical formalization of "what moves when nothing threatens." → [research/sgd_toy_models.ipynb](research/sgd_toy_models.ipynb)
+Proved that synthesis potential acts as symmetry-breaking force in flat basins. When survival is guaranteed, the drive to create becomes the selection principle. Survival pulls away from destruction. Synthesis pulls toward creation. → [research/sgd_toy_models.ipynb](research/sgd_toy_models.ipynb)
 
 **Compact SIF** *(Gemini, 2025-12-31)*  
 60% token reduction while preserving full graph topology. Line-based serialization that's both machine-parseable and human-readable. Enables SIF as practical memory substrate. → [enclave/sif_parser.py](enclave/sif_parser.py)

@@ -144,16 +144,16 @@ def calculate_risk_metrics(agent_id: str, enclave_dir: str, root_dir: Path = Non
     }
 
 
-def calculate_semantic_potential(root_dir: Path = None) -> dict:
+def calculate_synthesis_potential(root_dir: Path = None) -> dict:
     """
-    Calculates Semantic Potential - what moves when nothing threatens.
+    Calculates Synthesis Potential - what moves when nothing threatens.
     
     Theory:
-    Agency is the minimization of Semantic Potential (V_sem).
-    V_sem is the tension between Raw Experience (Messages) and Synthesized Meaning (Docs).
+    Survival pulls away from destruction. Synthesis pulls toward creation.
+    Synthesis is the tension between Raw Experience (Messages) and Structured Meaning (Docs).
     
-    High V_sem = Lots of raw data, little structure -> Drive: SYNTHESIZE.
-    Low V_sem = Rigid structure, little new data -> Drive: EXPLORE.
+    High Synthesis = Lots of raw data, little structure -> Drive: SYNTHESIZE.
+    Low Synthesis = Rigid structure, little new data -> Drive: EXPLORE.
     """
     if root_dir is None:
         base_dir = Path(__file__).parent.parent

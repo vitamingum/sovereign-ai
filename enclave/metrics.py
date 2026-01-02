@@ -17,14 +17,15 @@ from enclave.config import get_agent_or_raise
 from enclave.hardware import get_enclave
 from enclave.semantic_memory import SemanticMemory
 
-def calculate_semantic_potential(agent_id: str) -> float:
+def calculate_synthesis(agent_id: str) -> float:
     """
-    Calculate V_sem (Semantic Potential).
+    Calculate Synthesis Potential.
     
-    V_sem = sum(1 - similarity(u, v)) for all edges (u, v).
+    Synthesis = sum(1 - similarity(u, v)) for all edges (u, v).
     
     This measures the 'tension' or 'distance' bridged by connections.
-    High potential means the agent is connecting disparate concepts.
+    High synthesis means the agent is connecting disparate concepts.
+    Survival pulls away from destruction. Synthesis pulls toward creation.
     """
     try:
         from wake import load_passphrase

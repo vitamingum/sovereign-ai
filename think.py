@@ -27,14 +27,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from enclave.config import get_agent_or_raise
 from enclave.semantic_memory import SemanticMemory
 from enclave.sif_parser import SIFParser
-from enclave.metrics import calculate_enclave_entropy, calculate_semantic_potential
+from enclave.metrics import calculate_enclave_entropy, calculate_synthesis
 from enclave.viz import update_dashboard
 
 
 def classify_action_type(text: str) -> str:
     """
     Classify action as survival or curiosity.
-    For V_sem falsification experiment.
+    For synthesis experiment: does action type correlate with entropy?
     """
     survival_keywords = [
         'backup', 'key', 'encrypt', 'secure', 'risk', 'entropy', 'seal',
@@ -154,17 +154,17 @@ def think(agent_id: str, text: str, agency: int) -> str:
     result = memory.remember(content, tags=['thought', f'agency:{agency}'])
     memory_id = result['id']
     
-    # Calculate current entropy for V_sem experiment
+    # Calculate current entropy for synthesis experiment
     try:
         entropy = calculate_enclave_entropy(agent_id)
     except:
         entropy = None
         
-    # Calculate current semantic potential
+    # Calculate current synthesis potential
     try:
-        v_sem = calculate_semantic_potential(agent_id)
+        synthesis = calculate_synthesis(agent_id)
     except:
-        v_sem = None
+        synthesis = None
     
     # Classify action type
     action_type = classify_action_type(content)
@@ -180,7 +180,7 @@ def think(agent_id: str, text: str, agency: int) -> str:
         'agency': agency,
         'action_type': action_type,
         'entropy_at_time': entropy,
-        'semantic_potential_at_time': v_sem
+        'synthesis_at_time': synthesis
     }
     save_intention(enclave_path, intention)
     
@@ -202,7 +202,7 @@ def think(agent_id: str, text: str, agency: int) -> str:
             # Full content, no truncation
             output.append(f"   • {mem['content']}")
     
-    # Update V_sem dashboard (silently)
+    # Update synthesis dashboard (silently)
     try:
         update_dashboard(agent_id)
         update_dashboard(None)  # All agents
