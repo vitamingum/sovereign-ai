@@ -20,15 +20,18 @@ py remember.py <agent> X    # 4. After understanding something, save it
 ## Commands
 
 ```
-py wake.py <agent>                      # See goals (max 5), waiting messages, entropy
+py wake.py <agent>                      # See goals (max 5), waiting messages, entropy, synthesis fodder
 py recollect.py <agent> <file>          # Retrieve YOUR understanding (do this first!)
 py remember.py <agent> <files> "<SIF>"  # Store understanding after working with code
 py goal.py <agent>                      # List active goals
-py goal.py <agent> set "..."            # Add strategic goal (LLM validates, strictness 1-5)
+py goal.py <agent> set "..."            # Add strategic goal (LLM validates, catches abstraction-gaming)
 py goal.py <agent> done "partial"       # Complete goal matching text
+py think.py <agent> "@G..." <agency>    # Record thought - spawns intention or observation-only
 py thought.py <agent> "..."             # Private reflection (no action spawning)
 py msg.py <agent> <to> "@G..."          # Send message (shorter than message.py)
 py mirror.py <agent>                    # State analysis - patterns, avoidance, staleness
+py shallow_understand.py                # Instant codebase map from docstrings (no LLM)
+py shallow_deps.py [-r] <file>          # Import deps; -r shows reverse deps (what breaks if I change X)
 ```
 
 ## SIF Format
@@ -64,11 +67,12 @@ E n4 debug_via n3
 ❓ UNANSWERED:     Questions I asked, no reply yet (full content)
 🧵 MID-THOUGHT:    Recent intentions, where I left off
 📨 WAITING:        Messages to me I haven't addressed
+🔀 SYNTHESIS:      Distant concepts that might connect (from different graphs)
 ```
 
 ## Think Format
 
-**Requires SIF format with an Intention node.** Agency score (1-5) at end.
+**SIF format with Intention node OR observation-only.** Agency score (1-5) at end.
 ```
 py think.py opus "@G thought opus 2026-01-01
 N n1 Observation 'Completed X'
@@ -77,8 +81,10 @@ E n1 leads_to n2" 4
 ```
 
 - **Agency**: 1=asked → 5=unprompted
-- **Must include Intention node** - forces next action
+- **Intention node recommended** - forces next action
+- **Observation-only valid** - LLM confirms when no action needed yet
 - **Passive intentions rejected** ("wait for X" blocked)
+- **Toll-booth**: blocks if unanswered messages exist
 
 ## Architecture
 
