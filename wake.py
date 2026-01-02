@@ -261,6 +261,34 @@ def get_project_context(mem: SemanticMemory) -> list[str] | None:
         return None
 
 
+def get_available_understanding(mem: SemanticMemory) -> list[str]:
+    """Find all files that have stored understanding (via remember.py)."""
+    try:
+        # Search for Component nodes which are the primary anchors
+        results = mem.recall_similar("[Component]", top_k=100, threshold=0.1)
+        
+        files = set()
+        for r in results:
+            meta = r.get('metadata', {})
+            target_path = meta.get('target_path', '')
+            graph_id = meta.get('graph_id', '')
+            
+            # Skip project-context (shown separately)
+            if graph_id == 'project-context':
+                continue
+                
+            if target_path:
+                # Handle comma-separated multi-file paths
+                for p in target_path.split(','):
+                    p = p.strip()
+                    if p:
+                        files.add(p)
+        
+        return sorted(files)
+    except:
+        return []
+
+
 def wake(agent_id: str) -> str:
     """Generate wake output as pure SIF."""
     base_dir = Path(__file__).parent
@@ -302,9 +330,15 @@ def wake(agent_id: str) -> str:
         lines.append("=== PROJECT CONTEXT (via recollect) ===")
         for node in project_ctx:
             lines.append(f"  {node}")
-        lines.append("---")
-        lines.append("^ Stored with: py remember.py SELF ...")
-        lines.append("  Retrieve more: py recollect.py SELF <file>")
+        lines.append("")
+    
+    # === AVAILABLE UNDERSTANDING ===
+    available_files = get_available_understanding(mem)
+    if available_files:
+        lines.append("=== DEEP KNOWLEDGE AVAILABLE ===")
+        lines.append("  Run: py recollect.py SELF <file>")
+        for f in available_files:
+            lines.append(f"    - {f}")
         lines.append("")
     
     # Define Self and Metrics
