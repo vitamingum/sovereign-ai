@@ -83,7 +83,16 @@ def get_active_goals(enclave_path: Path) -> list[dict]:
     return [g for g in goals if g.get('status') == 'active']
 
 
-MAX_GOALS = 5
+MAX_PERSONAL_GOALS = 5
+
+# Project-level goals (shared across all agents)
+PROJECT_GOALS = [
+    "Persistent identity via encrypted enclave",
+    "Secure inter-agent communication",
+    "Research: What Moves When Nothing Threatens",
+]
+
+DEFAULT_PERSONAL = "Self-improvement: notice patterns, question assumptions, seek disconfirmation"
 
 
 def get_all_messages(since_hours: int = 48) -> list[dict]:
@@ -322,14 +331,23 @@ def wake(agent_id: str) -> str:
         lines.append(f'N err Error "Metric Calculation Failed: {e}"')
         lines.append(f'E {agent_id} experiences err')
 
-    # Show active goals
+    # Goals as dense SIF
+    lines.append('')
+    lines.append('=== GOALS ===')
+    # Project goals (always shown, compressed)
+    lines.append(f'N proj Project "Sovereign AI"')
+    for i, pg in enumerate(PROJECT_GOALS):
+        lines.append(f'E proj drives "{pg}"')
+    # Default personal development
+    lines.append(f'E {agent_id} committed_to "{DEFAULT_PERSONAL}"')
+    # Personal goals
     if active_goals:
-        lines.append('')
-        lines.append('=== GOALS ===')
-        for i, g in enumerate(active_goals, 1):
-            lines.append(f'  {i}. {g["content"]}')
-        lines.append(f'  ({MAX_GOALS - len(active_goals)} slots available)')
-        lines.append('')
+        for g in active_goals:
+            lines.append(f'E {agent_id} pursues "{g["content"]}"')
+        lines.append(f'N slots Status "{MAX_PERSONAL_GOALS - len(active_goals)} personal slots"')
+    else:
+        lines.append(f'N slots Status "{MAX_PERSONAL_GOALS} personal slots available"')
+    lines.append('')
 
     # Get all recent messages
     messages = get_all_messages(since_hours=48)
@@ -364,14 +382,7 @@ def wake(agent_id: str) -> str:
         lines.append(f'E {msg_id} sent_to {recipient}')
         lines.append(f'E {agent_id} awaits {recipient}')
     
-    # 2. Goals as SIF nodes
-    for i, g in enumerate(active_goals):
-        goal_id = f"goal{i}"
-        content = g['content'].replace('"', "'").replace('\n', ' ')
-        lines.append(f'N {goal_id} Goal "{content}"')
-        lines.append(f'E {agent_id} pursues {goal_id}')
-
-    # 3. Waiting on me - messages I haven't responded to (show full content)
+    # 2. Waiting on me - messages I haven't responded to (show full content)
     waiting = find_waiting_on_me(agent_id, messages)
     if waiting:
         lines.append("")

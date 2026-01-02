@@ -1,0 +1,14 @@
+[
+  {
+    "id": "goal_1767328447361",
+    "content": "Build tag-based retrieval in recollect.py",
+    "created": "2026-01-02T04:34:07.361828+00:00",
+    "status": "active"
+  },
+  {
+    "id": "goal_1767328450907",
+    "content": "Implement synthesis surfacing in wake.py",
+    "created": "2026-01-02T04:34:10.907540+00:00",
+    "status": "active"
+  }
+]

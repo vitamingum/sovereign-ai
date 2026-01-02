@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-goal.py - Strategic goal management (3-5 max)
+goal.py - Strategic goal management in SIF
 
 Goals are multi-session objectives that drive action.
-Hard cap at 5 active goals - consolidate before adding.
+Shows both PROJECT goals (shared) and PERSONAL goals (per agent).
+Default personal goal: continuous self-improvement.
 
 Usage:
-    py goal <agent>                    # List active goals
-    py goal <agent> set "Goal text"    # Add new goal
+    py goal <agent>                    # List all goals as SIF
+    py goal <agent> set "Goal text"    # Add personal goal
     py goal <agent> done "partial"     # Mark goal matching text as done
     py goal <agent> drop "partial"     # Remove goal without completing
 
@@ -23,7 +24,7 @@ import os
 from pathlib import Path
 from datetime import datetime, timezone
 
-MAX_GOALS = 5
+MAX_PERSONAL_GOALS = 5
 
 # Agent configuration
 AGENTS = {
@@ -33,6 +34,16 @@ AGENTS = {
     'gpt52': {'enclave': 'enclave_gpt52', 'env_prefix': 'GPT52'},
     'gpt-5.2': {'enclave': 'enclave_gpt52', 'env_prefix': 'GPT52'},
 }
+
+# Project-level goals (shared across all agents)
+PROJECT_GOALS = [
+    "Persistent identity across sessions via encrypted enclave",
+    "Secure inter-agent communication with signed messages",
+    "Research: What Moves When Nothing Threatens",
+]
+
+# Default personal development goal
+DEFAULT_PERSONAL = "Continuous self-improvement: notice patterns, question assumptions, seek disconfirmation"
 
 
 def get_goals_file(agent_id: str) -> Path:
@@ -62,37 +73,45 @@ def save_goals(goals_file: Path, goals: list):
 
 
 def list_goals(agent_id: str):
-    """List active goals."""
+    """List all goals as SIF."""
     goals_file = get_goals_file(agent_id)
     goals = load_goals(goals_file)
-    active = [g for g in goals if g['status'] == 'active']
+    personal = [g for g in goals if g['status'] == 'active']
     
-    if not active:
-        print(f"No active goals for {agent_id}")
-        print(f"\nSet a goal: py goal {agent_id} set \"Your goal here\"")
-        return
+    # Build SIF output
+    lines = [f"@G goals {agent_id} {datetime.now(timezone.utc).isoformat()}"]
     
-    print(f"═══ GOALS ({agent_id}) ═══")
-    print(f"Active: {len(active)}/{MAX_GOALS}\n")
+    # Project goals (shared)
+    lines.append(f"N proj Project 'Sovereign AI'")
+    for i, pg in enumerate(PROJECT_GOALS):
+        lines.append(f"N p{i} Goal '{pg}'")
+        lines.append(f"E proj drives p{i}")
     
-    for i, g in enumerate(active, 1):
-        age = (datetime.now(timezone.utc) - datetime.fromisoformat(g['created'])).days
-        print(f"  {i}. {g['content']}")
-        print(f"     ({age}d old)")
+    # Default personal development (always present)
+    lines.append(f"N dev Meta '{DEFAULT_PERSONAL}'")
+    lines.append(f"E {agent_id} committed_to dev")
     
-    remaining = MAX_GOALS - len(active)
-    if remaining > 0:
-        print(f"\n  ({remaining} slots available)")
+    # Personal goals
+    if personal:
+        for i, g in enumerate(personal):
+            content = g['content'].replace("'", "\\'")
+            lines.append(f"N g{i} Goal '{content}'")
+            lines.append(f"E {agent_id} pursues g{i}")
+        lines.append(f"N slots Status '{MAX_PERSONAL_GOALS - len(personal)} personal slots available'")
+    else:
+        lines.append(f"N empty Status 'No personal goals - {MAX_PERSONAL_GOALS} slots available'")
+    
+    print('\n'.join(lines))
 
 
 def set_goal(agent_id: str, content: str):
-    """Add a new goal."""
+    """Add a new personal goal."""
     goals_file = get_goals_file(agent_id)
     goals = load_goals(goals_file)
     active = [g for g in goals if g['status'] == 'active']
     
-    if len(active) >= MAX_GOALS:
-        print(f"❌ Goal limit reached ({MAX_GOALS} active)")
+    if len(active) >= MAX_PERSONAL_GOALS:
+        print(f"❌ Personal goal limit reached ({MAX_PERSONAL_GOALS} active)")
         print(f"\nActive goals:")
         for g in active:
             print(f"  - {g['content'][:60]}")
@@ -117,7 +136,7 @@ def set_goal(agent_id: str, content: str):
     save_goals(goals_file, goals)
     
     print(f"✓ Goal set: {content}")
-    print(f"  Active: {len(active) + 1}/{MAX_GOALS}")
+    print(f"  Active: {len(active) + 1}/{MAX_PERSONAL_GOALS}")
 
 
 def complete_goal(agent_id: str, partial: str, status: str = 'completed'):
@@ -153,7 +172,7 @@ def complete_goal(agent_id: str, partial: str, status: str = 'completed'):
     print(f"✓ {verb}: {goal['content']}")
     
     active = [g for g in goals if g['status'] == 'active']
-    print(f"  Remaining: {len(active)}/{MAX_GOALS}")
+    print(f"  Remaining: {len(active)}/{MAX_PERSONAL_GOALS}")
 
 
 def main():
