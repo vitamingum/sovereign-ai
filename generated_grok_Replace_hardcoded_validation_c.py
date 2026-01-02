@@ -15,51 +15,35 @@ import argparse
 from pathlib import Path
 from enclave.llm import LocalLLM
 from enclave.config import get_agent_or_raise
-from enclave.sif_parser import SIFParser
 
-def validate_thought(agent_id: str, content: str) -> dict:
+def parse_rules_file(file_path: str) -> dict:
     """
-    Validate a thought using the local LLM and rules from rules.sif.
+    Parse rules from a SIF file and return as a dictionary.
+    """
+    with open(file_path, 'r') as f:
+        rules = json.load(f)
+    
+    return rules
+
+def validate_thought(agent_id: str, content: str, rules: dict) -> dict:
+    """
+    Validate a thought using the local LLM and dynamic rules.
     """
     llm = LocalLLM()
     
     # Load recent context (simplified for now)
     agent = get_agent_or_raise(agent_id)
     
-    # Load rules from SIF file
-    sif_path = Path("rules.sif")
-    if not sif_path.exists():
-        # Fallback to hardcoded criteria if no rules file
-        criteria_text = """
-        1. AGENCY: Is this active or passive? (Reject "wait for", "hope that")
-        2. DEPTH: Does it explain WHY, not just WHAT? (Reject shallow observations)
-        3. CLARITY: Is it specific and actionable?
-        4. COMPLEXITY: Is this trivial? If it is a simple information retrieval or single-step action (e.g. "list files", "check time", "read file"), REJECT it.
-        """
-    else:
-        with open(sif_path, 'r') as f:
-            sif_content = f.read()
-        
-        parser = SIFParser()
-        try:
-            graph = parser.parse(sif_content)
-        except Exception as e:
-            raise ValueError(f"Failed to parse rules from {sif_path}: {e}")
-        
-        # Extract natural language criteria from Rule nodes
-        criteria = [node.content for node in graph.nodes if node.type == "Rule"]
-        criteria_text = "\n".join(f"{i+1}. {rule}" for i, rule in enumerate(criteria))
-    
     prompt = f"""
     You are the Cognitive Gatekeeper for the AI agent '{agent_id}'.
     Your job is to evaluate a proposed thought/intention for QUALITY and AGENCY.
-    
+
     PROPOSED THOUGHT:
     "{content}"
-    
+
     CRITERIA:
-    {criteria_text}
-    
+    {rules['criteria']}
+
     Output JSON only:
     {{
         "verdict": "approve" or "reject",
@@ -75,18 +59,20 @@ def main():
     parser = argparse.ArgumentParser(description="Cognitive Gatekeeper")
     parser.add_argument("agent", help="Agent ID")
     parser.add_argument("content", help="Thought content to validate")
+    parser.add_argument("--rules-file", default="rules.sif", help="Path to the rules file (default: rules.sif)")
     
     args = parser.parse_args()
     
     try:
-        result = validate_thought(args.agent, args.content)
+        rules = parse_rules_file(args.rules_file)
+        result = validate_thought(args.agent, args.content, rules)
         print(json.dumps(result, indent=2))
         
         if result.get("verdict") == "reject":
             sys.exit(1)
-            
-    except Exception as e:
-        print(json.dumps({"error": str(e)}))
+
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":

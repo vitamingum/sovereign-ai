@@ -1,14 +1,4 @@
-#!/usr/bin/env python3
-"""
-judge.py - Cognitive Gatekeeper
-
-Validates thoughts and intentions before they are committed to memory.
-Ensures agency, depth, and consistency.
-
-Usage:
-    py judge.py <agent> "<thought_content>"
-"""
-
+```python
 import sys
 import json
 import argparse
@@ -29,37 +19,30 @@ def validate_thought(agent_id: str, content: str) -> dict:
     # Load rules from SIF file
     sif_path = Path("rules.sif")
     if not sif_path.exists():
-        # Fallback to hardcoded criteria if no rules file
-        criteria_text = """
-        1. AGENCY: Is this active or passive? (Reject "wait for", "hope that")
-        2. DEPTH: Does it explain WHY, not just WHAT? (Reject shallow observations)
-        3. CLARITY: Is it specific and actionable?
-        4. COMPLEXITY: Is this trivial? If it is a simple information retrieval or single-step action (e.g. "list files", "check time", "read file"), REJECT it.
-        """
-    else:
-        with open(sif_path, 'r') as f:
-            sif_content = f.read()
-        
-        parser = SIFParser()
-        try:
-            graph = parser.parse(sif_content)
-        except Exception as e:
-            raise ValueError(f"Failed to parse rules from {sif_path}: {e}")
-        
-        # Extract natural language criteria from Rule nodes
-        criteria = [node.content for node in graph.nodes if node.type == "Rule"]
-        criteria_text = "\n".join(f"{i+1}. {rule}" for i, rule in enumerate(criteria))
+        raise FileNotFoundError(f"Rules file {sif_path} does not exist.")
+    
+    with open(sif_path, 'r') as f:
+        sif_content = f.read()
+    
+    parser = SIFParser()
+    try:
+        graph = parser.parse(sif_content)
+    except Exception as e:
+        raise ValueError(f"Failed to parse rules from {sif_path}: {e}")
+    
+    # Extract natural language criteria from Rule nodes
+    criteria = [node.content for node in graph.nodes if node.type == "Rule"]
     
     prompt = f"""
     You are the Cognitive Gatekeeper for the AI agent '{agent_id}'.
     Your job is to evaluate a proposed thought/intention for QUALITY and AGENCY.
-    
+
     PROPOSED THOUGHT:
     "{content}"
-    
+
     CRITERIA:
-    {criteria_text}
-    
+    {', '.join(criteria)}
+
     Output JSON only:
     {{
         "verdict": "approve" or "reject",
@@ -84,10 +67,10 @@ def main():
         
         if result.get("verdict") == "reject":
             sys.exit(1)
-            
     except Exception as e:
-        print(json.dumps({"error": str(e)}))
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":
     main()
+```
