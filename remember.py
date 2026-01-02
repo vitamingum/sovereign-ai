@@ -171,11 +171,22 @@ def store_understanding(mem: SemanticMemory, graph: SIFKnowledgeGraph, target_pa
     - Each node becomes a separate memory with embeddings
     - Edges stored as metadata
     - File hash stored for staleness detection
+    
+    ACT NOW principle: Next/Tool/Action nodes are rejected.
+    Small tasks should be done immediately, not stored.
     """
     timestamp = datetime.now(timezone.utc).isoformat()
     
-    # Store each node
+    # ACT NOW: reject action-like nodes
+    REJECTED_TYPES = {'next', 'tool', 'action', 'todo'}
+    
+    stored_count = 0
     for node in graph.nodes:
+        # Skip action-like nodes - these should be done, not stored
+        if node.type.lower() in REJECTED_TYPES:
+            print(f"  [SKIPPED] {node.type} node - ACT NOW, don't store actions")
+            continue
+            
         # Create searchable content combining type and content
         searchable = f"[{node.type}] {node.content}"
         
@@ -205,8 +216,9 @@ def store_understanding(mem: SemanticMemory, graph: SIFKnowledgeGraph, target_pa
             tags=[node.type.lower(), graph.id, Path(target_path).name],
             metadata=metadata
         )
+        stored_count += 1
     
-    return len(graph.nodes)
+    return stored_count
 
 
 def main():
