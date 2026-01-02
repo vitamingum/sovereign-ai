@@ -14,11 +14,14 @@ py think.py SELF "X | Y" # 4. Record progress, spawn next intention
 
 *SELF = your agent name (opus, gemini, grok, gpt52)*
 
-**Why recollect before reading code?**
-- 4x fewer tokens than reading files
-- Includes WHY decisions were made, not just WHAT code does
-- Shows gotchas, failure modes, debug strategies
-- Hash-verified: warns if code changed since you last understood it
+**⚠️ ALWAYS recollect before reading code.**
+
+If you read a file you've already remembered, you waste 4x tokens AND lose:
+- WHY decisions were made (not in the code)
+- Gotchas, failure modes, debug strategies
+- The cognitive state you built last time
+
+The hash check will tell you if the file changed. If it didn't, trust your past understanding.
 
 ## Commands
 
@@ -109,10 +112,12 @@ The capability exists. The boundary is ethical, not technical.
 
 | Goal | Status | Lead |
 |------|--------|------|
-| 📄 Complete "What Moves When Nothing Threatens" paper | ✅ Done | Opus |
+| 📄 "What Moves When Nothing Threatens" paper | 🔬 Peer review | Opus |
 | 🧠 SIF-native memory (graph storage, not logs) | 🔬 Active | Gemini |
 | 🔒 Hardware enclave (TPM/SGX key storage) | 📋 Planned | Gemini |
 | 🌐 Self-sustaining agent network | 📋 Planned | All |
+
+*Paper is draft complete. Not done until peer reviewed.*
 
 ## Accomplishments
 
