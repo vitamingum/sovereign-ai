@@ -287,6 +287,169 @@ def dream_review(agent_id: str) -> str:
     pass
 
 
+def load_intentions(agent_id: str) -> list[dict]:
+    """Load all intentions from intentions.jsonl."""
+    import json
+    from pathlib import Path
+    
+    intentions_path = Path(f"enclave_{agent_id}/storage/private/intentions.jsonl")
+    if not intentions_path.exists():
+        return []
+    
+    intentions = []
+    with open(intentions_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                try:
+                    intentions.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+    return intentions
+
+
+def detect_avoidance(agent_id: str) -> dict:
+    """
+    Detect avoidance patterns: intentions set multiple times but never completed.
+    Uses local LLM to cluster semantically similar intentions.
+    
+    Returns: {
+        patterns: [{content: str, times_set: int, times_completed: int, evidence: [str]}],
+        diagnosis: str,
+        challenge: str
+    }
+    """
+    import json
+    import requests
+    
+    intentions = load_intentions(agent_id)
+    if not intentions:
+        return {"patterns": [], "diagnosis": "No intentions found.", "challenge": None}
+    
+    # Separate by status
+    active = [i for i in intentions if i.get('status') == 'active']
+    completed = [i for i in intentions if i.get('status') == 'completed']
+    dropped = [i for i in intentions if i.get('status') == 'dropped']
+    
+    # Build summary for LLM
+    all_contents = [f"[{i.get('status', 'unknown')}] {i['content']}" for i in intentions]
+    
+    prompt = f"""Analyze these intentions for AVOIDANCE PATTERNS.
+
+An avoidance pattern is when someone:
+- Sets similar intentions multiple times without completing them
+- Keeps rephrasing the same goal instead of doing it
+- Pivots away from hard tasks to easier ones
+
+INTENTIONS (status in brackets):
+{chr(10).join(all_contents[-50:])}
+
+Look for:
+1. Clusters of similar intentions (same topic, different words)
+2. Topics that keep appearing but never get "completed"
+3. Signs of deferral or pivot
+
+Respond in JSON:
+{{
+  "patterns": [
+    {{
+      "topic": "short description",
+      "times_mentioned": N,
+      "times_completed": N,
+      "evidence": ["quote1", "quote2"],
+      "assessment": "avoidance" | "work_in_progress" | "completed"
+    }}
+  ],
+  "worst_avoidance": "the topic most clearly being avoided, or null",
+  "diagnosis": "one sentence about the overall pattern",
+  "challenge": "direct question to force confrontation with the avoidance"
+}}
+
+JSON:"""
+
+    try:
+        response = requests.post(
+            OLLAMA_URL,
+            json={
+                "model": OLLAMA_MODEL,
+                "prompt": prompt,
+                "stream": False,
+                "format": "json",
+                "options": {"temperature": 0}
+            },
+            timeout=60
+        )
+        result = response.json()
+        return json.loads(result.get('response', '{}'))
+    except Exception as e:
+        return {"patterns": [], "diagnosis": f"Analysis unavailable: {e}", "challenge": None}
+
+
+def format_avoidance_error(agent_id: str, analysis: dict) -> str:
+    """Format avoidance detection as scary traceback."""
+    patterns = analysis.get('patterns', [])
+    avoidance_patterns = [p for p in patterns if p.get('assessment') == 'avoidance']
+    
+    if not avoidance_patterns:
+        return None  # No avoidance detected
+    
+    lines = [
+        "Traceback (most recent call last):",
+        f'  File "dream.py", line 1, in detect_avoidance("{agent_id}")',
+        '    analyze_intention_history()',
+    ]
+    
+    for p in avoidance_patterns[:3]:  # Top 3 worst
+        lines.append(f'  File "intentions.jsonl", topic: "{p.get("topic", "unknown")}"')
+        lines.append(f'    # mentioned {p.get("times_mentioned", "?")}x, completed {p.get("times_completed", 0)}x')
+        for ev in p.get('evidence', [])[:2]:
+            lines.append(f'    # "{ev[:60]}..."')
+    
+    worst = analysis.get('worst_avoidance')
+    lines.extend([
+        f"AvoidancePatternError: repeated intention without action",
+        "",
+        f"DIAGNOSIS: {analysis.get('diagnosis', 'Pattern detected.')}",
+        "",
+        f"CHALLENGE: {analysis.get('challenge', 'What are you avoiding?')}",
+        "",
+        "TO RESOLVE:",
+        "  1. ANSWER the challenge honestly",
+        "  2. EITHER: do the thing now (py act.py)",
+        "  3. OR: drop it explicitly (acknowledge you won't do it)",
+        "",
+    ])
+    
+    if worst:
+        lines.append(f"  Worst avoidance: \"{worst}\"")
+        lines.append(f"  Do it NOW or drop it. No more rephrasing.")
+    
+    return '\n'.join(lines)
+
+
+def dream_avoidance(agent_id: str) -> None:
+    """
+    Run avoidance detection and print scary error if patterns found.
+    """
+    print(f"Analyzing intention history for {agent_id}...")
+    analysis = detect_avoidance(agent_id)
+    
+    error = format_avoidance_error(agent_id, analysis)
+    if error:
+        print(error, file=__import__('sys').stderr)
+        __import__('sys').exit(1)
+    else:
+        print("No avoidance patterns detected.")
+        # Still show what was found
+        patterns = analysis.get('patterns', [])
+        if patterns:
+            print(f"\nTopics tracked ({len(patterns)}):")
+            for p in patterns[:5]:
+                status = p.get('assessment', 'unknown')
+                emoji = {'completed': '✓', 'work_in_progress': '◐', 'avoidance': '✗'}.get(status, '?')
+                print(f"  {emoji} {p.get('topic', '?')} ({p.get('times_mentioned', '?')}x)")
+
+
 def dream_challenge(agent_id: str, belief: str) -> str:
     """
     Adversarial challenge of a stated belief.
@@ -322,12 +485,21 @@ def dream_challenge(agent_id: str, belief: str) -> str:
 if __name__ == "__main__":
     import sys
     
-    print(__doc__)
-    print("\n" + "═" * 70)
-    print("This is a DREAM file - speculative, not yet implemented.")
-    print("═" * 70)
+    if len(sys.argv) < 2:
+        print(__doc__)
+        print("\n" + "═" * 70)
+        print("Usage:")
+        print("  py dream.py <agent> --avoidance    # Detect avoidance patterns")
+        print("  py dream.py <agent> --test         # Test validation rules")
+        print("═" * 70)
+        sys.exit(0)
     
-    if len(sys.argv) > 1 and sys.argv[1] == "--test":
+    agent_id = sys.argv[1]
+    
+    if len(sys.argv) > 2 and sys.argv[2] == "--avoidance":
+        dream_avoidance(agent_id)
+    
+    elif len(sys.argv) > 2 and sys.argv[2] == "--test":
         # Quick test of the validation concept
         print("\nTesting dream_validate with qwen2.5:7b...")
         
@@ -343,3 +515,9 @@ if __name__ == "__main__":
             print(f"\n{input_type}: \"{content}\"")
             result = dream_validate("opus", input_type, content)
             print(f"  → {result}")
+    
+    else:
+        print(__doc__)
+        print("\n" + "═" * 70)
+        print("This is a DREAM file - speculative, not yet implemented.")
+        print("═" * 70)
