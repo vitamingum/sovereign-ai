@@ -55,14 +55,24 @@ E source relation target
 - `G`=Gotcha, `A`=Assumption, `F`=Failure_Mode - operational  
 - `S`=Synthesis, `I`=Insight, `Q`=Question, `T`=Tradeoff, `X`=Gap
 
-Example:
+**Auto-ID:** When type is second token, ID auto-generates as `_1`, `_2`, etc:
+```
+N C 'component'        → N _1 C 'component'
+N P 'purpose'          → N _2 P 'purpose'
+```
+
+**Inline Edges:** Declare edges with `->` after content:
+```
+N p1 P 'purpose' -> implements c1           → creates E p1 implements c1
+N g1 G 'gotcha' -> warns_about c1 -> blocks p1   → creates two edges
+```
+
+Example (minimal input):
 ```
 @G wake-understanding opus 2026-01-02
-N c1 C "wake.py - session initialization"
-N p1 P "Generate context for cold-start agent"
-N g1 G "Messages only from last 48h"
-E c1 implements p1
-E g1 warns_about c1
+N C 'wake.py - session initialization'
+N P 'Generate context for cold-start agent' -> implements _1
+N G 'Messages only from last 48h' -> warns_about _1
 ```
 
 ## Wake Output
