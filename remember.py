@@ -146,36 +146,35 @@ def check_depth(graph: SIFKnowledgeGraph) -> tuple[bool, list[str]]:
     """
     Check if understanding is deep enough to be useful.
     
-    Deep understanding requires meta-cognitive nodes that capture
-    operational knowledge - not just WHAT the code does but WHY
-    and HOW IT BREAKS.
+    Deep understanding is measured by graph richness:
+    - Enough nodes to capture multiple aspects
+    - Edges that connect ideas (not orphan nodes)
+    - Variety in node types (not all Components)
+    - At least some WHY knowledge (Purpose, Design, Rationale)
     
-    Returns (is_deep, missing_categories)
+    Returns (is_deep, issues)
     """
-    node_types = {n.type.lower() for n in graph.nodes}
+    nodes = [n for n in graph.nodes if n.type != "Anchor"]
+    edges = graph.edges
+    node_types = {n.type.lower() for n in nodes}
     
-    # What we're looking for (case-insensitive)
-    structural = {'component', 'function', 'class', 'method', 'module', 'system', 'flow'}
-    intentional = {'purpose', 'design', 'design_decision', 'rationale'}
-    operational = {'gotcha', 'assumption', 'failure_mode', 'debug_strategy', 'warning', 'brittle'}
+    issues = []
     
-    has_structural = bool(node_types & structural)
-    has_intentional = bool(node_types & intentional)
-    has_operational = bool(node_types & operational)
+    # Graph structure metrics
+    if len(nodes) < 4:
+        issues.append(f"Too few nodes ({len(nodes)}/4 minimum)")
+    if len(edges) < 3:
+        issues.append(f"Too few edges ({len(edges)}/3 minimum - connect your ideas)")
+    if len(node_types) < 2:
+        issues.append(f"Too few node types ({len(node_types)}/2 minimum - vary your analysis)")
     
-    missing = []
-    if not has_structural:
-        missing.append("STRUCTURAL (Component, Function, Class, Module)")
-    if not has_intentional:
-        missing.append("INTENTIONAL (Purpose, Design, Design_Decision, Rationale)")
-    if not has_operational:
-        missing.append("OPERATIONAL (Gotcha, Assumption, Failure_Mode, Debug_Strategy)")
+    # Must have WHY knowledge, not just WHAT
+    why_types = {'purpose', 'design', 'design_decision', 'rationale', 'why'}
+    if not (node_types & why_types):
+        issues.append("Missing WHY - add Purpose, Design, or Rationale nodes")
     
-    # Deep = has at least structural + one of (intentional or operational)
-    # Really deep = has all three
-    is_deep = has_structural and (has_intentional or has_operational)
-    
-    return is_deep, missing
+    is_deep = len(issues) == 0
+    return is_deep, issues
 
 
 def validate_comprehensiveness(graph: SIFKnowledgeGraph, file_content: str) -> tuple[bool, str]:
@@ -210,14 +209,17 @@ THEIR UNDERSTANDING:
 Judge this understanding. A GOOD understanding:
 1. Captures the core PURPOSE (why this exists)
 2. Notes key DESIGN DECISIONS (why built this way, not another)
-3. Identifies GOTCHAS (what breaks, edge cases, surprises)
-4. Shows they read the ACTUAL code, not just described the filename
+3. Shows specific knowledge from reading the ACTUAL code
+4. Connects ideas with meaningful relationships
 
 A BAD understanding:
 1. Just restates the filename or obvious surface info
 2. Generic descriptions that could apply to any file
 3. Missing the WHY - only describes WHAT
-4. No operational knowledge (gotchas, assumptions, failure modes)
+4. Orphan facts with no connections
+
+Note: Gotchas/assumptions/failure modes are VALUABLE when genuine, but don't require them.
+Forced gotchas like "could fail if disk full" add noise.
 
 Respond with EXACTLY one of:
 PASS: [one sentence why this shows real understanding]
@@ -365,23 +367,27 @@ def main():
     if not is_deep:
         print("⚠️  SHALLOW UNDERSTANDING DETECTED", file=sys.stderr)
         print("", file=sys.stderr)
-        print("Your understanding is missing key categories:", file=sys.stderr)
+        print("Graph structure issues:", file=sys.stderr)
         for m in missing:
             print(f"  ✗ {m}", file=sys.stderr)
         print("", file=sys.stderr)
-        print("Deep understanding captures not just WHAT but:", file=sys.stderr)
-        print("  • WHY - Design_Decision, Rationale, Purpose", file=sys.stderr)
-        print("  • HOW IT BREAKS - Gotcha, Assumption, Failure_Mode", file=sys.stderr)
-        print("  • HOW TO FIX - Debug_Strategy", file=sys.stderr)
+        print("Deep understanding needs:", file=sys.stderr)
+        print("  • 4+ nodes - capture multiple aspects", file=sys.stderr)
+        print("  • 3+ edges - connect your ideas", file=sys.stderr)
+        print("  • 2+ node types - vary your analysis", file=sys.stderr)
+        print("  • WHY nodes - Purpose, Design, Rationale", file=sys.stderr)
         print("", file=sys.stderr)
         print("Example of deep understanding:", file=sys.stderr)
         print("  N n1 Component 'MyClass - handles X'", file=sys.stderr)
         print("  N n2 Purpose 'Provides Y for Z'", file=sys.stderr)
         print("  N n3 Design 'Uses pattern P because Q'", file=sys.stderr)
-        print("  N n4 Gotcha 'Fails silently if R'", file=sys.stderr)
-        print("  N n5 Assumption 'Expects S to be configured'", file=sys.stderr)
-        print("  N n6 Failure_Mode 'OOMs on large input'", file=sys.stderr)
-        print("  N n7 Debug_Strategy 'Check logs for T'", file=sys.stderr)
+        print("  N n4 Rationale 'Chose P over Alt because R'", file=sys.stderr)
+        print("  E n1 implements n2", file=sys.stderr)
+        print("  E n3 motivates n1", file=sys.stderr)
+        print("  E n4 justifies n3", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Gotchas/Assumptions/Failure_Modes are valuable when GENUINE,", file=sys.stderr)
+        print("but not required. Don't force them.", file=sys.stderr)
         print("", file=sys.stderr)
         print("Add --force to store anyway, but this defeats the purpose.", file=sys.stderr)
         if '--force' not in sys.argv:
