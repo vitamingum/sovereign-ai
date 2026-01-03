@@ -389,6 +389,187 @@ FAIL: [one sentence what's missing or superficial]"""
         return True, f"(LLM error: {e})"
 
 
+def extract_sections(file_content: str, file_path: str) -> list[dict]:
+    """
+    Extract major sections from a file for coverage checking.
+    
+    For notebooks: markdown headers
+    For Python: class/function definitions and major comments
+    For markdown: headers
+    """
+    sections = []
+    lines = file_content.split('\n')
+    
+    ext = Path(file_path).suffix.lower()
+    
+    if ext == '.ipynb':
+        # Parse notebook JSON for markdown cells with headers
+        # Also track code cell content for each section
+        try:
+            import json
+            nb = json.loads(file_content)
+            line_num = 0
+            current_section_content = []
+            current_section = None
+            
+            for cell in nb.get('cells', []):
+                cell_source = ''.join(cell.get('source', []))
+                cell_lines = len(cell_source.split('\n'))
+                
+                if cell.get('cell_type') == 'markdown':
+                    # Look for ## headers (major sections)
+                    for line in cell_source.split('\n'):
+                        if line.startswith('## '):
+                            # Save previous section's content
+                            if current_section and current_section_content:
+                                full_content = '\n'.join(current_section_content)
+                                current_section['key_concepts'] = extract_key_concepts(full_content)
+                                current_section['specific_details'] = extract_specific_details(full_content)
+                            
+                            # Start new section
+                            current_section = {
+                                'title': line[3:].strip(),
+                                'line': line_num,
+                                'key_concepts': [],
+                                'specific_details': []
+                            }
+                            sections.append(current_section)
+                            current_section_content = [cell_source]
+                            break
+                    else:
+                        # No header found, add to current section
+                        if current_section:
+                            current_section_content.append(cell_source)
+                else:
+                    # Code cell - add to current section
+                    if current_section:
+                        current_section_content.append(cell_source)
+                
+                line_num += cell_lines
+            
+            # Save last section's content
+            if current_section and current_section_content:
+                full_content = '\n'.join(current_section_content)
+                current_section['key_concepts'] = extract_key_concepts(full_content)
+                current_section['specific_details'] = extract_specific_details(full_content)
+        except:
+            pass
+    
+    elif ext in ['.py', '.js', '.ts']:
+        # Look for class definitions and major function groups
+        current_section = None
+        for i, line in enumerate(lines):
+            # Major comment blocks
+            if line.strip().startswith('# ===') or line.strip().startswith('# ---'):
+                title = lines[i+1].strip('# ').strip() if i+1 < len(lines) else "Section"
+                sections.append({'title': title, 'line': i, 'key_concepts': []})
+            # Class definitions
+            elif line.strip().startswith('class '):
+                class_name = line.split('class ')[1].split('(')[0].split(':')[0].strip()
+                sections.append({'title': f"Class {class_name}", 'line': i, 'key_concepts': [class_name]})
+    
+    elif ext == '.md':
+        for i, line in enumerate(lines):
+            if line.startswith('## '):
+                sections.append({'title': line[3:].strip(), 'line': i, 'key_concepts': []})
+    
+    # Add key concepts from nearby content
+    for section in sections:
+        if not section['key_concepts']:
+            # Extract concepts from next 50 lines
+            start = section['line']
+            end = min(start + 50, len(lines))
+            section['key_concepts'] = extract_key_concepts('\n'.join(lines[start:end]))
+    
+    return sections
+
+
+def extract_key_concepts(text: str) -> list[str]:
+    """Extract key technical terms/concepts from text."""
+    import re
+    
+    concepts = []
+    
+    # Technical terms (CamelCase, snake_case, CONSTANTS)
+    concepts.extend(re.findall(r'\b[A-Z][a-z]+(?:[A-Z][a-z]+)+\b', text))  # CamelCase
+    concepts.extend(re.findall(r'\b[a-z]+_[a-z_]+\b', text))  # snake_case
+    concepts.extend(re.findall(r'\b[A-Z]{2,}\b', text))  # CONSTANTS
+    
+    # Math/formula patterns
+    concepts.extend(re.findall(r'\b(?:V_\w+|H_\w+|L_\w+)\b', text))  # V_syn, H_rank, etc.
+    
+    # Quoted terms
+    concepts.extend(re.findall(r'"([^"]+)"', text))
+    concepts.extend(re.findall(r"'([^']+)'", text))
+    
+    # Dedupe and filter
+    concepts = list(set(c for c in concepts if len(c) > 2 and len(c) < 50))
+    
+    return concepts[:10]  # Top 10
+
+
+def extract_specific_details(text: str) -> list[str]:
+    """Extract specific numbers, percentages, and formulas that indicate deep reading."""
+    import re
+    
+    details = []
+    
+    # Percentages: "84%", "73%"
+    details.extend(re.findall(r'\b\d+(?:\.\d+)?%', text))
+    
+    # Comparisons: "3x", "10x", "2.5x"
+    details.extend(re.findall(r'\b\d+(?:\.\d+)?x\b', text))
+    
+    # Specific numbers with context: "40 vs 80", "1.6 to 1.2"
+    details.extend(re.findall(r'\b\d+(?:\.\d+)?\s*(?:vs|to|→)\s*\d+(?:\.\d+)?', text))
+    
+    # Formulas: "W=UV", "V_syn = k*sum"
+    details.extend(re.findall(r'[A-Z]_?\w*\s*=\s*[^,\n]{3,30}', text))
+    
+    # Dedupe
+    return list(set(details))[:8]
+
+
+def check_coverage(graph: SIFKnowledgeGraph, file_content: str, file_path: str) -> tuple[bool, list[str]]:
+    """
+    Mechanical check: do specific numbers/percentages from sections appear in SIF?
+    
+    Returns (has_coverage, shallow_sections)
+    """
+    # Extract sections
+    sections = extract_sections(file_content, file_path)
+    
+    # If file is small or has few sections, skip check
+    if len(sections) < 3:
+        return True, []
+    
+    # Format SIF as single string for searching
+    sif_full = ' '.join(node.content for node in graph.nodes if node.type != "Anchor")
+    
+    # Check each section's specific details against SIF - mechanically
+    shallow_sections = []
+    for section in sections:
+        details = section.get('specific_details', [])
+        # Filter to only meaningful details (numbers, percentages)
+        key_details = [d for d in details if any(c.isdigit() for c in d) and len(d) < 20]
+        
+        if key_details:
+            # Check if ANY key detail appears in SIF
+            found = any(detail in sif_full for detail in key_details)
+            if not found:
+                shallow_sections.append(f'"{section["title"]}" - you read {key_details[:3]} but didn\'t synthesize')
+    
+    # If more than 40% of sections with details are missing, fail
+    sections_with_details = [s for s in sections if s.get('specific_details')]
+    if sections_with_details:
+        missing_ratio = len(shallow_sections) / len(sections_with_details)
+        is_pass = missing_ratio < 0.4
+    else:
+        is_pass = True
+    
+    return is_pass, shallow_sections
+
+
 def delete_existing_understanding(mem: SemanticMemory, target_path: str, creator: str):
     """
     Delete existing understanding nodes for this file by this creator.
@@ -593,6 +774,26 @@ def main():
         print("   --force specified, storing anyway...", file=sys.stderr)
         print("[--force logged for pattern analysis]", file=sys.stderr)
     
+    # Synthesis quality check - did they capture the specific details?
+    total_lines = len(file_content.split('\n'))
+    has_coverage, shallow_sections = check_coverage(graph, file_content, primary_path)
+    
+    if not has_coverage:
+        print(f"\n⚠️  SHALLOW SYNTHESIS DETECTED", file=sys.stderr)
+        print(f"   You read {total_lines} lines but your synthesis missed key specifics:", file=sys.stderr)
+        for section in shallow_sections[:5]:  # Show first 5
+            print(f"     • {section}", file=sys.stderr)
+        if len(shallow_sections) > 5:
+            print(f"     ... and {len(shallow_sections) - 5} more", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("   Add the specific numbers, formulas, and comparisons you read.", file=sys.stderr)
+        print("   Use --force to store anyway (logged for analysis).", file=sys.stderr)
+        if '--force' not in sys.argv:
+            sys.exit(1)
+        log_force_usage(agent_id, f"shallow synthesis of {target_path}: missed {', '.join(shallow_sections)}", 'remember.py')
+        print("   --force specified, storing shallow understanding...", file=sys.stderr)
+        print("[--force logged for pattern analysis]", file=sys.stderr)
+    
     # Check for operational knowledge and offer to add it
     graph = prompt_operational(graph)
     
@@ -672,12 +873,18 @@ def show_other_perspectives(mem: SemanticMemory, target_path: str, current_agent
     print("📎 OTHER PERSPECTIVES (review for conflicts):")
     
     for agent, nodes in other_perspectives.items():
-        print(f"\n  {agent} understood:")
-        for node in nodes[:8]:  # Limit to avoid spam
+        print(f"\n  {agent} ({len(nodes)} nodes):")
+        # Show more nodes for substantial understanding
+        show_limit = min(len(nodes), 20)
+        for node in nodes[:show_limit]:
             short = TYPE_SHORT.get(node['type'], node['type'][:1])
-            print(f"    [{short}] {node['content'][:55]}...")
-        if len(nodes) > 8:
-            print(f"    ... and {len(nodes) - 8} more")
+            # Show more content - truncate at 80 chars
+            content = node['content'][:80]
+            if len(node['content']) > 80:
+                content += "..."
+            print(f"    [{short}] {content}")
+        if len(nodes) > show_limit:
+            print(f"    ... and {len(nodes) - show_limit} more")
     
     print(f"\n  Full comparison: python recollect.py {current_agent} {target_path} --raw")
 

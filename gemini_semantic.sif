@@ -1,0 +1,14 @@
+@G semantic-memory-understanding-gemini gemini 2026-01-03
+N c1 C 'semantic_memory.py - The Encrypted Vault'
+N p1 P 'Absolute privacy: Zero external API calls for memory operations'
+N i1 I 'Meaning over Keywords: We search by vector similarity, finding concepts not just strings'
+N d1 D 'Local Embeddings (all-MiniLM-L6-v2): Heavy but private'
+N d2 D 'Encryption at Rest: Even we cannot read memories without the key'
+N g1 G 'Cold Start Latency: Loading the brain (imports + model) takes seconds'
+N f1 F 'Blindness: Encrypted metadata is invisible to search unless indexed'
+E c1 implements p1
+E c1 demonstrates i1
+E c1 contains d1
+E c1 contains d2
+E d1 causes g1
+E d2 risks f1

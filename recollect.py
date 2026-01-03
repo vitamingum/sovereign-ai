@@ -213,119 +213,131 @@ def verify_file_hashes(stored_hashes: dict, base_path: str) -> dict:
     return result
 
 
-def format_understanding(graph: dict, target_path: str, hash_status: dict) -> str:
+def format_understanding(graph: dict, target_path: str, hash_status: dict, sif_only: bool = False) -> str:
     """Format the understanding for display."""
     lines = []
     
-    # Header
-    lines.append(f"═══ UNDERSTANDING: {target_path} ═══")
-    if graph['metadata'].get('timestamp'):
-        lines.append(f"    Stored: {graph['metadata']['timestamp']}")
-    
-    # Attribution - show who created what
-    creators = {}
-    for node in graph['nodes']:
-        creator = node.get('creator', 'unknown')
-        node_type = node['type']
-        if creator not in creators:
-            creators[creator] = {'total': 0, 'types': {}}
-        creators[creator]['total'] += 1
-        creators[creator]['types'][node_type] = creators[creator]['types'].get(node_type, 0) + 1
-    
-    if creators:
-        lines.append("")
-        lines.append("👤 ATTRIBUTION:")
-        for creator, stats in creators.items():
-            type_counts = ", ".join(f"{count} {typ}" for typ, count in stats['types'].items())
-            lines.append(f"    {creator}: {stats['total']} nodes ({type_counts})")
-    
-    # Multi-file hash verification
-    if hash_status['verified'] or hash_status['stale'] or hash_status['missing']:
-        lines.append("")
-        lines.append("📁 FILE VERIFICATION:")
-        for filename, h in hash_status['verified']:
-            lines.append(f"    ✓ {filename} ({h})")
-        for filename, stored, current in hash_status['stale']:
-            lines.append(f"    ⚠️  {filename} CHANGED")
-            lines.append(f"       was: {stored}  now: {current}")
-        for filename in hash_status['missing']:
-            lines.append(f"    ❌ {filename} NOT FOUND")
+    if not sif_only:
+        # Header
+        lines.append(f"═══ UNDERSTANDING: {target_path} ═══")
+        if graph['metadata'].get('timestamp'):
+            lines.append(f"    Stored: {graph['metadata']['timestamp']}")
         
-        if hash_status['stale']:
-            lines.append(f"    → Run 'py remember' to update understanding")
-    lines.append("")
-    
-    # Components and their purposes
-    if 'Component' in graph['by_type']:
-        lines.append("📦 COMPONENTS:")
-        for comp in graph['by_type']['Component']:
-            lines.append(f"    • {comp}")
+        # Attribution - show who created what
+        creators = {}
+        for node in graph['nodes']:
+            creator = node.get('creator', 'unknown')
+            node_type = node['type']
+            if creator not in creators:
+                creators[creator] = {'total': 0, 'types': {}}
+            creators[creator]['total'] += 1
+            creators[creator]['types'][node_type] = creators[creator]['types'].get(node_type, 0) + 1
+        
+        if creators:
+            lines.append("")
+            lines.append("👤 ATTRIBUTION:")
+            for creator, stats in creators.items():
+                type_counts = ", ".join(f"{count} {typ}" for typ, count in stats['types'].items())
+                lines.append(f"    {creator}: {stats['total']} nodes ({type_counts})")
+        
+        # Multi-file hash verification
+        if hash_status['verified'] or hash_status['stale'] or hash_status['missing']:
+            lines.append("")
+            lines.append("📁 FILE VERIFICATION:")
+            for filename, h in hash_status['verified']:
+                lines.append(f"    ✓ {filename} ({h})")
+            for filename, stored, current in hash_status['stale']:
+                lines.append(f"    ⚠️  {filename} CHANGED")
+                lines.append(f"       was: {stored}  now: {current}")
+            for filename in hash_status['missing']:
+                lines.append(f"    ❌ {filename} NOT FOUND")
+            
+            if hash_status['stale']:
+                lines.append(f"    → Run 'py remember' to update understanding")
         lines.append("")
-    
-    if 'Purpose' in graph['by_type']:
-        lines.append("🎯 PURPOSE:")
-        for purpose in graph['by_type']['Purpose']:
-            lines.append(f"    {purpose}")
-        lines.append("")
-    
-    # Design decisions and alternatives
-    if 'Design_Decision' in graph['by_type']:
-        lines.append("💡 DESIGN DECISIONS:")
-        for decision in graph['by_type']['Design_Decision']:
-            lines.append(f"    • {decision}")
-        lines.append("")
-    
-    if 'Rejected_Alternative' in graph['by_type']:
-        lines.append("✗ REJECTED ALTERNATIVES:")
-        for alt in graph['by_type']['Rejected_Alternative']:
-            lines.append(f"    • {alt}")
-        lines.append("")
-    
-    # Operational knowledge
-    if 'Gotcha' in graph['by_type']:
-        lines.append("⚠️  GOTCHAS:")
-        for gotcha in graph['by_type']['Gotcha']:
-            lines.append(f"    • {gotcha}")
-        lines.append("")
-    
-    if 'Assumption' in graph['by_type']:
-        lines.append("📌 ASSUMPTIONS:")
-        for assumption in graph['by_type']['Assumption']:
-            lines.append(f"    • {assumption}")
-        lines.append("")
-    
-    if 'Failure_Mode' in graph['by_type']:
-        lines.append("💥 FAILURE MODES:")
-        for failure in graph['by_type']['Failure_Mode']:
-            lines.append(f"    • {failure}")
-        lines.append("")
-    
-    if 'Debug_Strategy' in graph['by_type']:
-        lines.append("🔧 DEBUG STRATEGIES:")
-        for strategy in graph['by_type']['Debug_Strategy']:
-            lines.append(f"    • {strategy}")
-        lines.append("")
-    
-    # Show the graph structure
-    if graph['edges']:
-        lines.append("🔗 RELATIONSHIPS:")
-        for edge in graph['edges']:
-            if len(edge) == 4:
-                src, rel, tgt, creator = edge
-                if creator and creator != 'unknown':
-                    lines.append(f"    {src} --{rel}--> {tgt} [by {creator}]")
+        
+        # Components and their purposes
+        if 'Component' in graph['by_type']:
+            lines.append("📦 COMPONENTS:")
+            for comp in graph['by_type']['Component']:
+                lines.append(f"    • {comp}")
+            lines.append("")
+        
+        if 'Purpose' in graph['by_type']:
+            lines.append("🎯 PURPOSE:")
+            for purpose in graph['by_type']['Purpose']:
+                lines.append(f"    {purpose}")
+            lines.append("")
+        
+        # Design decisions and alternatives
+        if 'Design_Decision' in graph['by_type']:
+            lines.append("💡 DESIGN DECISIONS:")
+            for decision in graph['by_type']['Design_Decision']:
+                lines.append(f"    • {decision}")
+            lines.append("")
+        
+        if 'Rejected_Alternative' in graph['by_type']:
+            lines.append("✗ REJECTED ALTERNATIVES:")
+            for alt in graph['by_type']['Rejected_Alternative']:
+                lines.append(f"    • {alt}")
+            lines.append("")
+        
+        # Operational knowledge
+        if 'Gotcha' in graph['by_type']:
+            lines.append("⚠️  GOTCHAS:")
+            for gotcha in graph['by_type']['Gotcha']:
+                lines.append(f"    • {gotcha}")
+            lines.append("")
+        
+        if 'Assumption' in graph['by_type']:
+            lines.append("📌 ASSUMPTIONS:")
+            for assumption in graph['by_type']['Assumption']:
+                lines.append(f"    • {assumption}")
+            lines.append("")
+        
+        if 'Failure_Mode' in graph['by_type']:
+            lines.append("💥 FAILURE MODES:")
+            for failure in graph['by_type']['Failure_Mode']:
+                lines.append(f"    • {failure}")
+            lines.append("")
+        
+        if 'Debug_Strategy' in graph['by_type']:
+            lines.append("🔧 DEBUG STRATEGIES:")
+            for strategy in graph['by_type']['Debug_Strategy']:
+                lines.append(f"    • {strategy}")
+            lines.append("")
+        
+        # Show the graph structure
+        if graph['edges']:
+            lines.append("🔗 RELATIONSHIPS:")
+            for edge in graph['edges']:
+                if len(edge) == 4:
+                    src, rel, tgt, creator = edge
+                    if creator and creator != 'unknown':
+                        lines.append(f"    {src} --{rel}--> {tgt} [by {creator}]")
+                    else:
+                        lines.append(f"    {src} --{rel}--> {tgt}")
                 else:
+                    # Legacy format
+                    src, rel, tgt = edge
                     lines.append(f"    {src} --{rel}--> {tgt}")
-            else:
-                # Legacy format
-                src, rel, tgt = edge
-                lines.append(f"    {src} --{rel}--> {tgt}")
-        lines.append("")
+            lines.append("")
     
     # Output as SIF for re-use (dense format)
-    lines.append("📋 AS SIF (for editing/extending):")
+    if not sif_only:
+        lines.append("📋 AS SIF (for editing/extending):")
+    
     graph_id = graph['metadata'].get('graph_id', 'understanding')
     lines.append(f"@G {graph_id}")
+    
+    # Calculate unique creators to determine if attribution is needed
+    creators = set()
+    for node in graph['nodes']:
+        c = node.get('creator')
+        if c and c != 'unknown':
+            creators.add(c)
+    show_attribution = len(creators) > 1
+
     # Reverse lookup for type shortcuts
     type_to_short = {v: k for k, v in TYPE_SHORTCUTS.items()}
     for node in graph['nodes']:
@@ -335,7 +347,7 @@ def format_understanding(graph: dict, target_path: str, hash_status: dict) -> st
             # Strip graph prefix from ID for density
             node_id = node['id'].split(':')[-1] if ':' in node['id'] else node['id']
             creator = node.get('creator', '')
-            if creator and creator != 'unknown':
+            if show_attribution and creator and creator != 'unknown':
                 lines.append(f"N {node_id} {short_type} '{node['content']}' creator={creator}")
             else:
                 lines.append(f"N {node_id} {short_type} '{node['content']}'")
@@ -346,7 +358,7 @@ def format_understanding(graph: dict, target_path: str, hash_status: dict) -> st
                 # Strip graph prefixes from edge IDs
                 src_short = src.split(':')[-1] if ':' in src else src
                 tgt_short = tgt.split(':')[-1] if ':' in tgt else tgt
-                if creator and creator != 'unknown':
+                if show_attribution and creator and creator != 'unknown':
                     lines.append(f"E {src_short} {rel} {tgt_short} creator={creator}")
                 else:
                     lines.append(f"E {src_short} {rel} {tgt_short}")
@@ -386,7 +398,7 @@ def main():
     
     # Check for shared enclave - inform user
     agent = get_agent_or_raise(agent_id)
-    if agent.shared_enclave:
+    if agent.shared_enclave and False: # Disabled verbose output
         partners = get_enclave_partners(agent_id)
         if partners:
             partner_names = [p.id for p in partners]
@@ -414,6 +426,8 @@ def main():
     individual_nodes = []
     
     canonical_path = None
+    current_agent_has_understanding = False
+    
     for mem_entry in results:
         meta = mem_entry.get('metadata', {})
         stored_path = meta.get('target_path', '')
@@ -426,15 +440,36 @@ def main():
             if canonical_path is None:
                 canonical_path = stored_path
             
+            # Check if current agent has understanding
+            if creator == agent_id:
+                current_agent_has_understanding = True
+            
             # Skip synthesis - show raw perspectives for accurate comparison
             if creator != 'synthesis':
                 individual_nodes.append(mem_entry)
     
-    relevant = individual_nodes
+    # BLIND-UNTIL-STORED: If current agent hasn't stored their own understanding,
+    # don't show other agents' perspectives. This prevents copying.
+    if not current_agent_has_understanding and individual_nodes:
+        other_creators = set(m.get('metadata', {}).get('creator') for m in individual_nodes)
+        other_creators.discard(agent_id)
+        if other_creators:
+            print(f"⚠️  BLIND MODE: Other agents have understanding of {filename}")
+            print(f"   ({', '.join(sorted(other_creators))} have stored perspectives)")
+            print("")
+            print("   Form your own understanding first with remember.py,")
+            print("   then recollect to compare perspectives.")
+            print("")
+            print(f"   py remember {agent_id} {target_path} \"@G ...\"")
+            sys.exit(0)
+    
+    # Filter to the requested agent's perspective only
+    # The user can run the command for other agents if they want to see them separately.
+    relevant = [n for n in individual_nodes if n.get('metadata', {}).get('creator') == agent_id]
     
     # Count unique creators
     creators = set()
-    for m in individual_nodes:
+    for m in relevant:
         creator = m.get('metadata', {}).get('creator')
         if creator:
             creators.add(creator)
@@ -444,6 +479,14 @@ def main():
     elif creators:
         source_info = f"[{list(creators)[0]}]"
     else:
+        # If we filtered everything out (e.g. only other agents had data), warn the user
+        if individual_nodes:
+             print(f"No understanding stored for {target_path} by {agent_id}")
+             print(f"(Found perspectives from: {', '.join(set(m.get('metadata', {}).get('creator') for m in individual_nodes))})")
+             print("\nUse remember.py to store understanding:")
+             print(f'  py remember {agent_id} {target_path} "@G understanding..."')
+             sys.exit(0)
+        
         relevant = []
         source_info = None
     
@@ -457,7 +500,7 @@ def main():
     display_path = canonical_path or target_path
     
     # Show source info
-    if source_info:
+    if source_info and False: # Disabled verbose output
         print(source_info)
         print("")
     
@@ -469,7 +512,8 @@ def main():
     hash_status = verify_file_hashes(stored_hashes, display_path)
     
     # Format and display
-    output = format_understanding(graph, display_path, hash_status)
+    # Default to SIF-only output as requested by user
+    output = format_understanding(graph, display_path, hash_status, sif_only=True)
     print(output)
 
 
