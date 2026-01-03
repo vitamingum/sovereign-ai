@@ -621,6 +621,14 @@ def main():
     print("\n  Edges:")
     for edge in graph.edges:
         print(f"    {edge.source} --{edge.relation}--> {edge.target}")
+    
+    # Auto-synthesize if multiple perspectives exist
+    try:
+        from synthesize_understanding import maybe_synthesize
+        maybe_synthesize(mem, target_path, agent_id)
+    except Exception as e:
+        # Synthesis failure shouldn't break remember
+        print(f"\n  (synthesis skipped: {e})")
 
 
 if __name__ == "__main__":

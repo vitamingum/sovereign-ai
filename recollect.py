@@ -399,28 +399,67 @@ def main():
     mem = SemanticMemory(enclave_dir)
     mem.unlock(passphrase)
     
-    # Primary: tag-based retrieval by target_path (fast, exact)
-    results = mem.list_by_metadata('target_path', filename, limit=100)
+    # Primary: tag-based retrieval by filename
+    results = mem.list_by_tag(filename, limit=100)
     
-    # Fallback: semantic search if tag-based returns nothing
+    # Fallback: metadata lookup if tag-based returns nothing
+    if not results:
+        results = mem.list_by_metadata('target_path', filename, limit=100)
+    
+    # Fallback: semantic search if still nothing
     if not results:
         results = mem.recall_similar(f"[Component] {filename} understanding", top_k=100, threshold=0.1)
     
-    # Filter to only memories about this specific path
-    relevant = []
-    canonical_path = None  # Will be set from first matching stored_path
+    # Separate synthesis from individual perspectives
+    synthesis_nodes = []
+    individual_nodes = []
+    
+    canonical_path = None
     for mem_entry in results:
         meta = mem_entry.get('metadata', {})
         stored_path = meta.get('target_path', '')
-        # Match by filename - check if this file is in the stored path
-        # Handles both single file and comma-separated multi-file
+        creator = meta.get('creator', '')
+        
+        # Match by filename
         stored_files = [p.strip() for p in stored_path.split(',')]
         stored_names = [Path(p).name for p in stored_files]
         if filename in stored_names or filename in stored_path:
-            relevant.append(mem_entry)
-            # Use the stored path (which is correct) not the user's potentially wrong input
             if canonical_path is None:
                 canonical_path = stored_path
+            
+            # Separate synthesis from individual
+            if creator == 'synthesis':
+                synthesis_nodes.append(mem_entry)
+            else:
+                individual_nodes.append(mem_entry)
+    
+    # PREFER SYNTHESIS: Use synthesis if exists, else fall back to individuals
+    # --raw flag shows individual perspectives instead
+    show_raw = '--raw' in sys.argv or '--perspectives' in sys.argv
+    
+    if synthesis_nodes and not show_raw:
+        relevant = synthesis_nodes
+        # Count unique sources from synthesis metadata
+        all_sources = set()
+        for m in synthesis_nodes:
+            sources = m.get('metadata', {}).get('sources', [])
+            all_sources.update(sources)
+        source_info = f"[SYNTHESIS from {len(all_sources)} perspectives: {'+'.join(sorted(all_sources))}]"
+    elif individual_nodes:
+        relevant = individual_nodes
+        # Count unique creators
+        creators = set()
+        for m in individual_nodes:
+            creator = m.get('metadata', {}).get('creator')
+            if creator:
+                creators.add(creator)
+        if len(creators) > 1:
+            source_info = f"[COMBINED: {'+'.join(sorted(creators))}] (use 'synthesize_understanding.py' to merge)"
+        else:
+            source_info = f"[{list(creators)[0] if creators else 'unknown'}]"
+    else:
+        relevant = []
+        source_info = None
     
     if not relevant:
         print(f"No understanding stored for {target_path}")
@@ -430,6 +469,11 @@ def main():
     
     # Use canonical path from stored memory, not user input
     display_path = canonical_path or target_path
+    
+    # Show source info
+    if source_info:
+        print(source_info)
+        print("")
     
     # Reconstruct the graph
     graph = reconstruct_graph(relevant)

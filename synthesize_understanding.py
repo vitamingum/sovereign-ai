@@ -507,6 +507,95 @@ def main():
     merged = synthesis.count('creator=gemini+opus') + synthesis.count('creator=opus+gemini')
     unique = node_count - merged
     print(f"\n  Result: {node_count} nodes ({merged} merged, {unique} unique)")
+    
+    # Store the synthesis
+    stored = store_synthesis(mem, synthesis, filepath)
+    print(f"\n✓ Stored synthesis ({stored} nodes)")
+
+
+def store_synthesis(mem: SemanticMemory, synthesis_sif: str, filepath: str) -> int:
+    """Store synthesis to semantic memory with creator=synthesis.
+    
+    Replaces any existing synthesis for this file.
+    """
+    from enclave.sif_parser import SIFParser
+    
+    filename = os.path.basename(filepath)
+    timestamp = datetime.now(timezone.utc).isoformat()
+    
+    # Delete existing synthesis for this file
+    existing = mem.list_by_tag(filename, limit=200)
+    ids_to_delete = set()
+    for node in existing:
+        metadata = node.get('metadata', {})
+        if metadata.get('creator') == 'synthesis':
+            ids_to_delete.add(node['id'])
+    
+    if ids_to_delete:
+        deleted = mem.delete_by_ids(ids_to_delete)
+        print(f"  [REPLACED] Deleted {deleted} old synthesis nodes")
+    
+    # Parse the synthesis SIF
+    parser = SIFParser()
+    graph = parser.parse(synthesis_sif)
+    
+    # Store each node
+    stored_count = 0
+    for node in graph.nodes:
+        searchable = f"[{node.type}] {node.content}"
+        
+        # Extract creators from node content (e.g., "creator=gemini+opus")
+        sources = []
+        if hasattr(node, 'creator') and node.creator:
+            sources = node.creator.split('+')
+        
+        outgoing = [e for e in graph.edges if e.source == node.id]
+        incoming = [e for e in graph.edges if e.target == node.id]
+        
+        metadata = {
+            "graph_id": graph.id,
+            "node_id": node.id,
+            "node_type": node.type,
+            "target_path": filepath,
+            "timestamp": timestamp,
+            "creator": "synthesis",
+            "sources": sources,  # Which agents contributed
+            "outgoing_edges": [(e.relation, e.target) for e in outgoing],
+            "incoming_edges": [(e.source, e.relation) for e in incoming],
+        }
+        
+        mem.remember(
+            thought=searchable,
+            tags=[node.type.lower(), graph.id, filename, "synthesis"],
+            metadata=metadata
+        )
+        stored_count += 1
+    
+    return stored_count
+
+
+def maybe_synthesize(mem: SemanticMemory, filepath: str, current_agent: str) -> bool:
+    """Check if synthesis should run and do it.
+    
+    Returns True if synthesis was created/updated.
+    Called after remember.py stores understanding.
+    """
+    graphs = load_understanding_graphs(mem, filepath)
+    
+    # Filter out synthesis itself
+    graphs = {k: v for k, v in graphs.items() if k != 'synthesis'}
+    
+    if len(graphs) < 2:
+        return False  # Need 2+ perspectives
+    
+    print(f"\n🔬 Auto-synthesizing {len(graphs)} perspectives on {filepath}...")
+    llm = LocalLLM()
+    
+    synthesis = synthesize_graphs(graphs, filepath, llm)
+    stored = store_synthesis(mem, synthesis, filepath)
+    
+    print(f"  ✓ Synthesis stored ({stored} nodes from {'+'.join(graphs.keys())})")
+    return True
 
 
 if __name__ == '__main__':
