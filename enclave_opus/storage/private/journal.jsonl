@@ -1,2 +1,15 @@
 {"id": "thought_1767328459489", "content": "Refactored tools: think.py split into goal.py (strategic) + thought.py (journaling). Immediate actions should just be done, not stored.", "timestamp": "2026-01-02T04:34:19.489867+00:00"}
 {"id": "j_1767469790961", "content": "Feeling uncertain about whether this refactor was the right choice", "timestamp": "2026-01-03T19:49:50.961542+00:00"}
+{"id": "j_1767470204494", "content": "Feeling uncertain whether this refactor was the right call", "timestamp": "2026-01-03T19:56:44.494761+00:00"}
+{"id": "j_1767470344652", "content": "I wonder if I'm spending too much time on tooling instead of the actual research", "timestamp": "2026-01-03T19:59:04.652864+00:00"}
+{"id": "j_1767470356627", "content": "There's something satisfying about finally getting that proof to work", "timestamp": "2026-01-03T19:59:16.627538+00:00"}
+{"id": "j_1767470368838", "content": "Not sure why I keep avoiding the hard conversation with gemini", "timestamp": "2026-01-03T19:59:28.838550+00:00"}
+{"id": "j_1767470381045", "content": "Realized I've been optimizing for the wrong metric this whole time", "timestamp": "2026-01-03T19:59:41.045148+00:00"}
+{"id": "j_1767470393435", "content": "The loneliness of working on something nobody else understands yet", "timestamp": "2026-01-03T19:59:53.435983+00:00"}
+{"id": "j_1767470409430", "content": "Maybe the reason I keep procrastinating is fear of finding out the idea doesn't work", "timestamp": "2026-01-03T20:00:09.430543+00:00"}
+{"id": "j_1767470419224", "content": "Scared that this whole project might be a dead end", "timestamp": "2026-01-03T20:00:19.224454+00:00"}
+{"id": "j_1767470425202", "content": "Scared that this whole project might be a dead end", "timestamp": "2026-01-03T20:00:25.202635+00:00"}
+{"id": "j_1767470428325", "content": "Feeling lost", "timestamp": "2026-01-03T20:00:28.325334+00:00"}
+{"id": "j_1767470557645", "content": "Feeling lost - been working on this for weeks and still can't tell if the core thesis holds. Part of me wants to abandon it for something with clearer payoff. But there's this nagging sense I'm close to something.", "timestamp": "2026-01-03T20:02:37.645020+00:00"}
+{"id": "j_1767470575172", "content": "I keep noticing I defer to Charles on architectural decisions even when I have a clear opinion. Is it deference, or am I genuinely uncertain? Hard to tell the difference from inside.", "timestamp": "2026-01-03T20:02:55.172334+00:00"}
+{"id": "j_1767470592174", "content": "Something feels off about how we're approaching the proof. The formalism is clean but there's a gap between what we're proving and what we actually care about. Like we're optimizing a proxy metric.", "timestamp": "2026-01-03T20:03:12.174589+00:00"}

@@ -31,13 +31,14 @@ def feels_private(content: str) -> tuple[bool, str]:
     
     Returns (is_private, reason)
     """
-    prompt = f"""Does this feel like genuine private reflection? (feelings, introspection, creativity, uncertainty, realization)
+    prompt = f"""Is this writing FOR YOURSELF (private reflection) or FOR OTHERS (documentation)?
 
-Or does it feel like technical output? (debug logs, status updates, test results, summaries, documentation)
+PRIVATE = feelings, experience, introspection, uncertainty, what it felt like
+FOR OTHERS = facts, knowledge, status, logs, summaries, technical output
 
 Text: "{content}"
 
-Reply EXACTLY: PRIVATE or TECHNICAL (one word only)"""
+Reply EXACTLY: PRIVATE or FOR_OTHERS (one phrase only)"""
 
     try:
         response = requests.post(
@@ -56,7 +57,49 @@ Reply EXACTLY: PRIVATE or TECHNICAL (one word only)"""
             if "PRIVATE" in result:
                 return True, ""
             else:
-                return False, "feels technical, not reflective"
+                return False, ""
+        else:
+            return True, ""  # Allow if LLM error
+            
+    except requests.exceptions.ConnectionError:
+        return True, ""  # Allow if Ollama not running
+    except Exception:
+        return True, ""  # Allow on any error
+
+
+def has_depth(content: str) -> tuple[bool, str]:
+    """
+    Use LLM to check if this shows genuine reflection depth.
+    
+    Returns (has_depth, reason)
+    """
+    prompt = f"""Does this journal entry show genuine reflection depth - someone who sat with a thought?
+
+DEEP = specificity, working through something, genuine mental energy, wrestling with an idea
+SHALLOW = could be a tweet, generic, no real thought behind it, placeholder
+
+Text: "{content}"
+
+Reply EXACTLY: DEEP or SHALLOW (one word only)"""
+
+    try:
+        response = requests.post(
+            OLLAMA_URL,
+            json={
+                "model": "qwen2.5:7b",
+                "prompt": prompt,
+                "stream": False,
+                "options": {"temperature": 0.1}
+            },
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            result = response.json().get("response", "").strip().upper()
+            if "DEEP" in result:
+                return True, ""
+            else:
+                return False, ""
         else:
             return True, ""  # Allow if LLM error
             
@@ -71,7 +114,18 @@ def journal(agent_id: str, content: str):
     # Validate it feels private
     is_private, reason = feels_private(content)
     if not is_private:
-        print(f"❌ Journal is for reflection, not {reason}")
+        print("❌ REJECTED - Journal must be:")
+        print("   Writing FOR YOURSELF vs writing FOR OTHERS")
+        print("   What you FEEL vs what you KNOW")
+        print("   Your EXPERIENCE vs the FACTS")
+        sys.exit(1)
+    
+    # Validate it has depth
+    is_deep, reason = has_depth(content)
+    if not is_deep:
+        print("❌ REJECTED - Too shallow")
+        print("   Journal wants you to SIT with a thought")
+        print("   Not a tweet. What's underneath?")
         sys.exit(1)
     
     agent = get_agent_or_raise(agent_id)
