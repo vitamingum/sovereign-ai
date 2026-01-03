@@ -383,14 +383,14 @@ def show_themes(sm: SemanticMemory, file_questions: dict[str, list[str]]):
     print(f"{'='*60}\n")
     
     if pending:
-        print(f"  {len(pending)} question(s) need synthesis\n")
+        print(f"  {len(pending)} question(s) need synthesis:\n")
         
-        # Show how to clear the top question
-        top_question, top_files = pending[0]
-        files_arg = ",".join(top_files[:6])
-        
-        print(f"  To answer: {top_question}")
-        print(f"    py recollect.py opus \"{files_arg}\"")
+        # Show command for each pending question
+        for i, (question, files) in enumerate(pending, 1):
+            files_arg = ",".join(files[:6])
+            print(f"  {i}. {question}")
+            print(f"     py recollect.py opus \"{files_arg}\"")
+            print()
     else:
         print("  All themes synthesized! [x]")
     

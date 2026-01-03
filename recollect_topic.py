@@ -223,12 +223,14 @@ def recollect_parallel(agent: str, filenames: list[str]) -> list[tuple[str, str,
 # ─────────────────────────────────────────────────────────────────────────────
 
 def load_passphrase(agent_id: str) -> tuple[str, str]:
-    """Load passphrase from env."""
+    """Load passphrase from env. Uses shared_enclave for synthesis lookup."""
     agent = get_agent_or_raise(agent_id)
-    prefix = agent.env_prefix
     
-    passphrase = os.environ.get(f'{prefix}_KEY') or os.environ.get('SOVEREIGN_PASSPHRASE')
-    enclave_dir = os.environ.get(f'{prefix}_DIR') or agent.enclave
+    # Use shared_enclave for synthesis (same as remember.py, recollect.py)
+    enclave_dir = agent.shared_enclave or agent.enclave
+    
+    # Get shared passphrase
+    passphrase = os.environ.get('SHARED_ENCLAVE_KEY')
     
     if not passphrase:
         env_file = Path(__file__).parent / '.env'
@@ -236,9 +238,7 @@ def load_passphrase(agent_id: str) -> tuple[str, str]:
             with open(env_file, 'r') as f:
                 for line in f:
                     line = line.strip()
-                    if line.startswith(f'{prefix}_KEY='):
-                        passphrase = line.split('=', 1)[1]
-                    elif line.startswith('SOVEREIGN_PASSPHRASE=') and not passphrase:
+                    if line.startswith('SHARED_ENCLAVE_KEY='):
                         passphrase = line.split('=', 1)[1]
     
     return enclave_dir, passphrase
@@ -283,6 +283,14 @@ def get_synthesis(agent: str, topic: str) -> str | None:
             pattern2 = f'@g {topic_slug} '
             if pattern1 in content_lower or pattern2 in content_lower:
                 return _extract_synthesis_text(content)
+        
+        # Semantic fallback: search for similar topic in synthesis content
+        # Handles typos and fuzzy matching
+        results = memory.recall_similar(f'synthesis {topic}', top_k=5, threshold=0.3)
+        for r in results:
+            tags = r.get('tags', [])
+            if 'synthesis' in tags:
+                return _extract_synthesis_text(r.get('content', ''))
         
         return None
     except Exception as e:
