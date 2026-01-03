@@ -662,17 +662,20 @@ def wake(agent_id: str) -> str:
         and (datetime.now(timezone.utc) - m['timestamp']).total_seconds() < 86400  # 24h
     ][-5:]  # Last 5
     
-    if recent_incoming:
-        lines.append("")
-        lines.append("=== RECENT INBOX (24h) ===")
+    # Group by sender, just show what exists
+    from_senders = {}
     for msg in recent_incoming:
-        ago = time_ago(msg['timestamp'])
         sender = msg['from']
-        content = decrypt_content(msg)
-        
-        lines.append(f"")
-        lines.append(f"--- From {sender} ({ago} ago) ---")
-        lines.append(content)
+        if sender not in from_senders:
+            from_senders[sender] = []
+        from_senders[sender].append(msg)
+    
+    for sender, msgs in from_senders.items():
+        lines.append("")
+        lines.append(f"From {sender}:")
+        for msg in msgs:
+            content = decrypt_content(msg)
+            lines.append(content)
     
     # If nothing is happening
     if not unanswered and not active_goals and not recent_incoming:
