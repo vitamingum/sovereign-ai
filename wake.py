@@ -624,13 +624,14 @@ def wake(agent_id: str) -> str:
     # Helper to decrypt content - returns full content verbatim
     def decrypt_content(msg):
         content = msg['content']
-        if msg.get('type') == 'protocol/sif':
-            try:
-                encrypted_bundle = json.loads(content)
+        # Try to decrypt - all inter-agent messages are encrypted now
+        try:
+            encrypted_bundle = json.loads(content)
+            if 'ephemeral_pk' in encrypted_bundle:  # It's encrypted
                 decrypted_bytes = OpaqueStorage.decrypt_share(encrypted_bundle, private_key_bytes)
                 return decrypted_bytes.decode('utf-8')
-            except:
-                return "[Decrypt Failed]"
+        except (json.JSONDecodeError, KeyError, Exception):
+            pass  # Not encrypted or decrypt failed
         return content
 
     # 1. Unanswered - questions I asked, no reply yet
@@ -651,12 +652,20 @@ def wake(agent_id: str) -> str:
         lines.append(f'E {msg_id} sent_to {recipient}')
         lines.append(f'E {agent_id} awaits {recipient}')
     
-    # 2. Waiting on me - messages I haven't responded to (show full content)
-    waiting = find_waiting_on_me(agent_id, messages)
-    if waiting:
+    # 2. Recent inbox - all messages TO me in last 24h (regardless of reply status)
+    agent_lower = agent_id.lower()
+    agent_canon = canonical_agent_id(agent_lower) or agent_lower
+    recent_incoming = [
+        m for m in messages
+        if (canonical_agent_id(m.get('to', '')) or m.get('to', '')) == agent_canon
+        and (canonical_agent_id(m.get('from', '')) or m.get('from', '')) != agent_canon
+        and (datetime.now(timezone.utc) - m['timestamp']).total_seconds() < 86400  # 24h
+    ][-5:]  # Last 5
+    
+    if recent_incoming:
         lines.append("")
-        lines.append("=== WAITING ON ME ===")
-    for i, msg in enumerate(waiting):
+        lines.append("=== RECENT INBOX (24h) ===")
+    for msg in recent_incoming:
         ago = time_ago(msg['timestamp'])
         sender = msg['from']
         content = decrypt_content(msg)
@@ -666,7 +675,7 @@ def wake(agent_id: str) -> str:
         lines.append(content)
     
     # If nothing is happening
-    if not unanswered and not active_goals and not waiting:
+    if not unanswered and not active_goals and not recent_incoming:
         lines.append(f'N state State "Inbox zero, no goals"')
         lines.append(f'E {agent_id} experiences state')
     

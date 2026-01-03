@@ -528,9 +528,14 @@ def think(agent_id: str, text: str, agency: int, force: bool = False) -> str:
         }
         save_intention(enclave_path, intention, passphrase=passphrase)
     
-    # Build output - minimal
+    # Build output - minimal, convert to dense SIF
     output = []
-    output.append(content)
+    try:
+        graph = SIFParser.parse(content)
+        dense_content = SIFParser.to_compact(graph)
+        output.append(dense_content)
+    except:
+        output.append(content)  # Fallback if not valid SIF
     if continuation:
         output.append(f"→ Next: {continuation}")
         if llm_feedback:

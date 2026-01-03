@@ -75,6 +75,13 @@ TYPE_SHORTCUTS = {
     'Q': 'Question',
     'T': 'Tradeoff',
     'X': 'Gap',            # Missing capability
+    # Extended types for think.py
+    'R': 'Problem',        # Problem statement
+    'V': 'Proposal',       # Proposed solution
+    'N': 'Next',           # Next action
+    'E': 'Example',        # Concrete example  
+    'M': 'Mechanism',      # How something works
+    'B': 'Observation',    # Observed fact
 }
 
 class SIFParser:
