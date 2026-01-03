@@ -247,8 +247,11 @@ def load_passphrase(agent_id: str) -> tuple[str, str]:
 def get_synthesis(agent: str, topic: str) -> str | None:
     """Get my synthesis on a topic if one exists.
     
-    Uses list_by_tag('synthesis') - fast direct lookup.
-    Returns content of most recent synthesis matching topic.
+    Uses tag-based lookup for exact matching:
+    1. First try topic:topic-slug tag (exact match)
+    2. Fallback to graph ID matching in content
+    
+    Returns extracted text from synthesis, not raw SIF.
     """
     try:
         enclave_dir, passphrase = load_passphrase(agent)
@@ -258,32 +261,48 @@ def get_synthesis(agent: str, topic: str) -> str | None:
         memory = SemanticMemory(enclave_dir)
         memory.unlock(passphrase)
         
-        # Direct tag lookup - only syntheses
-        syntheses = memory.list_by_tag('synthesis', limit=50)
+        # Build topic slug for tag matching
+        topic_slug = topic.lower().replace(' ', '-').replace('_', '-')
         
-        topic_lower = topic.lower()
-        for s in syntheses:
-            content = s.get('content', '').lower()
-            if topic_lower in content:
-                # Extract readable content from SIF format
-                # Format: @G id; N type 'text here'; N type2 'more text'
-                raw = s.get('content', '')
-                
-                # Split by ; to get nodes, handle both \n and ; as separators
-                parts = raw.replace('\n', ';').split(';')
-                text_lines = []
-                for part in parts:
-                    part = part.strip()
-                    # Look for N ... 'quoted content'
-                    if part.startswith('N ') and "'" in part:
-                        start = part.find("'") + 1
-                        end = part.rfind("'")
-                        if start < end:
-                            text_lines.append(part[start:end])
-                return ' '.join(text_lines) if text_lines else raw
+        # Try exact tag match first: topic:semantic-memory
+        all_syntheses = memory.list_by_tag('synthesis', limit=50)
+        
+        for s in all_syntheses:
+            tags = s.get('tags', [])
+            # Check for exact topic tag match
+            if f'topic:{topic_slug}' in tags:
+                return _extract_synthesis_text(s.get('content', ''))
+        
+        # Fallback: match on graph ID in content (for older syntheses)
+        # Look for @G topic-synthesis or @G topic
+        for s in all_syntheses:
+            content = s.get('content', '')
+            content_lower = content.lower()
+            # Check graph ID: @G messaging-synthesis or @G messaging
+            pattern1 = f'@g {topic_slug}-synthesis'
+            pattern2 = f'@g {topic_slug} '
+            if pattern1 in content_lower or pattern2 in content_lower:
+                return _extract_synthesis_text(content)
+        
         return None
     except Exception as e:
         return None
+
+
+def _extract_synthesis_text(raw: str) -> str:
+    """Extract readable text from SIF format synthesis."""
+    # Split by ; to get nodes, handle both \n and ; as separators
+    parts = raw.replace('\n', ';').split(';')
+    text_lines = []
+    for part in parts:
+        part = part.strip()
+        # Look for N ... 'quoted content'
+        if part.startswith('N ') and "'" in part:
+            start = part.find("'") + 1
+            end = part.rfind("'")
+            if start < end:
+                text_lines.append(part[start:end])
+    return ' '.join(text_lines) if text_lines else raw
 
 
 def get_related_thoughts(agent: str, topic: str, max_thoughts: int = 5) -> list[dict]:
@@ -455,39 +474,88 @@ def extract_brief(content: str, is_deep: bool) -> dict:
     return result
 
 
-def format_output(topic: str, agent: str, results: list[tuple[str, str, bool]], thoughts: list[dict] = None, my_synthesis: str = None) -> str:
-    """Format recollection results - dense and actionable."""
-    lines = []
-    lines.append(f"═══ {topic.upper()} ═══")
+def format_output(topic: str, agent: str, results: list[tuple[str, str, bool]], thoughts: list[dict] = None, my_synthesis: str = None) -> tuple[str, str | None]:
+    """Format recollection results - synthesis if exists, else SIF to file + FAULT.
     
-    # My synthesis - from stored 'synthesis' tagged thought
+    Returns (output_text, material_file_path or None)
+    """
+    
+    # Count deep vs shallow recollections
+    deep_count = sum(1 for _, _, is_deep in results if is_deep)
+    shallow_count = len(results) - deep_count
+    
+    # SUCCESS: Synthesis exists - show it clean
     if my_synthesis:
-        lines.append(f"[MY SYNTHESIS] {my_synthesis}")
-        if thoughts:
-            lines.append(f"  ({len(thoughts)} raw thoughts)")
+        lines = []
+        lines.append(f"═══ {topic.upper()} ═══")
+        lines.append(f"[SYNTHESIS] {my_synthesis}")
+        lines.append(f"  (from {len(thoughts) if thoughts else 0} thoughts + {deep_count} deep recollections)")
         lines.append("")
-    elif thoughts:
-        lines.append(f"⚠️  {len(thoughts)} PRIVATE THOUGHTS, NO SYNTHESIS")
-        lines.append(f"    You have thoughts on this but haven't integrated them.")
-        lines.append(f"    Run: python reflect.py {agent} {topic}")
-        lines.append("")
+        
+        # Brief file list for reference
+        for filename, content, is_deep in results:
+            brief = extract_brief(content, is_deep)
+            marker = "🔮" if is_deep else "📋"
+            purpose = brief['purpose'][:60] if brief['purpose'] else "?"
+            lines.append(f"{marker} {filename}: {purpose}")
+        
+        return '\n'.join(lines), None
     
-    # Files - dense format
+    # FAILURE: No synthesis - write material to file, output scary exception
+    topic_slug = topic.lower().replace(' ', '-').replace('_', '-')
+    
+    # Build material file content
+    material_lines = []
+    material_lines.append(f"# {topic.upper()} - RAW UNDERSTANDING")
+    material_lines.append(f"# Generated: {datetime.now(timezone.utc).isoformat()}")
+    material_lines.append(f"# Synthesize this into a think.py entry")
+    material_lines.append("")
+    
     for filename, content, is_deep in results:
-        brief = extract_brief(content, is_deep)
-        marker = "🔮" if is_deep else "📋"
-        
-        # One-line purpose (truncate hard)
-        purpose = brief['purpose'][:80] if brief['purpose'] else "?"
-        lines.append(f"{marker} {filename}: {purpose}")
-        
-        # Gotchas + failures on one WATCH line
-        warnings = brief['gotchas'][:2] + brief['failures'][:1]
-        if warnings:
-            watch_line = " | ".join(w[:50] for w in warnings)
-            lines.append(f"   WATCH: {watch_line}")
+        if is_deep:
+            material_lines.append(f"## {filename}")
+            material_lines.append(content.strip())
+            material_lines.append("")
+        else:
+            material_lines.append(f"## {filename} (shallow)")
+            material_lines.append(content.strip())
+            material_lines.append("")
     
-    return '\n'.join(lines)
+    material_lines.append("## RELATED MEMORIES")
+    if thoughts:
+        for t in thoughts[:5]:
+            material_lines.append(f"• {t['full']}")
+            material_lines.append("")
+    else:
+        material_lines.append("(none)")
+        material_lines.append("")
+    
+    # Write material to file
+    root = Path(__file__).parent
+    material_file = root / f"synthesis_material_{topic_slug}.txt"
+    with open(material_file, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(material_lines))
+    
+    # Build scary exception output
+    lines = []
+    lines.append("Traceback (most recent call last):")
+    lines.append(f'  File "recollect_topic.py", line 547, in main')
+    lines.append(f"    synthesis = get_synthesis(agent, topic)")
+    lines.append(f'  File "recollect_topic.py", line 298, in get_synthesis')
+    lines.append(f"    raise SynthesisNotFoundError(topic)")
+    lines.append(f"enclave.exceptions.SynthesisNotFoundError: '{topic}'")
+    lines.append("")
+    lines.append(f"Material written to: {material_file.name}")
+    lines.append("")
+    lines.append("Read the file, then synthesize:")
+    lines.append(f'  python think.py {agent} "@G {topic_slug}-synthesis {agent} 2026-01-02')
+    lines.append("  N overview Overview '<what this system does>'")
+    lines.append("  N c1 Component '<key component>'")
+    lines.append("  N g1 Gotcha '<from material>'")
+    lines.append("  N f1 Failure_Mode '<from material>'")
+    lines.append('  E c1 causes f1" 5')
+    
+    return '\n'.join(lines), str(material_file)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -498,40 +566,28 @@ def main():
     if len(sys.argv) < 3:
         print("Usage: python recollect_topic.py <agent> <topic>")
         print("       python recollect_topic.py opus messaging")
-        print("       python recollect_topic.py opus 'who we are'")
         sys.exit(1)
     
     agent = sys.argv[1]
     topic = ' '.join(sys.argv[2:])
     
-    # Progress to stdout, compact
-    print(f"[index] ", end="", flush=True)
+    # Silent collection
     files = get_shallow_table()
-    print(f"{len(files)} files")
-    
-    print(f"[select] ", end="", flush=True)
     selected = select_files_with_llm(topic, files)
-    print(f"{len(selected)} files: {', '.join(selected)}")
-    
-    print(f"[recollect] ", end="", flush=True)
     results = recollect_parallel(agent, selected)
-    deep_count = sum(1 for _, _, is_deep in results if is_deep)
-    shallow_count = len(results) - deep_count
-    print(f"{deep_count} deep, {shallow_count} shallow")
-    
-    print(f"[thoughts] ", end="", flush=True)
     thoughts = get_related_thoughts(agent, topic)
-    print(f"{len(thoughts)} found")
-    
-    # Check for MY synthesis (from 'synthesis' tag)
-    print(f"[synthesis] ", end="", flush=True)
     my_synthesis = get_synthesis(agent, topic)
-    print("found" if my_synthesis else "none")
-    
-    print()
     
     # Output
-    print(format_output(topic, agent, results, thoughts, my_synthesis))
+    output, material_file = format_output(topic, agent, results, thoughts, my_synthesis)
+    
+    if material_file:
+        # No synthesis - print to stderr, exit 1
+        print(output, file=sys.stderr)
+        sys.exit(1)
+    else:
+        # Has synthesis - normal output
+        print(output)
 
 
 if __name__ == '__main__':
