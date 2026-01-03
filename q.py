@@ -113,6 +113,20 @@ Your answer:"""
 def search_and_synthesize(question: str, sm: SemanticMemory, agent_id: str) -> str:
     """Search memory and synthesize answer (fallback for exploratory questions)."""
     
+    # Build graph_id -> filepath map from anchors
+    graph_to_file = {}
+    for anchor in sm.list_by_tag("anchor"):
+        meta = anchor.get("metadata", {})
+        graph_id = meta.get("graph_id", "")
+        target = meta.get("target_path", "")
+        if graph_id and target:
+            # Normalize to relative path
+            if '\\' in target:
+                target = target.split('\\')[-1]
+            elif '/' in target:
+                target = target.split('/')[-1]
+            graph_to_file[graph_id] = target
+    
     # Expand question to search terms
     expand_prompt = f"""Given this question about a codebase: "{question}"
 Generate 5 semantic search queries including node types like [Gotcha], [Fragility], [Design_Decision].
@@ -136,14 +150,10 @@ Return ONLY a JSON array: ["query1", "[Gotcha] query2", ...]"""
             if key not in seen:
                 seen.add(key)
                 results.append(r)
-                # Track source files for suggested synthesis
+                # Track source files via anchor lookup
                 graph_id = r.get('metadata', {}).get('graph_id', '')
-                if '-understanding' in graph_id:
-                    # Extract filename from graph_id like "opus:backup-py-understanding"
-                    parts = graph_id.replace('-understanding', '').split(':')[-1]
-                    fname = parts.replace('-', '.') if parts else ''
-                    if fname:
-                        source_files.add(fname)
+                if graph_id in graph_to_file:
+                    source_files.add(graph_to_file[graph_id])
     
     results.sort(key=lambda x: x.get('similarity', 0), reverse=True)
     results = results[:25]
@@ -196,8 +206,11 @@ Output ONLY a number 1-5:"""
         suggested_files = sorted(source_files)[:6]
         if suggested_files:
             files_arg = ",".join(suggested_files)
-            # Derive topic slug from question
-            topic = question.lower()[:30].replace(" ", "-").replace("?", "")
+            # Generate proper topic slug
+            slug_prompt = f'Generate a 2-3 word topic slug for: "{question}"\nExamples: error-handling, backup-restore, semantic-search\nOutput ONLY the slug:'
+            topic = llm_query(slug_prompt).strip().lower().replace(" ", "-")[:40]
+            if not topic or not topic[0].isalpha():
+                topic = "synthesis"
             return f"""❌ FAIL: No synthesis for topic
 
 py recollect.py {agent_id} "{files_arg}" | py remember.py {agent_id} --topic {topic}"""
