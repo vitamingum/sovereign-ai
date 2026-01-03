@@ -1,0 +1,26 @@
+@G metrics-py-understanding opus 2026-01-03
+N c1 C 'enclave/metrics.py - Sovereignty health metrics and debt calculation'
+N p1 P 'Quantify agent health: entropy, synthesis potential, understanding debt, cross-agent parity'
+N d1 D 'calculate_enclave_entropy: measures private storage health (key security, memory activity)'
+N d2 D 'calculate_synthesis_debt: finds stale understanding via file hash comparison'
+N d3 D 'calculate_cross_agent_debt: detects knowledge gaps vs partner agents'
+N d4 D 'get_key_security_score: 1.0 for hardware sealed, 0.5 for env var, 0.0 for missing'
+N g1 G 'Synthesis calculation uses embeddings - requires sentence-transformers loaded'
+N g2 G 'Silent 0.0 return on exceptions masks real problems - debt may be underreported'
+N a1 A 'SemanticMemory can be unlocked with shared passphrase'
+N a2 A 'File hashes stored in understanding nodes are retrievable'
+N f1 F 'Debt calculation reads raw JSONL - bypasses SemanticMemory API for performance'
+N f2 F 'Cross-agent debt requires partner config in agents.toml'
+N i1 I 'Debt is forcing function: visible metrics drive behavior change'
+E c1 implements p1
+E d1 measures c1
+E d2 measures c1
+E d3 extends d2
+E d4 measures c1
+E g1 degrades d1
+E g2 masks f1
+E a1 required_by c1
+E a2 required_by d2
+E f1 brittle_at d2
+E f2 requires d3
+E i1 motivates p1

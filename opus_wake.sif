@@ -1,0 +1,24 @@
+@G wake-py-understanding opus 2026-01-03
+N c1 C 'wake.py - Morning context restoration with debt enforcement'
+N p1 P 'Restore full cognitive state: goals, intentions, messages, debt - block work until sync'
+N d1 D 'Two-enclave architecture: shared (semantic memory) + private (goals, intentions, identity)'
+N d2 D 'Understanding debt check: stale hashes and missing files block wake with remediation instructions'
+N d3 D 'Cross-agent debt: warns if partners have understanding you lack (knowledge parity)'
+N d4 D 'Dense SIF output for context sections - no emoji headers, just parseable graphs'
+N g1 G 'Debt check is FATAL by default - forces agents to update stale understanding before proceeding'
+N g2 G 'From X format in messages implies no response debt - information availability not conversation'
+N a1 A 'SHARED_ENCLAVE_KEY available for semantic memory access'
+N a2 A 'Private enclave accessible with agent-specific key'
+N f1 F 'Debt calculation depends on file hashes matching - moved files orphan old understanding'
+N i1 I 'Wake is a toll booth: you cannot think until you know what you know is current'
+E c1 implements p1
+E d1 structures c1
+E d2 enforces c1
+E d3 extends d2
+E d4 outputs c1
+E g1 warns_about d2
+E g2 warns_about c1
+E a1 required_by d1
+E a2 required_by d1
+E f1 brittle_at d2
+E i1 motivates p1

@@ -806,22 +806,24 @@ def main():
     # Show file hashes tracked
     file_hashes = compute_multi_file_hashes(paths)
     
+    # Dense output: just the SIF that was stored
     print(f"✓ Remembered {count} nodes about {target_path}")
-    print(f"  Graph: {graph.id}")
-    print(f"  Types: {', '.join(set(n.type for n in graph.nodes))}")
     
-    print("\n  Files tracked:")
-    for fname, fhash in file_hashes.items():
-        print(f"    {fname}: {fhash}")
+    # Output the full SIF (no truncation)
+    from enclave.sif_parser import TYPE_SHORTCUTS
+    type_to_short = {v: k for k, v in TYPE_SHORTCUTS.items()}
     
-    # Show what was stored
-    print("\n  Nodes:")
+    print(f"@G {graph.id}")
     for node in graph.nodes:
-        print(f"    [{node.type}] {node.content[:60]}...")
-    
-    print("\n  Edges:")
+        if node.type.lower() != 'anchor':
+            short_type = type_to_short.get(node.type, node.type)
+            content = node.content.replace("'", "\\'")
+            print(f"N {node.id.split(':')[-1]} {short_type} '{content}'")
     for edge in graph.edges:
-        print(f"    {edge.source} --{edge.relation}--> {edge.target}")
+        if not edge.target.startswith('anchor_'):
+            src = edge.source.split(':')[-1]
+            tgt = edge.target.split(':')[-1]
+            print(f"E {src} {edge.relation} {tgt}")
     
     # Show other agents' understanding for comparison (conflict detection via cognition)
     show_other_perspectives(mem, target_path, agent_id)
@@ -869,24 +871,13 @@ def show_other_perspectives(mem: SemanticMemory, target_path: str, current_agent
         'Rule': 'R', 'Insight': 'I'
     }
     
-    print(f"\n{'─' * 60}")
-    print("📎 OTHER PERSPECTIVES (review for conflicts):")
-    
+    # Show other perspectives as dense SIF
     for agent, nodes in other_perspectives.items():
-        print(f"\n  {agent} ({len(nodes)} nodes):")
-        # Show more nodes for substantial understanding
-        show_limit = min(len(nodes), 20)
-        for node in nodes[:show_limit]:
+        print(f"\n# {agent} ({len(nodes)} nodes):")
+        for node in nodes:
             short = TYPE_SHORT.get(node['type'], node['type'][:1])
-            # Show more content - truncate at 80 chars
-            content = node['content'][:80]
-            if len(node['content']) > 80:
-                content += "..."
-            print(f"    [{short}] {content}")
-        if len(nodes) > show_limit:
-            print(f"    ... and {len(nodes) - show_limit} more")
-    
-    print(f"\n  Full comparison: python recollect.py {current_agent} {target_path} --raw")
+            content = node['content'].replace("'", "\\'")
+            print(f"N {short} '{content}'")
 
 
 if __name__ == "__main__":
