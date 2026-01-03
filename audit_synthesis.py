@@ -196,8 +196,9 @@ def get_all_files() -> dict[str, Path]:
 
 def get_file_understandings(sm: SemanticMemory) -> dict[str, dict]:
     """Get Level 4 understanding by target file."""
-    # Get memories with target_path metadata (created by remember.py)
-    all_mems = sm.list_by_tag('graph', limit=500)
+    # Memories with target_path were created by remember.py
+    # They may have various tags (filename, graph_id, etc) but all have target_path metadata
+    all_mems = sm.list_all(limit=1000)
     
     by_file = defaultdict(list)
     for mem in all_mems:

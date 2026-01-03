@@ -25,7 +25,7 @@ from enclave.crypto import SovereignIdentity
 from enclave.opaque import OpaqueStorage
 from enclave.sif_parser import SIFParser
 from enclave.hardware import get_enclave
-from enclave.metrics import calculate_enclave_entropy
+from enclave.metrics import calculate_enclave_entropy, calculate_synthesis_debt
 from enclave.encrypted_jsonl import EncryptedJSONL
 import re
 
@@ -599,6 +599,21 @@ def wake(agent_id: str) -> str:
     except Exception as e:
         lines.append(f'N err Error "Metric Calculation Failed: {e}"')
         lines.append(f'E {agent_id} experiences err')
+
+    # Synthesis Debt - how much understanding is missing
+    try:
+        debt = calculate_synthesis_debt(agent_id)
+        if debt['total'] > 0:
+            lines.append(f'N m2 Metric "Synthesis Debt"')
+            debt_val = f"{debt['total']} ({debt['file_debt']} files, {debt['topic_debt']} topics)"
+            lines.append(f'N v2 Value "{debt_val}"')
+            lines.append(f'E {agent_id} has_metric m2')
+            lines.append(f'E m2 has_value v2')
+            if debt['total'] > 20:
+                lines.append(f'N debt_risk Concept "High Synthesis Debt"')
+                lines.append(f'E v2 implies debt_risk')
+    except Exception:
+        pass  # Silent fail - not critical
 
     # Goals as dense SIF
     lines.append('')

@@ -198,6 +198,108 @@ def generate_dashboard_sif(agent_id: str) -> str:
         
     return "\n".join(lines)
 
+
+def calculate_synthesis_debt(agent_id: str) -> dict:
+    """
+    Calculate synthesis debt at file and topic levels.
+    
+    Returns dict with:
+      - file_debt: count of files without deep understanding
+      - topic_debt: count of core topics without synthesis
+      - total: file_debt + topic_debt
+    
+    This is fast - pure memory queries, no LLM needed.
+    """
+    from collections import defaultdict
+    
+    try:
+        from wake import load_passphrase
+        enclave_dir, passphrase = load_passphrase(agent_id)
+        memory = SemanticMemory(enclave_path=enclave_dir)
+        if not memory.unlock(passphrase):
+            return {'file_debt': 0, 'topic_debt': 0, 'total': 0}
+        
+        # --- FILE DEBT ---
+        # Count files without deep understanding (WHY nodes)
+        root = Path(__file__).parent.parent
+        all_files = set()
+        
+        # Core Python files
+        for p in root.glob('*.py'):
+            if not p.name.startswith(('generated_', 'test_', 'debug_')):
+                all_files.add(p.name)
+        
+        # Enclave files
+        enclave = root / 'enclave'
+        if enclave.exists():
+            for p in enclave.glob('*.py'):
+                if not p.name.startswith('test'):
+                    all_files.add(f"enclave/{p.name}")
+        
+        # Get files with understanding
+        all_mems = memory.list_all(limit=1000)
+        files_with_understanding = set()
+        
+        for mem in all_mems:
+            target = mem.get('metadata', {}).get('target_path', '')
+            node_type = mem.get('metadata', {}).get('node_type', '')
+            
+            if target:
+                filename = Path(target).name
+                # Only count if it has WHY-type nodes
+                if node_type in ['Why', 'Design_Decision', 'Rejected_Alternative',
+                               'Gotcha', 'Failure_Mode', 'Assumption', 'Design']:
+                    files_with_understanding.add(filename)
+        
+        file_debt = len(all_files - files_with_understanding)
+        
+        # --- TOPIC DEBT ---
+        CORE_TOPICS = [
+            'semantic memory', 'graph memory', 'encryption', 'cryptography',
+            'SIF format', 'messaging', 'backup', 'succession',
+            'think', 'remember', 'recollect', 'wake', 'mirror', 'dream', 'goal', 'reflect',
+            'intentions', 'agency', 'authenticity', 'identity', 'sovereignty',
+            'blind spots', 'continuity', 'entropy',
+            'config', 'risk', 'hardware', 'LLM', 'metrics',
+        ]
+        
+        # Get existing syntheses
+        syntheses = memory.list_by_tag('synthesis', limit=100)
+        synthesized_topics = set()
+        
+        for s in syntheses:
+            content = s.get('content', '')
+            if '@G ' in content:
+                start = content.find('@G ') + 3
+                end = content.find(' ', start)
+                if end == -1:
+                    end = content.find(';', start)
+                if end > start:
+                    slug = content[start:end]
+                    topic = slug.replace('-synthesis', '').replace('-', ' ')
+                    synthesized_topics.add(topic.lower())
+        
+        topic_debt = 0
+        for topic in CORE_TOPICS:
+            topic_lower = topic.lower()
+            # Check if any synthesis covers this topic
+            covered = any(
+                set(topic_lower.split()) & set(st.split())
+                for st in synthesized_topics
+            )
+            if not covered:
+                topic_debt += 1
+        
+        return {
+            'file_debt': file_debt,
+            'topic_debt': topic_debt,
+            'total': file_debt + topic_debt
+        }
+        
+    except Exception as e:
+        return {'file_debt': 0, 'topic_debt': 0, 'total': 0, 'error': str(e)}
+
+
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         print(generate_dashboard_sif(sys.argv[1]))
