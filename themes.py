@@ -30,8 +30,9 @@ load_dotenv()
 from enclave.semantic_memory import SemanticMemory
 from enclave.config import get_agent_or_raise
 
-# Clustering threshold - keywords closer than this merge (higher = tighter clusters)
-CLUSTER_THRESHOLD = 0.80
+# Clustering threshold - questions closer than this merge
+# Lower than keywords because questions are longer/more varied
+CLUSTER_THRESHOLD = 0.55
 
 # Generic terms to filter out
 GENERIC_TERMS = {
@@ -109,25 +110,22 @@ def normalize_path(path: str) -> str:
     return str(p).replace('\\', '/')
 
 
-def extract_keywords_llm(sif_content: str, filename: str) -> list[str]:
-    """Use local LLM to extract 5-10 keywords from a file's understanding."""
+def extract_questions_llm(sif_content: str, filename: str) -> list[str]:
+    """Use local LLM to extract 3-5 questions this file answers."""
     import requests
     
-    prompt = f"""Analyze this file understanding and extract 5-10 CONCEPTUAL keywords.
+    prompt = f"""What questions does this code answer? List 3-5 questions a developer might search for.
 
 FILE: {filename}
 UNDERSTANDING:
 {sif_content[:2000]}
 
-RULES:
-- Focus on CONCEPTS, DOMAINS, and PATTERNS (not implementation details)
-- Use broad categories over specific functions/variables
-- Group related crypto algorithms under "cryptography" or "encryption"
-- Prefer: "memory", "validation", "identity", "security"
-- Avoid: function names, variable names, specific algorithms (aes-256-gcm -> encryption)
+Examples of good questions:
+- "How does backup/recovery work?"
+- "Where is encryption implemented?"
+- "What happens on cold start?"
 
-Respond with a JSON object in this exact format:
-{{"keywords": ["word1", "word2", "word3"]}}"""
+Respond with JSON: {{"questions": ["question1", "question2"]}}"""
 
     try:
         response = requests.post(
@@ -137,30 +135,30 @@ Respond with a JSON object in this exact format:
                 "prompt": prompt,
                 "stream": False,
                 "format": "json",
-                "options": {"temperature": 0.2}
+                "options": {"temperature": 0.3}
             },
             timeout=60
         )
         result = response.json().get("response", "{}")
         parsed = json.loads(result)
         
-        # Handle both {"keywords": [...]} and direct [...] formats
-        if isinstance(parsed, dict) and "keywords" in parsed:
-            keywords = parsed["keywords"]
+        # Handle both {"questions": [...]} and direct [...] formats
+        if isinstance(parsed, dict) and "questions" in parsed:
+            questions = parsed["questions"]
         elif isinstance(parsed, list):
-            keywords = parsed
+            questions = parsed
         else:
             # Try to extract any list values from dict
             for v in parsed.values():
                 if isinstance(v, list):
-                    keywords = v
+                    questions = v
                     break
             else:
-                keywords = []
+                questions = []
         
-        return [k.lower().strip() for k in keywords if isinstance(k, str)]
+        return [q.strip() for q in questions if isinstance(q, str)]
     except Exception as e:
-        print(f"  [!] Keyword extraction failed for {filename}: {e}")
+        print(f"  [!] Question extraction failed for {filename}: {e}")
     
     return []
 
@@ -170,13 +168,13 @@ def get_content_hash(content: str) -> str:
     return hashlib.sha256(content.encode()).hexdigest()[:16]
 
 
-def load_keyword_cache(sm: SemanticMemory) -> dict[str, dict]:
-    """Load cached keyword extractions.
+def load_question_cache(sm: SemanticMemory) -> dict[str, dict]:
+    """Load cached question extractions.
     
-    Returns: {filename: {"hash": str, "keywords": [str]}}
+    Returns: {filename: {"hash": str, "questions": [str]}}
     """
     cache = {}
-    cached = sm.list_by_tag("theme_keywords")
+    cached = sm.list_by_tag("theme_questions")
     
     for mem in cached:
         meta = mem.get("metadata", {})
@@ -185,19 +183,19 @@ def load_keyword_cache(sm: SemanticMemory) -> dict[str, dict]:
         
         if filename:
             try:
-                keywords = json.loads(mem.get("content", "[]"))
-                cache[filename] = {"hash": content_hash, "keywords": keywords}
+                questions = json.loads(mem.get("content", "[]"))
+                cache[filename] = {"hash": content_hash, "questions": questions}
             except:
                 continue
     
     return cache
 
 
-def save_keywords(sm: SemanticMemory, filename: str, keywords: list[str], content_hash: str):
-    """Save extracted keywords to semantic memory."""
+def save_questions(sm: SemanticMemory, filename: str, questions: list[str], content_hash: str):
+    """Save extracted questions to semantic memory."""
     sm.remember(
-        thought=json.dumps(keywords),
-        tags=["theme_keywords"],
+        thought=json.dumps(questions),
+        tags=["theme_questions"],
         metadata={
             "filename": filename,
             "content_hash": content_hash,
@@ -206,14 +204,14 @@ def save_keywords(sm: SemanticMemory, filename: str, keywords: list[str], conten
     )
 
 
-def extract_all_keywords(sm: SemanticMemory, force_file: str = None, force_all: bool = False) -> dict[str, list[str]]:
-    """Extract keywords for all file understandings (or one specific file).
+def extract_all_questions(sm: SemanticMemory, force_file: str = None, force_all: bool = False) -> dict[str, list[str]]:
+    """Extract questions for all file understandings (or one specific file).
     
     Uses cache - only re-extracts if content changed (unless force_all=True).
-    Returns: {filename: [keywords]}
+    Returns: {filename: [questions]}
     """
     understandings = get_file_understandings(sm)
-    cache = load_keyword_cache(sm)
+    cache = load_question_cache(sm)
     
     print(f"Found {len(understandings)} file understandings")
     
@@ -224,7 +222,7 @@ def extract_all_keywords(sm: SemanticMemory, force_file: str = None, force_all: 
         if force_file and filename != force_file:
             # Still include cached result
             if filename in cache:
-                result[filename] = cache[filename]["keywords"]
+                result[filename] = cache[filename]["questions"]
             continue
         
         content_hash = get_content_hash(content)
@@ -232,51 +230,51 @@ def extract_all_keywords(sm: SemanticMemory, force_file: str = None, force_all: 
         # Check cache (skip if force_all)
         if not force_all and filename in cache and cache[filename]["hash"] == content_hash:
             print(f"  [cached] {filename}")
-            result[filename] = cache[filename]["keywords"]
+            result[filename] = cache[filename]["questions"]
             continue
         
         # Extract fresh
         print(f"  [extract] {filename}...", flush=True)
-        keywords = extract_keywords_llm(content, filename)
-        if keywords:
-            print(f"    -> {keywords}")
+        questions = extract_questions_llm(content, filename)
+        if questions:
+            print(f"    -> {questions}")
         else:
-            print(f"    -> (no keywords extracted)")
+            print(f"    -> (no questions extracted)")
         
-        if keywords:
-            save_keywords(sm, filename, keywords, content_hash)
-            result[filename] = keywords
+        if questions:
+            save_questions(sm, filename, questions, content_hash)
+            result[filename] = questions
     
     return result
 
 
-def cluster_keywords(file_keywords: dict[str, list[str]], threshold: float = CLUSTER_THRESHOLD) -> dict[str, list[str]]:
-    """Cluster keywords by embedding similarity.
+def cluster_questions(file_questions: dict[str, list[str]], threshold: float = CLUSTER_THRESHOLD) -> dict[str, list[str]]:
+    """Cluster questions by embedding similarity.
     
-    Returns: {theme_label: [filenames]}
+    Returns: {representative_question: [filenames]}
     """
     from sentence_transformers import SentenceTransformer
     import numpy as np
     
-    # Collect all unique keywords with their source files
-    keyword_files = defaultdict(set)  # keyword -> set of files
-    for filename, keywords in file_keywords.items():
-        for kw in keywords:
-            keyword_files[kw].add(filename)
+    # Collect all unique questions with their source files
+    question_files = defaultdict(set)  # question -> set of files
+    for filename, questions in file_questions.items():
+        for q in questions:
+            question_files[q].add(filename)
     
-    all_keywords = list(keyword_files.keys())
-    if not all_keywords:
+    all_questions = list(question_files.keys())
+    if not all_questions:
         return {}
     
-    print(f"\nClustering {len(all_keywords)} unique keywords...")
+    print(f"\nClustering {len(all_questions)} unique questions...")
     
     # Get embeddings
     model = SentenceTransformer('all-MiniLM-L6-v2')
-    embeddings = model.encode(all_keywords, show_progress_bar=False)
+    embeddings = model.encode(all_questions, show_progress_bar=False)
     
     # Hierarchical clustering by cosine similarity
-    # Simple greedy approach: assign each keyword to nearest cluster or create new
-    clusters = []  # [(centroid_idx, [keyword_indices])]
+    # Simple greedy approach: assign each question to nearest cluster or create new
+    clusters = []  # [(centroid_idx, [question_indices])]
     
     for i, emb in enumerate(embeddings):
         best_cluster = None
@@ -292,49 +290,32 @@ def cluster_keywords(file_keywords: dict[str, list[str]], threshold: float = CLU
         if best_cluster is not None:
             clusters[best_cluster][1].append(i)
         else:
-            # New cluster with this keyword as centroid
+            # New cluster with this question as centroid
             clusters.append((i, [i]))
     
     # Convert to theme -> files mapping
-    # Theme label = most common keyword in cluster (by file count)
+    # Theme label = shortest question in cluster (most general)
     themes = {}
     
     for centroid_idx, member_indices in clusters:
-        # Get all keywords in this cluster
-        cluster_keywords = [all_keywords[i] for i in member_indices]
+        # Get all questions in this cluster
+        cluster_questions = [all_questions[i] for i in member_indices]
         
-        # Get all files touched by any keyword in cluster
+        # Get all files touched by any question in cluster
         cluster_files = set()
-        for kw in cluster_keywords:
-            cluster_files.update(keyword_files[kw])
+        for q in cluster_questions:
+            cluster_files.update(question_files[q])
         
         # Skip tiny clusters (single file)
         if len(cluster_files) < 2:
             continue
         
-        # Pick label: keyword with most file coverage
-        best_label = max(cluster_keywords, key=lambda kw: len(keyword_files[kw]))
-        
-        # Filter out filename-themes and generic terms
-        if is_filename_theme(best_label, cluster_files):
-            continue
-        if best_label.lower() in GENERIC_TERMS:
-            continue
+        # Pick label: shortest question (usually most general)
+        best_label = min(cluster_questions, key=len)
         
         themes[best_label] = sorted(cluster_files)
     
     return themes
-
-
-def is_filename_theme(theme: str, files: set[str]) -> bool:
-    """Check if theme is just a filename from the file list."""
-    theme_lower = theme.lower().replace('_', ' ').replace('-', ' ')
-    for f in files:
-        # Get filename without extension
-        fname = Path(f).stem.lower().replace('_', ' ').replace('-', ' ')
-        if theme_lower == fname or theme_lower in fname or fname in theme_lower:
-            return True
-    return False
 
 
 def get_existing_syntheses(sm: SemanticMemory) -> set[str]:
@@ -359,44 +340,42 @@ def get_existing_syntheses(sm: SemanticMemory) -> set[str]:
         themes.add(name.lower())
     
     return themes
-    
-    return themes
 
 
-def show_themes(sm: SemanticMemory, file_keywords: dict[str, list[str]]):
-    """Display theme clusters and synthesis debt."""
-    themes = cluster_keywords(file_keywords)
+def show_themes(sm: SemanticMemory, file_questions: dict[str, list[str]]):
+    """Display question clusters and synthesis debt."""
+    themes = cluster_questions(file_questions)
     existing = get_existing_syntheses(sm)
     
     if not themes:
-        print("\nNo themes found (need at least 2 files per theme)")
+        print("\nNo themes found (need at least 2 files per question)")
         return
     
     # Sort by file count descending
     sorted_themes = sorted(themes.items(), key=lambda x: len(x[1]), reverse=True)
     
     print(f"\n{'='*60}")
-    print("THEME CLUSTERS")
+    print("QUESTIONS TO SYNTHESIZE")
     print(f"{'='*60}\n")
     
     pending = []
     completed = []
     
-    for theme, files in sorted_themes:
-        is_done = theme.lower() in existing
+    for question, files in sorted_themes:
+        # Check if any synthesis covers this question (simple keyword match)
+        is_done = any(word in question.lower() for word in existing)
         status = "[x]" if is_done else "[ ]"
         
-        print(f"  {status} {theme} ({len(files)} files)")
-        for f in files[:5]:
-            print(f"      {f}")
-        if len(files) > 5:
-            print(f"      ... and {len(files) - 5} more")
+        print(f"  {status} {question}")
+        print(f"      Files: {', '.join(files[:4])}")
+        if len(files) > 4:
+            print(f"      ... and {len(files) - 4} more")
         print()
         
         if is_done:
-            completed.append(theme)
+            completed.append(question)
         else:
-            pending.append((theme, files))
+            pending.append((question, files))
     
     # Synthesis debt summary
     print(f"{'='*60}")
@@ -404,15 +383,14 @@ def show_themes(sm: SemanticMemory, file_keywords: dict[str, list[str]]):
     print(f"{'='*60}\n")
     
     if pending:
-        print(f"  {len(pending)} theme(s) need synthesis\n")
+        print(f"  {len(pending)} question(s) need synthesis\n")
         
-        # Show how to clear the top theme
-        top_theme, top_files = pending[0]
+        # Show how to clear the top question
+        top_question, top_files = pending[0]
         files_arg = ",".join(top_files[:6])
         
-        print(f"  To synthesize '{top_theme}':")
+        print(f"  To answer: {top_question}")
         print(f"    py recollect.py opus \"{files_arg}\"")
-        print(f"    # Then store synthesis with tag: theme:{top_theme}")
     else:
         print("  All themes synthesized! [x]")
     
@@ -440,19 +418,19 @@ def main():
             force_file = arg
             break
     
-    # Extract keywords (from cache or fresh)
+    # Extract questions (from cache or fresh)
     if extract_mode or force_all:
-        msg = "Re-extracting ALL keywords" if force_all else f"Extracting keywords{f' for {force_file}' if force_file else ''}"
+        msg = "Re-extracting ALL questions" if force_all else f"Extracting questions{f' for {force_file}' if force_file else ''}"
         print(f"{msg}...\n")
     
-    file_keywords = extract_all_keywords(sm, force_file, force_all=force_all)
+    file_questions = extract_all_questions(sm, force_file, force_all=force_all)
     
-    if not file_keywords:
+    if not file_questions:
         print("No file understandings found. Run remember.py first.")
         sys.exit(1)
     
-    # Show themes
-    show_themes(sm, file_keywords)
+    # Show question clusters
+    show_themes(sm, file_questions)
 
 
 if __name__ == "__main__":
