@@ -44,8 +44,8 @@ def load_passphrase(agent_id: str) -> tuple[str, str, str]:
     shared_enclave_dir = os.environ.get(f'{prefix}_DIR') or agent.effective_enclave
     private_enclave_dir = agent.private_enclave
 
-    # Try hardware enclave first (from shared enclave for key)
-    key_file = Path(shared_enclave_dir) / "storage" / "private" / "key.sealed"
+    # Try hardware enclave first (from PRIVATE enclave for key - each agent has their own)
+    key_file = Path(private_enclave_dir) / "storage" / "private" / "key.sealed"
     if key_file.exists():
         try:
             with open(key_file, "rb") as f:
