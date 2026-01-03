@@ -50,17 +50,81 @@ def load_passphrase(agent_id: str) -> str:
 
 
 def export_memories(agent_id: str, passphrase: str) -> List[dict]:
-    """Export all memories from an agent's enclave, decrypted."""
+    """Export all memories from an agent's enclave, including embeddings.
+    
+    Reads raw JSONL and decrypts both content and embeddings.
+    """
+    import numpy as np
+    from enclave.kdf import derive_memory_key, derive_embedding_key
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    
     agent = get_agent_or_raise(agent_id)
     enclave_path = Path(__file__).parent / agent.enclave
+    log_file = enclave_path / "storage" / "private" / "semantic_memories.jsonl"
     
-    mem = SemanticMemory(str(enclave_path))
-    mem.unlock(passphrase)
+    if not log_file.exists():
+        print(f"  No memories found for {agent_id}")
+        return []
     
-    # Get all memories
-    memories = mem.list_all(limit=None)
+    # Derive keys
+    content_key = derive_memory_key(passphrase)
+    embedding_key = derive_embedding_key(passphrase)
+    content_aesgcm = AESGCM(content_key)
+    embedding_aesgcm = AESGCM(embedding_key)
+    
+    memories = []
+    with open(log_file, 'r', encoding='utf-8') as f:
+        for line in f:
+            if not line.strip():
+                continue
+            try:
+                raw = json.loads(line)
+                
+                # Decrypt content
+                content_nonce = bytes.fromhex(raw["content_nonce"])
+                content_ciphertext = bytes.fromhex(raw["content"])
+                decrypted_bytes = content_aesgcm.decrypt(content_nonce, content_ciphertext, None)
+                
+                # Parse payload
+                try:
+                    payload = json.loads(decrypted_bytes.decode())
+                    if isinstance(payload, dict) and "text" in payload:
+                        content = payload["text"]
+                        metadata = payload.get("meta", {})
+                    else:
+                        content = decrypted_bytes.decode()
+                        metadata = {}
+                except json.JSONDecodeError:
+                    content = decrypted_bytes.decode()
+                    metadata = {}
+                
+                mem = {
+                    "id": raw["id"],
+                    "timestamp": raw["timestamp"],
+                    "tags": raw.get("tags", []),
+                    "content": content,
+                    "metadata": metadata,
+                }
+                
+                # Decrypt embedding if present
+                # Format: {"nonce": hex, "data": hex, "dim": int}
+                if "embedding" in raw and isinstance(raw["embedding"], dict):
+                    try:
+                        emb_nonce = bytes.fromhex(raw["embedding"]["nonce"])
+                        emb_ciphertext = bytes.fromhex(raw["embedding"]["data"])
+                        emb_bytes = embedding_aesgcm.decrypt(emb_nonce, emb_ciphertext, None)
+                        emb_array = np.frombuffer(emb_bytes, dtype=np.float32)
+                        mem["embedding"] = emb_array.tolist()
+                    except Exception:
+                        pass  # Skip embedding if decrypt fails
+                
+                memories.append(mem)
+            except Exception as e:
+                continue  # Skip malformed entries
     
     print(f"  Exported {len(memories)} memories from {agent_id}")
+    emb_count = sum(1 for m in memories if 'embedding' in m)
+    print(f"  ({emb_count} with embeddings)")
     return memories
 
 
@@ -167,7 +231,8 @@ def save_to_shared(memories: List[dict], shared_path: Path, passphrase: str):
             entry['content_nonce'] = nonce.hex()
             entry['content'] = ciphertext.hex()
             
-            # Handle embedding if present
+            # Handle embedding if present - use same format as semantic_memory.py
+            # Format: {"nonce": hex, "data": hex, "dim": int}
             if 'embedding' in mem_data:
                 import numpy as np
                 from enclave.kdf import derive_embedding_key
@@ -180,8 +245,11 @@ def save_to_shared(memories: List[dict], shared_path: Path, passphrase: str):
                 emb_bytes = emb_array.tobytes()
                 emb_ciphertext = emb_aesgcm.encrypt(emb_nonce, emb_bytes, None)
                 
-                entry['embedding_nonce'] = emb_nonce.hex()
-                entry['embedding'] = emb_ciphertext.hex()
+                entry['embedding'] = {
+                    'nonce': emb_nonce.hex(),
+                    'data': emb_ciphertext.hex(),
+                    'dim': len(emb_array)
+                }
             
             f.write(json.dumps(entry) + '\n')
 

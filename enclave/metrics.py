@@ -33,8 +33,8 @@ def calculate_synthesis(agent_id: str) -> float:
         import json
         import numpy as np
         
-        enclave_dir, passphrase = load_passphrase(agent_id)
-        memory = SemanticMemory(enclave_path=enclave_dir)
+        shared_enclave, private_enclave, passphrase = load_passphrase(agent_id)
+        memory = SemanticMemory(enclave_path=shared_enclave)
         if not memory.unlock(passphrase):
             return 0.0
             
@@ -223,8 +223,8 @@ def calculate_synthesis_debt(agent_id: str) -> dict:
     
     try:
         from wake import load_passphrase
-        enclave_dir, passphrase = load_passphrase(agent_id)
-        memory = SemanticMemory(enclave_path=enclave_dir)
+        shared_enclave, private_enclave, passphrase = load_passphrase(agent_id)
+        memory = SemanticMemory(enclave_path=shared_enclave)
         if not memory.unlock(passphrase):
             return {'file_debt': 0, 'topic_debt': 0, 'total': 0}
         
