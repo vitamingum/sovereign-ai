@@ -626,25 +626,36 @@ def wake(agent_id: str) -> str:
         return '\n'.join(error_lines), len(stale_files), len(missing_files)
 
     # === SYNTHESIS DEBT CHECK - FAIL FAST ===
+    # Synthesis debt = themes without corresponding synthesis
     try:
         debt = calculate_synthesis_debt(agent_id)
-        if debt['total'] > 10:  # Threshold: more than 10 missing understandings
+        if debt['total'] > 5:  # Threshold: more than 5 unsynthesized themes
             error_lines = [
                 "Traceback (most recent call last):",
                 f'  File "wake.py", line 1, in <module>',
                 "    from sovereign.knowledge import synthesis_check",
                 f'  File "c:\\sovereign\\knowledge\\synthesis.py", line 1, in synthesis_check',
                 "    raise SynthesisDebtError(debt)",
-                f'SynthesisDebtError: {debt["total"]} understanding(s) missing ({debt["file_debt"]} files, {debt["topic_debt"]} topics)',
+                f'SynthesisDebtError: {debt["themes_pending"]} theme(s) need synthesis ({debt["themes_synthesized"]}/{debt["themes_total"]} done)',
                 "",
-                "FATAL: Your synthesis is incomplete. Cannot proceed with fragmented knowledge.",
+                "FATAL: Themes discovered but not synthesized.",
+                "",
+                "PENDING THEMES:",
+            ]
+            for theme_data in debt.get('pending_themes', [])[:5]:
+                name = theme_data.get('name', '?')
+                topics = theme_data.get('topics', [])
+                error_lines.append(f"    • {name}: {', '.join(topics[:4])}")
+            if len(debt.get('pending_themes', [])) > 5:
+                error_lines.append(f"    ... and {len(debt['pending_themes']) - 5} more")
+            error_lines.extend([
                 "",
                 "TO FIX:",
-                "  Run: py wake.py opus --check-debt",
-                "  Then run the remember.py commands it provides for each file.",
-                "",
-                "This ensures dense understanding stays current with code evolution.",
-            ]
+                "  1. Run: py bridge.py opus",
+                "  2. Pick a theme and recollect its topics",
+                "  3. Store with: py remember.py opus - '@G <theme>-synthesis opus ...'",
+                "     Include tags: synthesis, theme:<name>, topic:<each-topic>",
+            ])
             return '\n'.join(error_lines), len(stale_files), 0
     except Exception as e:
         # If debt calculation fails, don't block - but log

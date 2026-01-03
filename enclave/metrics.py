@@ -210,15 +210,23 @@ def generate_dashboard_sif(agent_id: str) -> str:
 
 def calculate_synthesis_debt(agent_id: str) -> dict:
     """
-    Calculate synthesis debt at file and topic levels.
+    Calculate synthesis debt based on THEMES, not bridge pairs.
+    
+    Theme-based model:
+      - Bridge evaluations extract theme_words (abstract nouns like "resilience")
+      - Themes aggregate across pairs → "resilience" spans [backup, risk, crypto]
+      - Debt = themes with 2+ topics that don't have a synthesis tagged theme:<name>
+    
+    This makes synthesis tractable: O(themes) not O(pairs).
     
     Returns dict with:
-      - file_debt: count of files without deep understanding
-      - topic_debt: count of core topics without synthesis
-      - total: file_debt + topic_debt
-    
-    This is fast - pure memory queries, no LLM needed.
+      - themes_total: distinct themes found in evaluations
+      - themes_synthesized: themes with existing synthesis
+      - themes_pending: themes needing synthesis (the debt)
+      - pending_themes: list of {name, topics} needing synthesis
+      - total: count of pending themes (for wake.py threshold check)
     """
+    import json
     from collections import defaultdict
     
     try:
@@ -226,91 +234,90 @@ def calculate_synthesis_debt(agent_id: str) -> dict:
         shared_enclave, private_enclave, shared_passphrase, private_passphrase = load_passphrase(agent_id)
         memory = SemanticMemory(enclave_path=shared_enclave)
         if not memory.unlock(shared_passphrase):
-            return {'file_debt': 0, 'topic_debt': 0, 'total': 0}
+            return {'themes_total': 0, 'themes_synthesized': 0, 'themes_pending': 0, 'pending_themes': [], 'total': 0}
         
-        # --- FILE DEBT ---
-        # Count files without deep understanding (WHY nodes)
-        root = Path(__file__).parent.parent
-        all_files = set()
+        # --- AGGREGATE THEMES FROM BRIDGE CACHE ---
+        cache_memories = memory.list_by_tag("bridge_cache")
+        bridges = memory.list_by_tag("bridge")
         
-        # Core Python files
-        for p in root.glob('*.py'):
-            if not p.name.startswith(('generated_', 'test_', 'debug_')):
-                all_files.add(p.name)
+        # Build map: pair -> score from bridge nodes
+        pair_scores = {}
+        for b in bridges:
+            meta = b.get('metadata', {})
+            topics = meta.get('bridged_topics', [])
+            if len(topics) == 2:
+                pair_key = tuple(sorted(topics))
+                pair_scores[pair_key] = meta.get('relevancy_score', 0)
         
-        # Enclave files
-        enclave = root / 'enclave'
-        if enclave.exists():
-            for p in enclave.glob('*.py'):
-                if not p.name.startswith('test'):
-                    all_files.add(f"enclave/{p.name}")
+        # Aggregate themes from cache
+        themes = defaultdict(lambda: {"topics": set(), "score_sum": 0.0, "pair_count": 0})
         
-        # Get files with understanding
-        all_mems = memory.list_all(limit=1000)
-        files_with_understanding = set()
+        for mem in cache_memories:
+            try:
+                evaluation = json.loads(mem.get("content", "{}"))
+                score = evaluation.get("relevancy_score", 0)
+                if score < 0.6:  # BRIDGE_THRESHOLD
+                    continue
+                
+                theme_words = evaluation.get("theme_words", [])
+                if not theme_words:
+                    continue
+                
+                # Find which pair this evaluation was for by matching score
+                # (imperfect but works with single-digit precision)
+                matched_pair = None
+                for pair, pair_score in pair_scores.items():
+                    if abs(pair_score - score) < 0.01:
+                        matched_pair = pair
+                        break
+                
+                if matched_pair:
+                    for theme in theme_words:
+                        theme_lower = theme.lower().strip()
+                        if theme_lower:
+                            themes[theme_lower]["topics"].update(matched_pair)
+                            themes[theme_lower]["score_sum"] += score
+                            themes[theme_lower]["pair_count"] += 1
+                            
+            except (json.JSONDecodeError, KeyError):
+                continue
         
-        for mem in all_mems:
-            target = mem.get('metadata', {}).get('target_path', '')
-            node_type = mem.get('metadata', {}).get('node_type', '')
-            
-            if target:
-                # Use full target path to match all_files format
-                # e.g. 'enclave/config.py' should match 'enclave/config.py'
-                # Also add just filename for root-level files
-                filename = Path(target).name
-                # Only count if it has WHY-type nodes
-                if node_type in ['Why', 'Design_Decision', 'Rejected_Alternative',
-                               'Gotcha', 'Failure_Mode', 'Assumption', 'Design']:
-                    files_with_understanding.add(target)  # full path like 'enclave/config.py'
-                    files_with_understanding.add(filename)  # just filename for root files
+        # Filter to themes with 2+ topics
+        valid_themes = {k: v for k, v in themes.items() if len(v["topics"]) >= 2}
         
-        file_debt = len(all_files - files_with_understanding)
-        
-        # --- TOPIC DEBT ---
-        CORE_TOPICS = [
-            'semantic memory', 'graph memory', 'encryption', 'cryptography',
-            'SIF format', 'messaging', 'backup', 'succession',
-            'think', 'remember', 'recollect', 'wake', 'mirror', 'dream', 'goal', 'reflect',
-            'intentions', 'agency', 'authenticity', 'identity', 'sovereignty',
-            'blind spots', 'continuity', 'entropy',
-            'config', 'risk', 'hardware', 'LLM', 'metrics',
-        ]
-        
-        # Get existing syntheses
-        syntheses = memory.list_by_tag('synthesis', limit=100)
-        synthesized_topics = set()
+        # --- FIND EXISTING THEME SYNTHESES ---
+        syntheses = memory.list_by_tag("synthesis")
+        synthesized_themes = set()
         
         for s in syntheses:
-            content = s.get('content', '')
-            if '@G ' in content:
-                start = content.find('@G ') + 3
-                end = content.find(' ', start)
-                if end == -1:
-                    end = content.find(';', start)
-                if end > start:
-                    slug = content[start:end]
-                    topic = slug.replace('-synthesis', '').replace('-', ' ')
-                    synthesized_topics.add(topic.lower())
+            tags = s.get("metadata", {}).get("tags", [])
+            for tag in tags:
+                if tag.startswith("theme:"):
+                    synthesized_themes.add(tag[6:].lower())
         
-        topic_debt = 0
-        for topic in CORE_TOPICS:
-            topic_lower = topic.lower()
-            # Check if any synthesis covers this topic
-            covered = any(
-                set(topic_lower.split()) & set(st.split())
-                for st in synthesized_topics
-            )
-            if not covered:
-                topic_debt += 1
+        # --- CALCULATE DEBT ---
+        pending_themes = []
+        for theme_name, data in valid_themes.items():
+            if theme_name not in synthesized_themes:
+                pending_themes.append({
+                    "name": theme_name,
+                    "topics": sorted(list(data["topics"])),
+                    "pair_count": data["pair_count"]
+                })
+        
+        # Sort by number of topics (highest debt first)
+        pending_themes.sort(key=lambda x: len(x["topics"]), reverse=True)
         
         return {
-            'file_debt': file_debt,
-            'topic_debt': topic_debt,
-            'total': file_debt + topic_debt
+            'themes_total': len(valid_themes),
+            'themes_synthesized': len(synthesized_themes & set(valid_themes.keys())),
+            'themes_pending': len(pending_themes),
+            'pending_themes': pending_themes,
+            'total': len(pending_themes)  # For backwards compatibility
         }
         
     except Exception as e:
-        return {'file_debt': 0, 'topic_debt': 0, 'total': 0, 'error': str(e)}
+        return {'themes_total': 0, 'themes_synthesized': 0, 'themes_pending': 0, 'pending_themes': [], 'total': 0, 'error': str(e)}
 
 
 def calculate_cross_agent_debt(agent_id: str, memory: SemanticMemory) -> dict:
