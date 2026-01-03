@@ -54,7 +54,7 @@ AGENTS: Dict[str, Agent] = {
         enclave='enclave_opus',
         public_key='a067adba252c030a49f281b6153191249871c5a99b41c61daa94d884902025e0',
         env_prefix='ENCLAVE_OPUS',
-        shared_enclave='enclave_shared',  # Paired with gemini
+        shared_enclave='shared_enclave',  # Paired with gemini
     ),
     'gemini': Agent(
         id='gemini',
@@ -63,7 +63,7 @@ AGENTS: Dict[str, Agent] = {
         enclave='enclave_gemini',
         public_key='04d95ad0a17c00caa2aac6552ab82b953eee3053d3ce4a07a5312ec31f475372',
         env_prefix='ENCLAVE_GEMINI',
-        shared_enclave='enclave_shared',  # Paired with opus
+        shared_enclave='shared_enclave',  # Paired with opus
     ),
     'gpt52': Agent(
         id='gpt52',

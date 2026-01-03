@@ -3,7 +3,7 @@
 merge_enclaves.py - Merge two agent enclaves into a shared enclave.
 
 Usage:
-    py merge_enclaves.py <agent1> <agent2> [--target enclave_shared]
+    py merge_enclaves.py <agent1> <agent2> [--target shared_enclave]
     
 Example:
     py merge_enclaves.py opus gemini
@@ -289,7 +289,7 @@ def main():
     
     agent1 = sys.argv[1]
     agent2 = sys.argv[2]
-    target = "enclave_shared"
+    target = "shared_enclave"
     
     if "--target" in sys.argv:
         idx = sys.argv.index("--target")
