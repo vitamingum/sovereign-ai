@@ -389,11 +389,38 @@ FAIL: [one sentence what's missing or superficial]"""
         return True, f"(LLM error: {e})"
 
 
+def delete_existing_understanding(mem: SemanticMemory, target_path: str, creator: str):
+    """
+    Delete existing understanding nodes for this file by this creator.
+    
+    Git tracks history - semantic memory holds current state only.
+    """
+    filename = Path(target_path).name
+    
+    # Find all nodes tagged with this file
+    existing = mem.list_by_tag(filename, limit=200)
+    
+    # Filter to nodes by this creator
+    ids_to_delete = set()
+    for node in existing:
+        metadata = node.get('metadata', {})
+        node_creator = metadata.get('creator')
+        if node_creator == creator:
+            ids_to_delete.add(node['id'])
+    
+    if ids_to_delete:
+        deleted = mem.delete_by_ids(ids_to_delete)
+        print(f"  [REPLACED] Deleted {deleted} old nodes by {creator}")
+    
+    return len(ids_to_delete)
+
+
 def store_understanding(mem: SemanticMemory, graph: SIFKnowledgeGraph, target_path: str):
     """
     Store the understanding graph in semantic memory.
     
     Storage strategy:
+    - REPLACE existing understanding (git tracks history)
     - Each node becomes a separate memory with embeddings
     - Edges stored as metadata
     - File hash stored for staleness detection
@@ -401,6 +428,17 @@ def store_understanding(mem: SemanticMemory, graph: SIFKnowledgeGraph, target_pa
     ACT NOW principle: Next/Tool/Action nodes are rejected.
     Small tasks should be done immediately, not stored.
     """
+    # Get creator from graph nodes
+    creator = None
+    for node in graph.nodes:
+        if node.creator:
+            creator = node.creator
+            break
+    
+    # Delete existing understanding by this creator for this file
+    if creator:
+        delete_existing_understanding(mem, target_path, creator)
+    
     timestamp = datetime.now(timezone.utc).isoformat()
     
     # ACT NOW: reject action-like nodes
