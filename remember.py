@@ -100,14 +100,14 @@ def parse_sif_understanding(sif_text: str, target_path: str, agent_id: str) -> S
     Expected format - compact SIF with meta-cognitive nodes:
     @G understanding agent timestamp
     N n1 Component "class/function name"
-    N n2 Purpose "what it does"
-    N n3 Design_Decision "why this approach"
+    N n2 Purpose "what it does" creator=human
+    N n3 Design_Decision "why this approach" creator=opus
     N n4 Rejected_Alternative "what we didn't do"
     N n5 Gotcha "operational warning"
     N n6 Assumption "implicit precondition"
     N n7 Failure_Mode "how it breaks"
     N n8 Debug_Strategy "how to troubleshoot"
-    E n1 implements n2
+    E n1 implements n2 creator=human
     E n3 motivated_by n2
     E n4 decided_against n3
     E n5 warns_about n1
@@ -118,6 +118,15 @@ def parse_sif_understanding(sif_text: str, target_path: str, agent_id: str) -> S
     # Parse the SIF
     graph = SIFParser.parse(sif_text)
     
+    # Set default creator for nodes and edges that don't have one
+    for node in graph.nodes:
+        if node.creator == "unknown":
+            node.creator = agent_id
+    
+    for edge in graph.edges:
+        if edge.creator == "unknown":
+            edge.creator = agent_id
+    
     # Add anchor node for the target file
     file_hash = compute_file_hash(Path(target_path)) if Path(target_path).is_file() else "dir"
     anchor_id = f"anchor_{file_hash}"
@@ -125,7 +134,8 @@ def parse_sif_understanding(sif_text: str, target_path: str, agent_id: str) -> S
     anchor_node = SIFNode(
         id=anchor_id,
         type="Anchor",
-        content=f"Understanding of {target_path} at {file_hash}"
+        content=f"Understanding of {target_path} at {file_hash}",
+        creator=agent_id
     )
     
     # Add edge from first node to anchor
@@ -133,7 +143,8 @@ def parse_sif_understanding(sif_text: str, target_path: str, agent_id: str) -> S
         anchor_edge = SIFEdge(
             source=graph.nodes[0].id,
             target=anchor_id,
-            relation="anchored_to"
+            relation="anchored_to",
+            creator=agent_id
         )
         graph.edges.append(anchor_edge)
     
@@ -396,6 +407,7 @@ def store_understanding(mem: SemanticMemory, graph: SIFKnowledgeGraph, target_pa
             "node_type": node.type,
             "target_path": target_path,
             "timestamp": timestamp,
+            "creator": node.creator,
             "outgoing_edges": [(e.relation, e.target) for e in outgoing],
             "incoming_edges": [(e.source, e.relation) for e in incoming],
         }

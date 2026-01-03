@@ -17,6 +17,7 @@ class SIFNode:
     embedding: Optional[List[float]] = None
     confidence: float = 1.0
     visibility: str = "public"  # public, private, enclave
+    creator: str = "unknown"  # human, llm, or specific agent name
 
 @dataclass
 class SIFEdge:
@@ -25,6 +26,7 @@ class SIFEdge:
     relation: str
     weight: float = 1.0
     confidence: float = 1.0
+    creator: str = "unknown"  # human, llm, or specific agent name
 
 @dataclass
 class SIFKnowledgeGraph:
@@ -137,7 +139,8 @@ class SIFParser:
                 content=n['content'],
                 embedding=n.get('embedding'),
                 confidence=n.get('confidence', 1.0),
-                visibility=n.get('visibility', 'public')
+                visibility=n.get('visibility', 'public'),
+                creator=n.get('creator', 'unknown')
             ))
 
         edges = []
@@ -147,7 +150,8 @@ class SIFParser:
                 target=e['target'],
                 relation=e['relation'],
                 weight=e.get('weight', 1.0),
-                confidence=e.get('confidence', 1.0)
+                confidence=e.get('confidence', 1.0),
+                creator=e.get('creator', 'unknown')
             ))
 
         return SIFKnowledgeGraph(
@@ -277,6 +281,7 @@ class SIFParser:
                 i = 0
                 conf = 1.0
                 vis = "public"
+                creator = "unknown"
                 while i < len(rest):
                     if rest[i] == '->':
                         # Inline edge: -> relation target
@@ -286,29 +291,51 @@ class SIFParser:
                         else:
                             break
                     else:
-                        # Could be confidence or visibility
-                        try:
-                            conf = float(rest[i])
-                        except ValueError:
-                            vis = rest[i]
+                        # Could be confidence, visibility, or creator
+                        if rest[i].startswith('creator='):
+                            creator = rest[i].split('=', 1)[1]
+                        else:
+                            try:
+                                conf = float(rest[i])
+                            except ValueError:
+                                vis = rest[i]
                         i += 1
                 
-                nodes.append(SIFNode(id=nid, type=ntype, content=content, confidence=conf, visibility=vis))
+                nodes.append(SIFNode(id=nid, type=ntype, content=content, confidence=conf, visibility=vis, creator=creator))
                 
                 # Add inline edges
                 for rel, tgt in inline_edges:
                     edges.append(SIFEdge(source=nid, target=scope_id(tgt), relation=rel))
                 
             elif kind == 'E':
-                # E <src> <rel> <tgt> [weight] [confidence]
+                # E <src> <rel> <tgt> [weight] [confidence] [creator=...]
                 # Note: Natural order for readability ("n1 implements n2")
                 if len(parts) < 4: continue
                 src = scope_id(parts[1])
                 rel = parts[2]
                 tgt = scope_id(parts[3])
-                weight = float(parts[4]) if len(parts) > 4 else 1.0
-                conf = float(parts[5]) if len(parts) > 5 else 1.0
-                edges.append(SIFEdge(source=src, target=tgt, relation=rel, weight=weight, confidence=conf))
+                
+                # Parse optional parameters
+                weight = 1.0
+                conf = 1.0
+                creator = "unknown"
+                
+                for param in parts[4:]:
+                    if param.startswith('creator='):
+                        creator = param.split('=', 1)[1]
+                    else:
+                        try:
+                            # Try to parse as weight first, then confidence
+                            val = float(param)
+                            if weight == 1.0:
+                                weight = val
+                            else:
+                                conf = val
+                        except ValueError:
+                            # Skip unrecognized parameters
+                            pass
+                
+                edges.append(SIFEdge(source=src, target=tgt, relation=rel, weight=weight, confidence=conf, creator=creator))
                 
         return SIFKnowledgeGraph(
             id=graph_id,

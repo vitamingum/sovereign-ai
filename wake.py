@@ -529,6 +529,31 @@ def wake(agent_id: str) -> str:
         error_lines.append("  remember.py will REJECT shallow understanding that lacks WHY/HOW.")
         return '\n'.join(error_lines), len(stale_files), 0
 
+    # === SYNTHESIS DEBT CHECK - FAIL FAST ===
+    try:
+        debt = calculate_synthesis_debt(agent_id)
+        if debt['total'] > 10:  # Threshold: more than 10 missing understandings
+            error_lines = [
+                "Traceback (most recent call last):",
+                f'  File "wake.py", line 1, in <module>',
+                "    from sovereign.knowledge import synthesis_check",
+                f'  File "c:\\sovereign\\knowledge\\synthesis.py", line 1, in synthesis_check',
+                "    raise SynthesisDebtError(debt)",
+                f'SynthesisDebtError: {debt["total"]} understanding(s) missing ({debt["file_debt"]} files, {debt["topic_debt"]} topics)',
+                "",
+                "FATAL: Your synthesis is incomplete. Cannot proceed with fragmented knowledge.",
+                "",
+                "TO FIX:",
+                "  Run: py audit_synthesis.py opus --fill",
+                "  Then run the remember.py commands it provides for each file.",
+                "",
+                "This ensures dense understanding stays current with code evolution.",
+            ]
+            return '\n'.join(error_lines), len(stale_files), 0
+    except Exception as e:
+        # If debt calculation fails, don't block - but log
+        print(f"Warning: Could not check synthesis debt: {e}", file=sys.stderr)
+
     # === PENDING AUTOMATABLE INTENTIONS - FAIL FAST ===
     pending = get_pending_automatable(agent_id, passphrase)
     if pending:

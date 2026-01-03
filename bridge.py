@@ -45,6 +45,20 @@ TOPICS = [
 ]
 
 
+def get_actual_synthesis_topics(sm: SemanticMemory) -> list[str]:
+    """Dynamically discover actual synthesis topics from semantic memory."""
+    syntheses = sm.list_by_tag("synthesis")
+    topics = set()
+    
+    for s in syntheses:
+        tags = s.get("tags", [])
+        for tag in tags:
+            if tag.startswith("topic:"):
+                topics.add(tag[6:])  # Remove 'topic:' prefix
+    
+    return sorted(list(topics))
+
+
 def get_evaluation_hash(topic1: str, content1: str, topic2: str, content2: str) -> str:
     """Generate hash for evaluation cache lookup."""
     combined = f"{topic1}:{content1[:1000]}|{topic2}:{content2[:1000]}"
@@ -262,7 +276,9 @@ def evaluate_pair(sm: SemanticMemory, topic1: str, topic2: str, store: bool = Tr
 
 def exhaustive_bridge(sm: SemanticMemory, max_workers: int = 4):
     """Try all topic pair combinations in parallel."""
-    pairs = list(itertools.combinations(TOPICS, 2))
+    # Use actual synthesis topics instead of hardcoded list
+    actual_topics = get_actual_synthesis_topics(sm)
+    pairs = list(itertools.combinations(actual_topics, 2))
     print(f"Evaluating {len(pairs)} topic pairs with {max_workers} workers...\n")
     
     # Load evaluation cache
@@ -361,14 +377,20 @@ def exhaustive_bridge(sm: SemanticMemory, max_workers: int = 4):
     print(f"\n{'='*50}")
     print("CLUSTER DETECTION")
     print(f"{'='*50}")
-    detect_clusters(results)
+    detect_clusters(results, sm)
     
     return results
 
 
-def detect_clusters(results: dict):
+def detect_clusters(results: dict, sm: SemanticMemory = None):
     """Detect topic clusters from bridge results."""
     from collections import defaultdict
+    
+    # Use actual topics if semantic memory provided
+    if sm:
+        topic_list = get_actual_synthesis_topics(sm)
+    else:
+        topic_list = TOPICS
     
     # Build adjacency from bridges
     adj = defaultdict(set)
@@ -381,7 +403,7 @@ def detect_clusters(results: dict):
     visited = set()
     clusters = []
     
-    for topic in TOPICS:
+    for topic in topic_list:
         if topic not in visited:
             cluster = []
             stack = [topic]
@@ -414,7 +436,7 @@ def show_existing_bridges(sm: SemanticMemory):
     # Group by bridge
     by_bridge = {}
     for b in bridges:
-        meta = b.get("meta", {})
+        meta = b.get("metadata", {})  # Fixed: was "meta"
         graph_id = meta.get("graph_id", "unknown")
         if graph_id not in by_bridge:
             by_bridge[graph_id] = {
@@ -460,7 +482,7 @@ def main():
         results = {"strong": [], "moderate": []}
         seen = set()
         for b in bridges:
-            meta = b.get("meta", {})
+            meta = b.get("metadata", {})  # Fixed: was "meta"
             topics = tuple(sorted(meta.get("bridged_topics", [])))
             if topics and topics not in seen:
                 seen.add(topics)
@@ -470,7 +492,7 @@ def main():
                     results["strong"].append(entry)
                 else:
                     results["moderate"].append(entry)
-        detect_clusters(results)
+        detect_clusters(results, sm)
     elif len(sys.argv) >= 4:
         topic1 = sys.argv[2]
         topic2 = sys.argv[3]

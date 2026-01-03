@@ -254,11 +254,15 @@ def calculate_synthesis_debt(agent_id: str) -> dict:
             node_type = mem.get('metadata', {}).get('node_type', '')
             
             if target:
+                # Use full target path to match all_files format
+                # e.g. 'enclave/config.py' should match 'enclave/config.py'
+                # Also add just filename for root-level files
                 filename = Path(target).name
                 # Only count if it has WHY-type nodes
                 if node_type in ['Why', 'Design_Decision', 'Rejected_Alternative',
                                'Gotcha', 'Failure_Mode', 'Assumption', 'Design']:
-                    files_with_understanding.add(filename)
+                    files_with_understanding.add(target)  # full path like 'enclave/config.py'
+                    files_with_understanding.add(filename)  # just filename for root files
         
         file_debt = len(all_files - files_with_understanding)
         

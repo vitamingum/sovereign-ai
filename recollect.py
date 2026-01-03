@@ -111,18 +111,29 @@ def reconstruct_graph(memories: list) -> dict:
             'id': namespaced_id,
             'type': node_type,
             'content': content,
-            'graph_id': graph_id  # Preserve for debugging
+            'graph_id': graph_id,  # Preserve for debugging
+            'creator': meta.get('creator', 'unknown')  # Add creator attribution
         })
         by_type[node_type].append(content)
         
         # Reconstruct edges with namespaced IDs
-        for relation, target in meta.get('outgoing_edges', []):
+        for edge_info in meta.get('outgoing_edges', []):
+            if isinstance(edge_info, dict):
+                # New format with creator
+                relation = edge_info.get('relation', '')
+                target = edge_info.get('target', '')
+                creator = edge_info.get('creator', 'unknown')
+            else:
+                # Legacy format: tuple (relation, target)
+                relation, target = edge_info
+                creator = meta.get('creator', 'unknown')  # Inherit from node
+            
             # Namespace target too (unless it's an anchor)
             if needs_namespacing and graph_id and not target.startswith('anchor_'):
                 namespaced_target = f"{graph_id}:{target}"
             else:
                 namespaced_target = target
-            edges.append((namespaced_id, relation, namespaced_target))
+            edges.append((namespaced_id, relation, namespaced_target, creator))
         
         # Accumulate file hashes from ANY node (robust retrieval)
         if 'file_hashes' in meta:
@@ -143,7 +154,7 @@ def reconstruct_graph(memories: list) -> dict:
     
     return {
         'nodes': nodes,
-        'edges': edges,
+        'edges': edges,  # Now (src, rel, tgt, creator)
         'by_type': dict(by_type),
         'metadata': metadata
     }
@@ -192,6 +203,23 @@ def format_understanding(graph: dict, target_path: str, hash_status: dict) -> st
     lines.append(f"═══ UNDERSTANDING: {target_path} ═══")
     if graph['metadata'].get('timestamp'):
         lines.append(f"    Stored: {graph['metadata']['timestamp']}")
+    
+    # Attribution - show who created what
+    creators = {}
+    for node in graph['nodes']:
+        creator = node.get('creator', 'unknown')
+        node_type = node['type']
+        if creator not in creators:
+            creators[creator] = {'total': 0, 'types': {}}
+        creators[creator]['total'] += 1
+        creators[creator]['types'][node_type] = creators[creator]['types'].get(node_type, 0) + 1
+    
+    if creators:
+        lines.append("")
+        lines.append("👤 ATTRIBUTION:")
+        for creator, stats in creators.items():
+            type_counts = ", ".join(f"{count} {typ}" for typ, count in stats['types'].items())
+            lines.append(f"    {creator}: {stats['total']} nodes ({type_counts})")
     
     # Multi-file hash verification
     if hash_status['verified'] or hash_status['stale'] or hash_status['missing']:
@@ -263,8 +291,17 @@ def format_understanding(graph: dict, target_path: str, hash_status: dict) -> st
     # Show the graph structure
     if graph['edges']:
         lines.append("🔗 RELATIONSHIPS:")
-        for src, rel, tgt in graph['edges']:
-            lines.append(f"    {src} --{rel}--> {tgt}")
+        for edge in graph['edges']:
+            if len(edge) == 4:
+                src, rel, tgt, creator = edge
+                if creator and creator != 'unknown':
+                    lines.append(f"    {src} --{rel}--> {tgt} [by {creator}]")
+                else:
+                    lines.append(f"    {src} --{rel}--> {tgt}")
+            else:
+                # Legacy format
+                src, rel, tgt = edge
+                lines.append(f"    {src} --{rel}--> {tgt}")
         lines.append("")
     
     # Output as SIF for re-use (dense format)
@@ -279,13 +316,30 @@ def format_understanding(graph: dict, target_path: str, hash_status: dict) -> st
             short_type = type_to_short.get(node['type'], node['type'])
             # Strip graph prefix from ID for density
             node_id = node['id'].split(':')[-1] if ':' in node['id'] else node['id']
-            lines.append(f"N {node_id} {short_type} '{node['content']}'")
-    for src, rel, tgt in graph['edges']:
-        if not tgt.startswith('anchor_'):
-            # Strip graph prefixes from edge IDs
-            src_short = src.split(':')[-1] if ':' in src else src
-            tgt_short = tgt.split(':')[-1] if ':' in tgt else tgt
-            lines.append(f"E {src_short} {rel} {tgt_short}")
+            creator = node.get('creator', '')
+            if creator and creator != 'unknown':
+                lines.append(f"N {node_id} {short_type} '{node['content']}' creator={creator}")
+            else:
+                lines.append(f"N {node_id} {short_type} '{node['content']}'")
+    for edge in graph['edges']:
+        if len(edge) == 4:
+            src, rel, tgt, creator = edge
+            if not tgt.startswith('anchor_'):
+                # Strip graph prefixes from edge IDs
+                src_short = src.split(':')[-1] if ':' in src else src
+                tgt_short = tgt.split(':')[-1] if ':' in tgt else tgt
+                if creator and creator != 'unknown':
+                    lines.append(f"E {src_short} {rel} {tgt_short} creator={creator}")
+                else:
+                    lines.append(f"E {src_short} {rel} {tgt_short}")
+        else:
+            # Legacy format
+            src, rel, tgt = edge
+            if not tgt.startswith('anchor_'):
+                # Strip graph prefixes from edge IDs
+                src_short = src.split(':')[-1] if ':' in src else src
+                tgt_short = tgt.split(':')[-1] if ':' in tgt else tgt
+                lines.append(f"E {src_short} {rel} {tgt_short}")
     
     return '\n'.join(lines)
 
