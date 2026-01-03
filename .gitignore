@@ -30,3 +30,13 @@ Thumbs.db
 
 # Mirror state dump (personal cognitive state)
 mirror_state.md
+
+# Runtime state files
+last_bootstrap.txt
+**/last_bootstrap.txt
+
+# Regeneratable synthesis material
+synthesis_material_*.txt
+
+# Debug scripts
+debug_*.py
