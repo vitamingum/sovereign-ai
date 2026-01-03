@@ -377,17 +377,31 @@ def format_understanding(graph: dict, target_path: str, hash_status: dict, sif_o
 def main():
     if len(sys.argv) < 3:
         print(__doc__)
-        print("\nUsage: py recollect <agent> <file_or_dir>")
-        print("\nExample:")
+        print("\nUsage: py recollect <agent> <file_or_files>")
+        print("\nSingle file:")
         print("  py recollect opus enclave/sif_parser.py")
+        print("\nMultiple files (comma-separated):")
+        print("  py recollect opus \"remember.py,recollect.py,wake.py\"")
+        print("\nGlob pattern:")
+        print("  py recollect opus \"enclave/*.py\"")
         sys.exit(1)
     
     agent_id = sys.argv[1]
-    target_path = sys.argv[2]
+    target_spec = sys.argv[2]
     
-    # Don't resolve to absolute yet - we need the filename for search
-    # The actual path will be determined from stored metadata
-    filename = Path(target_path).name
+    # Expand glob patterns or comma-separated list
+    if '*' in target_spec:
+        # Glob pattern
+        target_paths = list(Path('.').glob(target_spec))
+        if not target_paths:
+            print(f"No files match pattern: {target_spec}", file=sys.stderr)
+            sys.exit(1)
+    elif ',' in target_spec:
+        # Comma-separated list
+        target_paths = [Path(p.strip()) for p in target_spec.split(',')]
+    else:
+        # Single file
+        target_paths = [Path(target_spec)]
     
     # Load agent config
     try:
@@ -407,10 +421,17 @@ def main():
             print(f"   (Showing all perspectives combined)")
             print("")
     
-    # Search memory for understanding of this file
+    # Search memory for understanding of each file
     mem = SemanticMemory(enclave_dir)
     mem.unlock(passphrase)
     
+    for target_path in target_paths:
+        filename = target_path.name
+        recollect_single_file(mem, agent_id, str(target_path), filename)
+
+
+def recollect_single_file(mem: SemanticMemory, agent_id: str, target_path: str, filename: str):
+    """Recollect understanding for a single file."""
     # Primary: tag-based retrieval by filename
     results = mem.list_by_tag(filename, limit=100)
     
@@ -454,14 +475,8 @@ def main():
         other_creators = set(m.get('metadata', {}).get('creator') for m in individual_nodes)
         other_creators.discard(agent_id)
         if other_creators:
-            print(f"⚠️  BLIND MODE: Other agents have understanding of {filename}")
-            print(f"   ({', '.join(sorted(other_creators))} have stored perspectives)")
-            print("")
-            print("   Form your own understanding first with remember.py,")
-            print("   then recollect to compare perspectives.")
-            print("")
-            print(f"   py remember {agent_id} {target_path} \"@G ...\"")
-            sys.exit(0)
+            print(f"# {filename}: BLIND (others: {', '.join(sorted(other_creators))})")
+            return
     
     # Filter to the requested agent's perspective only
     # The user can run the command for other agents if they want to see them separately.
@@ -481,20 +496,15 @@ def main():
     else:
         # If we filtered everything out (e.g. only other agents had data), warn the user
         if individual_nodes:
-             print(f"No understanding stored for {target_path} by {agent_id}")
-             print(f"(Found perspectives from: {', '.join(set(m.get('metadata', {}).get('creator') for m in individual_nodes))})")
-             print("\nUse remember.py to store understanding:")
-             print(f'  py remember {agent_id} {target_path} "@G understanding..."')
-             sys.exit(0)
+             print(f"# {filename}: no understanding by {agent_id}")
+             return
         
         relevant = []
         source_info = None
     
     if not relevant:
-        print(f"No understanding stored for {target_path}")
-        print("\nUse remember.py to store understanding:")
-        print(f'  py remember {agent_id} {target_path} "@G understanding..."')
-        sys.exit(0)
+        print(f"# {filename}: no understanding stored")
+        return
     
     # Use canonical path from stored memory, not user input
     display_path = canonical_path or target_path
@@ -513,6 +523,7 @@ def main():
     
     # Format and display
     # Default to SIF-only output as requested by user
+    print(f"# {filename}")
     output = format_understanding(graph, display_path, hash_status, sif_only=True)
     print(output)
 
