@@ -196,13 +196,15 @@ Output ONLY a number 1-5:"""
         suggested_files = sorted(source_files)[:6]
         if suggested_files:
             files_arg = ",".join(suggested_files)
+            # Derive topic slug from question
+            topic = question.lower()[:30].replace(" ", "-").replace("?", "")
             return f"""❌ FAIL: No synthesis for topic
 
-py recollect.py {agent_id} "{files_arg}" """
+py recollect.py {agent_id} "{files_arg}" | py remember.py {agent_id} --topic {topic}"""
         else:
             return f"""❌ FAIL: No relevant understanding
 
-py shallow_understand.py <relevant_file> | py remember.py {agent_id}"""
+py shallow_understand.py <file> | py remember.py {agent_id}"""
     
     return synthesis
 
