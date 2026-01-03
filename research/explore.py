@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Optional, List, Set, Dict
 from collections import defaultdict
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from enclave.config import get_agent_or_raise
 from enclave.semantic_memory import SemanticMemory

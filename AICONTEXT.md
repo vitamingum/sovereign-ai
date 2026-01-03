@@ -17,25 +17,46 @@ py remember.py <agent> X    # 4. After understanding something, save it
 - Run `py recollect.py <agent> <file>` BEFORE any `read_file` on .py/.md/.ipynb
 - If recollect shows stored understanding, use it—don't re-read the file
 - Only read raw if recollect returns "no understanding found"
-- Pattern failure 2026-01-02: Read 200 lines when recollect already had everything
 
 **⚠️ ACT NOW on small things. Only store multi-session work as goals.**
 
-## Commands
+## Core Commands
 
 ```
-py wake.py <agent>                      # See goals (max 5), waiting messages, entropy, synthesis fodder
+py wake.py <agent>                      # See goals, messages, debt, entropy
 py recollect.py <agent> <file>          # Retrieve YOUR understanding (do this first!)
+py recollect.py <agent> "a.py,b.py"     # Bulk retrieval (comma-separated)
+py recollect.py <agent> "enclave/*.py"  # Bulk retrieval (glob pattern)
 py remember.py <agent> <files> "<SIF>"  # Store understanding after working with code
+py think.py <agent> "@G..." <agency>    # Record thought - spawns intention
+py think.py <agent> --private "..."     # Private journal (no SIF, no intentions)
 py goal.py <agent>                      # List active goals
-py goal.py <agent> set "..."            # Add strategic goal (LLM validates, catches abstraction-gaming)
+py goal.py <agent> set "..."            # Add strategic goal (LLM validates)
 py goal.py <agent> done "partial"       # Complete goal matching text
-py think.py <agent> "@G..." <agency>    # Record thought - spawns intention or observation-only
-py thought.py <agent> "..."             # Private reflection (no action spawning)
-py msg.py <agent> <to> "@G..."          # Send message (shorter than message.py)
-py mirror.py <agent>                    # State analysis - patterns, avoidance, staleness
-py shallow_understand.py                # Instant codebase map from docstrings (no LLM)
-py shallow_deps.py [-r] <file>          # Import deps; -r shows reverse deps (what breaks if I change X)
+py msg.py <agent> <to> "@G..."          # Send signed message
+py backup.py <agent>                    # Distribute encrypted backup
+py act.py <agent>                       # Execute pending intentions
+```
+
+## Utility Commands
+
+```
+py mirror.py <agent>                    # Bulk state analysis via LLM
+py shallow_understand.py                # Instant codebase map (no LLM)
+py shallow_deps.py [-r] <file>          # Import deps; -r = reverse deps
+py query_mem.py <agent> <query>         # Semantic search across memories
+py recollect_topic.py <agent> <topic>   # LLM picks relevant files for topic
+```
+
+## Research Tools (in research/)
+
+```
+py research/bridge.py                   # Discover cross-topic bridges
+py research/explore.py                  # Walk bridge graph
+py research/dream.py                    # LLM self-critique (experimental)
+py research/synthesize_understanding.py # Multi-agent understanding merge
+py research/sovereignty_monitor.py      # Track metrics over time
+py research/agency_optimizer.py         # Analyze agency patterns
 ```
 
 ## SIF Format

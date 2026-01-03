@@ -15,7 +15,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from enclave.config import get_agent_or_raise
 

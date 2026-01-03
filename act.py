@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave.config import get_agent_or_raise
 from enclave.encrypted_jsonl import EncryptedJSONL
-from sovereignty_monitor import monitor_execution
+from research.sovereignty_monitor import monitor_execution
 
 def load_passphrase(agent_id: str) -> tuple[Path, str]:
     """Load passphrase from env. Returns private_enclave for intentions."""

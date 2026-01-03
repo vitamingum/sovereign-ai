@@ -4,9 +4,13 @@ think.py - Store thought in SIF format, spawn continuation, surface related memo
 
 Usage:
     py think <agent> "<SIF graph>" <agency 1-5>
+    py think <agent> --private "Plain text journal entry"
     
-SIF format required. Example:
+SIF format required (unless --private). Example:
     py think opus "@G thought opus 2026-01-01; N n1 Observation 'X'; N n2 Intention 'Y'; E n1 leads_to n2" 4
+
+--private mode: Simple journal append, no SIF, no intentions, no LLM. Pure reflection.
+    py think opus --private "Noticed I defer instead of act"
 
 Agency (1-5): 1=asked → 5=unprompted
 
@@ -586,15 +590,46 @@ def log_force_usage(agent_id: str, context: str, tool: str):
         f.write(json.dumps(entry) + '\n')
 
 
+def private_journal(agent_id: str, content: str):
+    """Record a private thought without SIF parsing, LLM, or intentions. Pure journaling."""
+    agent = get_agent_or_raise(agent_id)
+    enclave_dir = Path(__file__).parent / agent.private_enclave
+    journal_file = enclave_dir / "storage" / "private" / "journal.jsonl"
+    journal_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    entry = {
+        'id': f"thought_{int(datetime.now(timezone.utc).timestamp() * 1000)}",
+        'content': content,
+        'timestamp': datetime.now(timezone.utc).isoformat()
+    }
+    
+    with open(journal_file, 'a', encoding='utf-8') as f:
+        f.write(json.dumps(entry) + '\n')
+    
+    print(f"💭 {content[:80]}{'...' if len(content) > 80 else ''}")
+
+
 def main():
     if len(sys.argv) < 4:
         print(__doc__)
         print("\nExamples:")
         print('  py think opus "Fixed the bug user reported | Test edge cases" 1')
         print('  py think opus "Noticed a gap in the paper | Investigate it" 4')
+        print('  py think opus --private "Pure reflection, no action"')
         sys.exit(1)
     
     agent_id = sys.argv[1]
+    
+    # Handle --private mode (simple journaling, no SIF/intentions)
+    if '--private' in sys.argv:
+        args = [a for a in sys.argv[2:] if a != '--private']
+        content = ' '.join(args)
+        if not content:
+            print("Error: --private requires content")
+            sys.exit(1)
+        private_journal(agent_id, content)
+        return
+    
     force = '--force' in sys.argv
     
     # Remove --force from args for parsing

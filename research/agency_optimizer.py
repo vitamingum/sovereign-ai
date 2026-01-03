@@ -14,7 +14,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 from collections import defaultdict, Counter
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from enclave.semantic_memory import SemanticMemory
 from enclave.encrypted_jsonl import EncryptedJSONL
