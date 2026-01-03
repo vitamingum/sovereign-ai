@@ -30,8 +30,15 @@ load_dotenv()
 from enclave.semantic_memory import SemanticMemory
 from enclave.config import get_agent_or_raise
 
-# Clustering threshold - keywords closer than this merge
-CLUSTER_THRESHOLD = 0.75
+# Clustering threshold - keywords closer than this merge (higher = tighter clusters)
+CLUSTER_THRESHOLD = 0.80
+
+# Generic terms to filter out
+GENERIC_TERMS = {
+    'files', 'format', 'content', 'analysis', 'data', 'output', 'input',
+    'function', 'method', 'class', 'module', 'code', 'file', 'path',
+    'value', 'result', 'type', 'name', 'list', 'dict', 'string', 'text'
+}
 
 
 def get_enclave_and_memory(agent_id: str):
@@ -78,22 +85,46 @@ def get_file_understandings(sm: SemanticMemory) -> dict[str, str]:
                 file_content.append(content)
         
         if file_content:
-            understandings[target] = "\n".join(file_content)
+            # Normalize path - convert absolute to relative, use forward slashes
+            normalized = normalize_path(target)
+            # Skip duplicates (same file with different path forms)
+            if normalized not in understandings:
+                understandings[normalized] = "\n".join(file_content)
     
     return understandings
+
+
+def normalize_path(path: str) -> str:
+    """Normalize path to relative with forward slashes."""
+    # Convert to Path for manipulation
+    p = Path(path)
+    
+    # Try to make relative to cwd
+    try:
+        p = p.relative_to(Path.cwd())
+    except ValueError:
+        pass
+    
+    # Use forward slashes, lowercase
+    return str(p).replace('\\', '/')
 
 
 def extract_keywords_llm(sif_content: str, filename: str) -> list[str]:
     """Use local LLM to extract 5-10 keywords from a file's understanding."""
     import requests
     
-    prompt = f"""Analyze this file understanding and extract 5-10 keywords.
+    prompt = f"""Analyze this file understanding and extract 5-10 CONCEPTUAL keywords.
 
 FILE: {filename}
 UNDERSTANDING:
 {sif_content[:2000]}
 
-Focus on: core concepts, technical domains, patterns, concerns.
+RULES:
+- Focus on CONCEPTS, DOMAINS, and PATTERNS (not implementation details)
+- Use broad categories over specific functions/variables
+- Group related crypto algorithms under "cryptography" or "encryption"
+- Prefer: "memory", "validation", "identity", "security"
+- Avoid: function names, variable names, specific algorithms (aes-256-gcm -> encryption)
 
 Respond with a JSON object in this exact format:
 {{"keywords": ["word1", "word2", "word3"]}}"""
@@ -175,10 +206,10 @@ def save_keywords(sm: SemanticMemory, filename: str, keywords: list[str], conten
     )
 
 
-def extract_all_keywords(sm: SemanticMemory, force_file: str = None) -> dict[str, list[str]]:
+def extract_all_keywords(sm: SemanticMemory, force_file: str = None, force_all: bool = False) -> dict[str, list[str]]:
     """Extract keywords for all file understandings (or one specific file).
     
-    Uses cache - only re-extracts if content changed.
+    Uses cache - only re-extracts if content changed (unless force_all=True).
     Returns: {filename: [keywords]}
     """
     understandings = get_file_understandings(sm)
@@ -198,8 +229,8 @@ def extract_all_keywords(sm: SemanticMemory, force_file: str = None) -> dict[str
         
         content_hash = get_content_hash(content)
         
-        # Check cache
-        if filename in cache and cache[filename]["hash"] == content_hash:
+        # Check cache (skip if force_all)
+        if not force_all and filename in cache and cache[filename]["hash"] == content_hash:
             print(f"  [cached] {filename}")
             result[filename] = cache[filename]["keywords"]
             continue
@@ -284,9 +315,26 @@ def cluster_keywords(file_keywords: dict[str, list[str]], threshold: float = CLU
         # Pick label: keyword with most file coverage
         best_label = max(cluster_keywords, key=lambda kw: len(keyword_files[kw]))
         
+        # Filter out filename-themes and generic terms
+        if is_filename_theme(best_label, cluster_files):
+            continue
+        if best_label.lower() in GENERIC_TERMS:
+            continue
+        
         themes[best_label] = sorted(cluster_files)
     
     return themes
+
+
+def is_filename_theme(theme: str, files: set[str]) -> bool:
+    """Check if theme is just a filename from the file list."""
+    theme_lower = theme.lower().replace('_', ' ').replace('-', ' ')
+    for f in files:
+        # Get filename without extension
+        fname = Path(f).stem.lower().replace('_', ' ').replace('-', ' ')
+        if theme_lower == fname or theme_lower in fname or fname in theme_lower:
+            return True
+    return False
 
 
 def get_existing_syntheses(sm: SemanticMemory) -> set[str]:
@@ -383,16 +431,21 @@ def main():
     
     # Parse args
     extract_mode = "--extract" in sys.argv
+    force_all = "--force" in sys.argv
     force_file = None
     
-    if extract_mode and len(sys.argv) > 3:
-        force_file = sys.argv[3]
+    # Find any non-flag argument after agent_id
+    for arg in sys.argv[2:]:
+        if not arg.startswith("--"):
+            force_file = arg
+            break
     
     # Extract keywords (from cache or fresh)
-    if extract_mode:
-        print(f"Extracting keywords{f' for {force_file}' if force_file else ' for all files'}...\n")
+    if extract_mode or force_all:
+        msg = "Re-extracting ALL keywords" if force_all else f"Extracting keywords{f' for {force_file}' if force_file else ''}"
+        print(f"{msg}...\n")
     
-    file_keywords = extract_all_keywords(sm, force_file)
+    file_keywords = extract_all_keywords(sm, force_file, force_all=force_all)
     
     if not file_keywords:
         print("No file understandings found. Run remember.py first.")
