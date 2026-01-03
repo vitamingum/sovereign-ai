@@ -408,13 +408,13 @@ def show_themes(sm: SemanticMemory, file_keywords: dict[str, list[str]]):
         
         # Show how to clear the top theme
         top_theme, top_files = pending[0]
-        files_arg = " ".join(top_files[:6])
+        files_arg = ",".join(top_files[:6])
         
         print(f"  To synthesize '{top_theme}':")
-        print(f"    py recollect.py opus {files_arg}")
+        print(f"    py recollect.py opus \"{files_arg}\"")
         print(f"    # Then store synthesis with tag: theme:{top_theme}")
     else:
-        print("  All themes synthesized! ✓")
+        print("  All themes synthesized! [x]")
     
     print()
     
