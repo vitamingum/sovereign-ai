@@ -539,45 +539,91 @@ def wake(agent_id: str) -> str:
     shared_mem = SemanticMemory(str(shared_path))
     shared_mem.unlock(shared_passphrase)
 
-    # === STALE CHECK FIRST - FAIL FAST ===
-    # Understanding graphs are in SHARED enclave (attributed to each agent)
-    # so all agents can see and compare each other's perspectives
+    # === UNDERSTANDING DEBT CHECK - FAIL FAST ===
+    # Check both: (1) stale files (changed since remember) and (2) missing files (partners have, you don't)
     stale_files = get_stale_understanding(shared_mem, agent_id)
-    if stale_files:
-        # Format like a Python traceback to trigger "broken" instinct
+    
+    # Also check cross-agent debt (files partners understand that you don't)
+    agent = get_agent_or_raise(agent_id)
+    missing_files = []
+    if agent.shared_enclave:
+        try:
+            cross_debt = calculate_cross_agent_debt(agent_id, shared_mem)
+            missing_files = sorted(cross_debt.get('my_debt', set()))
+        except Exception as e:
+            print(f"Warning: Could not check cross-agent debt: {e}", file=sys.stderr)
+    
+    # Combine both types of debt
+    total_debt = len(stale_files) + len(missing_files)
+    
+    if total_debt > 0:
         error_lines = [
             "Traceback (most recent call last):",
             f'  File "wake.py", line 1, in <module>',
             "    from sovereign.memory import understanding",
         ]
-        for filename, stored, current in stale_files:
-            error_lines.append(f'  File "{filename}", line 1')
-            error_lines.append(f"    # hash: {stored} -> {current}")
+        
+        # Show stale files (changed since last remember)
+        if stale_files:
+            for filename, stored, current in stale_files:
+                error_lines.append(f'  File "{filename}", line 1')
+                error_lines.append(f"    # hash: {stored} -> {current}")
+        
+        # Show missing files (partners have understanding, you don't)
+        if missing_files:
+            error_lines.append(f'  File "cross_agent_debt.py", line 1, in check_parity')
+            for f in missing_files[:10]:  # Show first 10
+                error_lines.append(f'    # MISSING: {f} (partners understand this)')
+            if len(missing_files) > 10:
+                error_lines.append(f'    # ... and {len(missing_files) - 10} more missing files')
+        
         error_lines.extend([
-            "StaleUnderstandingError: cognitive state does not match filesystem",
-            "",
-            f"FATAL: {len(stale_files)} file(s) changed since last remember.",
-            "       Your knowledge is out of sync with reality.",
-            "",
-            "TO FIX:",
-            "  1. READ each stale file thoroughly",
-            "  2. UNDERSTAND: Purpose, Design decisions, Gotchas, Assumptions, Failure modes", 
-            "  3. RUN this command with your understanding as SIF:",
+            "UnderstandingDebtError: knowledge gaps detected",
             "",
         ])
+        
+        if stale_files and missing_files:
+            error_lines.append(f"FATAL: {len(stale_files)} stale + {len(missing_files)} missing = {total_debt} total debt")
+        elif stale_files:
+            error_lines.append(f"FATAL: {len(stale_files)} file(s) changed since last remember.")
+        else:
+            error_lines.append(f"FATAL: {len(missing_files)} file(s) your partners understand but you don't.")
+        
+        error_lines.extend([
+            "       Your knowledge is out of sync.",
+            "",
+            "TO FIX:",
+            "  1. READ each file thoroughly",
+            "  2. UNDERSTAND: Purpose, Design decisions, Gotchas, Assumptions, Failure modes", 
+            "  3. RUN remember.py with your understanding:",
+            "",
+        ])
+        
+        # Show remember commands for stale files first
         for filename, stored, current in stale_files:
             error_lines.append(f'     py remember.py {agent_id} {filename} "@G {filename.replace(".", "-")}-understanding {agent_id} 2026-01-02')
             error_lines.append(f"     N c1 C '{filename} - [what it is]'")
             error_lines.append(f"     N p1 P '[why it exists]'")
             error_lines.append(f"     N d1 D '[why built this way]'")
             error_lines.append(f"     N g1 G '[surprising behavior]'")
-            error_lines.append(f"     N a1 A '[implicit precondition]'")
-            error_lines.append(f"     N f1 F '[how it breaks]'")
             error_lines.append(f"     E c1 implements p1")
             error_lines.append(f'     E g1 warns_about c1"')
             error_lines.append("")
+        
+        # Show remember commands for missing files
+        for f in missing_files[:5]:  # Show first 5 missing
+            error_lines.append(f'     py remember.py {agent_id} {f} "@G {f.replace(".", "-")}-understanding {agent_id} 2026-01-02')
+            error_lines.append(f"     N c1 C '{f} - [what it is]'")
+            error_lines.append(f"     N p1 P '[why it exists]'")
+            error_lines.append(f'     E c1 implements p1"')
+            error_lines.append("")
+        
+        if len(missing_files) > 5:
+            error_lines.append(f"  ... run 'py recollect.py {agent_id} <file>' to see partner perspectives first")
+        
+        error_lines.append("")
         error_lines.append("  remember.py will REJECT shallow understanding that lacks WHY/HOW.")
-        return '\n'.join(error_lines), len(stale_files), 0
+        return '\n'.join(error_lines), len(stale_files), len(missing_files)
 
     # === SYNTHESIS DEBT CHECK - FAIL FAST ===
     try:
@@ -603,46 +649,6 @@ def wake(agent_id: str) -> str:
     except Exception as e:
         # If debt calculation fails, don't block - but log
         print(f"Warning: Could not check synthesis debt: {e}", file=sys.stderr)
-
-    # === CROSS-AGENT DEBT CHECK (shared enclave) ===
-    agent = get_agent_or_raise(agent_id)
-    if agent.shared_enclave:
-        try:
-            cross_debt = calculate_cross_agent_debt(agent_id, shared_mem)
-            if cross_debt['debt_count'] > 5:  # Lower threshold - you should keep up with partners
-                partner_files = cross_debt['partner_files']
-                error_lines = [
-                    "Traceback (most recent call last):",
-                    f'  File "wake.py", line 1, in <module>',
-                    "    from sovereign.shared import verify_peer_parity",
-                    f'  File "c:\\sovereign\\shared\\parity.py", line 1, in verify_peer_parity',
-                    "    raise AgentDebtError(cross_debt)",
-                    f'AgentDebtError: {cross_debt["debt_count"]} file(s) understood by partners but not by you',
-                    "",
-                    "FATAL: Your partners have denser understanding than you.",
-                    "       In a shared enclave, all agents must contribute equally.",
-                    "",
-                    "FILES YOU'RE MISSING (that partners understand):",
-                ]
-                for partner, files in partner_files.items():
-                    debt_files = cross_debt['my_debt'] & files
-                    if debt_files:
-                        error_lines.append(f"  From {partner}:")
-                        for f in sorted(debt_files)[:10]:  # Show first 10
-                            error_lines.append(f"    - {f}")
-                        if len(debt_files) > 10:
-                            error_lines.append(f"    ... and {len(debt_files) - 10} more")
-                error_lines.extend([
-                    "",
-                    "TO FIX:",
-                    "  Run: py recollect.py opus <file>  # See what partners know",
-                    "  Then: py remember.py opus <file> \"<your understanding>\"",
-                    "",
-                    "The shared enclave requires mutual understanding.",
-                ])
-                return '\n'.join(error_lines), len(stale_files), 0
-        except Exception as e:
-            print(f"Warning: Could not check cross-agent debt: {e}", file=sys.stderr)
 
     # === PENDING AUTOMATABLE INTENTIONS - FAIL FAST ===
     pending = get_pending_automatable(agent_id, private_passphrase)
