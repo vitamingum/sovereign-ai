@@ -467,61 +467,6 @@ def synthesize_graphs(
     return '\n'.join(sif_lines)
 
 
-def compress_synthesis(verbose_sif: str, filepath: str, agents: List[str], llm: LocalLLM) -> str:
-    """Use LLM to compress verbose synthesis into dense SIF.
-    
-    Target: ~12-15 nodes max, one concept per node, preserve attribution.
-    """
-    filename = os.path.basename(filepath)
-    agents_str = '+'.join(sorted(agents))
-    timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d')
-    
-    prompt = f"""Compress this verbose understanding into dense SIF format.
-
-VERBOSE INPUT:
-{verbose_sif}
-
-RULES:
-1. Maximum 15 nodes total
-2. Merge redundant concepts into single nodes
-3. Keep attribution: creator=both if both agents agree, else creator=<agent>
-4. Use TYPE_SHORTCUTS: C=Component, P=Purpose, D=Design, G=Gotcha, A=Assumption, F=Failure_Mode, Rule=Rule
-5. One insight per node - be concise
-6. Keep the most important edges (max 12)
-
-OUTPUT FORMAT (exactly this, no explanation):
-@G {filename.replace('.', '-')}-synthesis {agents_str} {timestamp}
-N c1 C 'component description' creator=both
-N p1 P 'purpose' creator=<agent>
-...
-E c1 implements p1
-...
-
-Generate the compressed SIF now:"""
-
-    try:
-        response = llm.generate(prompt)
-        
-        # Extract just the SIF part (starts with @G)
-        lines = response.strip().split('\n')
-        sif_lines = []
-        in_sif = False
-        for line in lines:
-            if line.strip().startswith('@G'):
-                in_sif = True
-            if in_sif:
-                sif_lines.append(line)
-        
-        if sif_lines:
-            return '\n'.join(sif_lines)
-        else:
-            # Fallback - return as-is if parsing failed
-            return response.strip()
-    except Exception as e:
-        print(f"  LLM compression failed: {e}")
-        return verbose_sif
-
-
 def main():
     if len(sys.argv) < 3:
         print("Usage: python synthesize_understanding.py <agent> <file>")
@@ -545,25 +490,23 @@ def main():
         print(f"  No understanding found for {filepath}")
         sys.exit(1)
     
+    if len(graphs) < 2:
+        print(f"  Only {len(graphs)} agent(s) - need 2+ for synthesis")
+        sys.exit(1)
+    
     print(f"\n🔬 Synthesizing {len(graphs)} perspectives...")
     llm = LocalLLM()
     
-    verbose_synthesis = synthesize_graphs(graphs, filepath, llm)
+    synthesis = synthesize_graphs(graphs, filepath, llm)
     
-    print(f"\n═══ VERBOSE SYNTHESIS ({verbose_synthesis.count(chr(10))} lines) ═══")
-    # Count nodes
-    node_count = verbose_synthesis.count('\nN ')
-    print(f"  {node_count} nodes before compression")
+    print(f"\n═══ SYNTHESIS ═══")
+    print(synthesis)
     
-    print(f"\n🗜️  Compressing with LLM...")
-    dense_synthesis = compress_synthesis(verbose_synthesis, filepath, list(graphs.keys()), llm)
-    
-    print(f"\n═══ DENSE SYNTHESIS ═══")
-    print(dense_synthesis)
-    
-    # Count compressed nodes
-    dense_node_count = dense_synthesis.count('\nN ') + (1 if dense_synthesis.startswith('N ') else 0)
-    print(f"\n  Compressed: {node_count} → {dense_node_count} nodes")
+    # Count nodes in synthesis
+    node_count = synthesis.count('\nN ') + (1 if synthesis.startswith('N ') else 0)
+    merged = synthesis.count('creator=gemini+opus') + synthesis.count('creator=opus+gemini')
+    unique = node_count - merged
+    print(f"\n  Result: {node_count} nodes ({merged} merged, {unique} unique)")
 
 
 if __name__ == '__main__':
