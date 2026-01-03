@@ -250,8 +250,9 @@ def get_synthesis(agent: str, topic: str) -> str | None:
     Uses tag-based lookup for exact matching:
     1. First try topic:topic-slug tag (exact match)
     2. Fallback to graph ID matching in content
+    3. Semantic fallback for typos/fuzzy matching
     
-    Returns extracted text from synthesis, not raw SIF.
+    Returns raw SIF content.
     """
     try:
         enclave_dir, passphrase = load_passphrase(agent)
@@ -271,7 +272,7 @@ def get_synthesis(agent: str, topic: str) -> str | None:
             tags = s.get('tags', [])
             # Check for exact topic tag match
             if f'topic:{topic_slug}' in tags:
-                return _extract_synthesis_text(s.get('content', ''))
+                return s.get('content', '')  # Return raw SIF
         
         # Fallback: match on graph ID in content (for older syntheses)
         # Look for @G topic-synthesis or @G topic
@@ -282,7 +283,7 @@ def get_synthesis(agent: str, topic: str) -> str | None:
             pattern1 = f'@g {topic_slug}-synthesis'
             pattern2 = f'@g {topic_slug} '
             if pattern1 in content_lower or pattern2 in content_lower:
-                return _extract_synthesis_text(content)
+                return content  # Return raw SIF
         
         # Semantic fallback: search for similar topic in synthesis content
         # Handles typos and fuzzy matching
@@ -290,7 +291,7 @@ def get_synthesis(agent: str, topic: str) -> str | None:
         for r in results:
             tags = r.get('tags', [])
             if 'synthesis' in tags:
-                return _extract_synthesis_text(r.get('content', ''))
+                return r.get('content', '')  # Return raw SIF
         
         return None
     except Exception as e:
@@ -492,20 +493,11 @@ def format_output(topic: str, agent: str, results: list[tuple[str, str, bool]], 
     deep_count = sum(1 for _, _, is_deep in results if is_deep)
     shallow_count = len(results) - deep_count
     
-    # SUCCESS: Synthesis exists - show it clean
+    # SUCCESS: Synthesis exists - show raw SIF
     if my_synthesis:
         lines = []
-        lines.append(f"═══ {topic.upper()} ═══")
-        lines.append(f"[SYNTHESIS] {my_synthesis}")
-        lines.append(f"  (from {len(thoughts) if thoughts else 0} thoughts + {deep_count} deep recollections)")
-        lines.append("")
-        
-        # Brief file list for reference
-        for filename, content, is_deep in results:
-            brief = extract_brief(content, is_deep)
-            marker = "🔮" if is_deep else "📋"
-            purpose = brief['purpose'][:60] if brief['purpose'] else "?"
-            lines.append(f"{marker} {filename}: {purpose}")
+        lines.append(f"# {topic}")
+        lines.append(my_synthesis)
         
         return '\n'.join(lines), None
     
