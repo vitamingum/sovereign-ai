@@ -361,8 +361,14 @@ def calculate_cross_agent_debt(agent_id: str, memory: SemanticMemory) -> dict:
         partner_files[partner.id] = pfiles
         all_partner_files.update(pfiles)
     
-    # My debt = files partners have that I don't
-    my_debt = all_partner_files - my_files
+    # My debt = files partners have that I don't (only if file still exists)
+    from pathlib import Path
+    project_root = Path(__file__).parent.parent
+    my_debt = set()
+    for f in (all_partner_files - my_files):
+        # Check if file exists at project root
+        if (project_root / f).exists():
+            my_debt.add(f)
     
     return {
         'my_files': my_files,
