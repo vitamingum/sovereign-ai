@@ -288,11 +288,18 @@ def dream_review(agent_id: str) -> str:
 
 
 def load_intentions(agent_id: str) -> list[dict]:
-    """Load all intentions from intentions.jsonl."""
+    """Load all intentions from intentions.jsonl (from private enclave)."""
     import json
+    import sys
+    import os
     from pathlib import Path
     
-    intentions_path = Path(f"enclave_{agent_id}/storage/private/intentions.jsonl")
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from enclave.config import get_agent_or_raise
+    
+    agent = get_agent_or_raise(agent_id)
+    # Intentions are private
+    intentions_path = Path(agent.private_enclave) / "storage" / "private" / "intentions.jsonl"
     if not intentions_path.exists():
         return []
     

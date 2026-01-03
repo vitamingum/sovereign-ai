@@ -24,12 +24,13 @@ from enclave.encrypted_jsonl import EncryptedJSONL
 from sovereignty_monitor import monitor_execution
 
 def load_passphrase(agent_id: str) -> tuple[Path, str]:
-    """Load passphrase from env."""
+    """Load passphrase from env. Returns private_enclave for intentions."""
     agent = get_agent_or_raise(agent_id)
     prefix = agent.env_prefix
     
     passphrase = os.environ.get(f'{prefix}_KEY') or os.environ.get('SOVEREIGN_PASSPHRASE')
-    enclave_dir = Path(agent.enclave)
+    # Use private_enclave for intentions - NOT shared
+    enclave_dir = Path(agent.private_enclave)
     
     if not passphrase:
         env_file = Path(__file__).parent / '.env'
@@ -48,7 +49,8 @@ def load_passphrase(agent_id: str) -> tuple[Path, str]:
 def load_intentions(agent_id: str, passphrase: str = None) -> list[dict]:
     """Load active intentions for agent (supports encrypted and plaintext)."""
     agent = get_agent_or_raise(agent_id)
-    enclave_path = Path(agent.enclave)
+    # Use private_enclave for intentions
+    enclave_path = Path(agent.private_enclave)
     
     encrypted_file = enclave_path / "storage" / "private" / "intentions.enc.jsonl"
     plaintext_file = enclave_path / "storage" / "private" / "intentions.jsonl"

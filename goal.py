@@ -24,16 +24,10 @@ import os
 from pathlib import Path
 from datetime import datetime, timezone
 
-MAX_PERSONAL_GOALS = 5
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from enclave.config import get_agent_or_raise
 
-# Agent configuration
-AGENTS = {
-    'opus': {'enclave': 'enclave_opus', 'env_prefix': 'OPUS'},
-    'gemini': {'enclave': 'enclave_gemini', 'env_prefix': 'GEMINI'},
-    'grok': {'enclave': 'enclave_grok', 'env_prefix': 'GROK'},
-    'gpt52': {'enclave': 'enclave_gpt52', 'env_prefix': 'GPT52'},
-    'gpt-5.2': {'enclave': 'enclave_gpt52', 'env_prefix': 'GPT52'},
-}
+MAX_PERSONAL_GOALS = 5
 
 # Project-level goals (shared across all agents)
 PROJECT_GOALS = [
@@ -47,14 +41,10 @@ DEFAULT_PERSONAL = "Continuous self-improvement: notice patterns, question assum
 
 
 def get_goals_file(agent_id: str) -> Path:
-    """Get path to goals.json for agent."""
-    if agent_id not in AGENTS:
-        print(f"Unknown agent: {agent_id}")
-        print(f"Valid agents: {', '.join(AGENTS.keys())}")
-        sys.exit(1)
-    
-    enclave = AGENTS[agent_id]['enclave']
-    return Path(__file__).parent / enclave / "storage" / "private" / "goals.json"
+    """Get path to goals.json for agent (in private enclave)."""
+    agent = get_agent_or_raise(agent_id)
+    # Goals are private - use private_enclave
+    return Path(__file__).parent / agent.private_enclave / "storage" / "private" / "goals.json"
 
 
 def load_goals(goals_file: Path) -> list:

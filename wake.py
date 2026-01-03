@@ -30,27 +30,29 @@ from enclave.encrypted_jsonl import EncryptedJSONL
 import re
 
 
-def load_passphrase(agent_id: str) -> tuple[str, str]:
+def load_passphrase(agent_id: str) -> tuple[str, str, str]:
     """Load passphrase from hardware enclave or env.
     
-    Returns (enclave_dir, passphrase).
-    If agent has a shared_enclave configured, returns that instead.
+    Returns (shared_enclave_dir, private_enclave_dir, passphrase).
+    - shared_enclave_dir: for semantic memories (shared knowledge)
+    - private_enclave_dir: for goals, intentions, identity (private)
     """
     agent = get_agent_or_raise(agent_id)
     prefix = agent.env_prefix
     
-    # Use effective_enclave which returns shared_enclave if configured
-    enclave_dir = os.environ.get(f'{prefix}_DIR') or agent.effective_enclave
+    # Separate shared vs private enclave paths
+    shared_enclave_dir = os.environ.get(f'{prefix}_DIR') or agent.effective_enclave
+    private_enclave_dir = agent.private_enclave
 
-    # Try hardware enclave first
-    key_file = Path(enclave_dir) / "storage" / "private" / "key.sealed"
+    # Try hardware enclave first (from shared enclave for key)
+    key_file = Path(shared_enclave_dir) / "storage" / "private" / "key.sealed"
     if key_file.exists():
         try:
             with open(key_file, "rb") as f:
                 sealed_data = f.read()
             enclave = get_enclave()
             passphrase = enclave.unseal(sealed_data).decode('utf-8')
-            return enclave_dir, passphrase
+            return shared_enclave_dir, private_enclave_dir, passphrase
         except Exception as e:
             print(f"Warning: Failed to unseal key from {key_file}: {e}", file=sys.stderr)
             # Fall back to env
@@ -71,7 +73,7 @@ def load_passphrase(agent_id: str) -> tuple[str, str]:
     if not passphrase:
         raise ValueError(f"Set SOVEREIGN_PASSPHRASE or {prefix}_KEY")
     
-    return enclave_dir, passphrase
+    return shared_enclave_dir, private_enclave_dir, passphrase
 
 
 def load_goals(enclave_path: Path) -> list[dict]:
@@ -336,7 +338,8 @@ def get_intention_completion_stats(agent_id: str, passphrase: str) -> dict | Non
     - Mechanism: Track stated-vs-actual gaps via intention completion rates
     """
     agent = get_agent_or_raise(agent_id)
-    enclave_path = Path(agent.enclave)
+    # Intentions are private
+    enclave_path = Path(agent.private_enclave)
     encrypted_file = enclave_path / "storage" / "private" / "intentions.enc.jsonl"
     
     if not encrypted_file.exists() or not passphrase:
@@ -374,7 +377,8 @@ def get_pending_automatable(agent_id: str, passphrase: str) -> list[tuple[str, s
     Returns list of (intention_id, action_type, content) for automatable intentions.
     """
     agent = get_agent_or_raise(agent_id)
-    enclave_path = Path(agent.enclave)
+    # Intentions are private
+    enclave_path = Path(agent.private_enclave)
     
     encrypted_file = enclave_path / "storage" / "private" / "intentions.enc.jsonl"
     plaintext_file = enclave_path / "storage" / "private" / "intentions.jsonl"
@@ -473,14 +477,15 @@ def get_synthesis_opportunities(mem: SemanticMemory, limit: int = 3) -> list[tup
 def wake(agent_id: str) -> str:
     """Generate wake output as pure SIF."""
     base_dir = Path(__file__).parent
-    enclave_dir, passphrase = load_passphrase(agent_id)
-    enclave_path = base_dir / enclave_dir
+    shared_enclave_dir, private_enclave_dir, passphrase = load_passphrase(agent_id)
+    shared_path = base_dir / shared_enclave_dir
+    private_path = base_dir / private_enclave_dir
     
-    # Get active goals
-    active_goals = get_active_goals(enclave_path)
+    # Get active goals (from PRIVATE enclave)
+    active_goals = get_active_goals(private_path)
     
-    # Unlock identity for decryption
-    identity = SovereignIdentity(enclave_path)
+    # Unlock identity for decryption (from PRIVATE enclave)
+    identity = SovereignIdentity(private_path)
     if not identity.unlock(passphrase):
         raise RuntimeError("Failed to unlock identity")
     
@@ -492,8 +497,8 @@ def wake(agent_id: str) -> str:
         encryption_algorithm=serialization.NoEncryption()
     )
 
-    # Initialize semantic memory for project context
-    mem = SemanticMemory(str(enclave_path))
+    # Initialize semantic memory for project context (from SHARED enclave)
+    mem = SemanticMemory(str(shared_path))
     mem.unlock(passphrase)
 
     # === STALE CHECK FIRST - FAIL FAST ===

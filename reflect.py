@@ -18,11 +18,14 @@ load_dotenv()
 
 sys.path.insert(0, str(Path(__file__).parent))
 from enclave.semantic_memory import SemanticMemory
+from enclave.config import get_agent_or_raise
 
 
 def load_passphrase(agent: str) -> tuple[Path, str]:
-    """Load passphrase for agent's enclave."""
-    enclave_dir = Path(__file__).parent / f"enclave_{agent}"
+    """Load passphrase for agent's private enclave."""
+    agent_config = get_agent_or_raise(agent)
+    # Reflections read from private enclave
+    enclave_dir = Path(__file__).parent / agent_config.private_enclave
     
     # Try env patterns
     for pattern in [f"ENCLAVE_{agent.upper()}_KEY", f"{agent.upper()}_KEY"]:

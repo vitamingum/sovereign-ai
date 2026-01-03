@@ -30,8 +30,19 @@ class Agent:
     
     @property
     def effective_enclave(self) -> str:
-        """Return shared enclave if set, otherwise solo enclave."""
+        """Return shared enclave if set, otherwise solo enclave.
+        
+        Use for: semantic_memories (shared knowledge graphs)
+        """
         return self.shared_enclave or self.enclave
+    
+    @property
+    def private_enclave(self) -> str:
+        """Always return solo enclave for private data.
+        
+        Use for: thoughts, intentions, goals, dreams, reflections
+        """
+        return self.enclave
 
 
 # The registry - one place, one truth

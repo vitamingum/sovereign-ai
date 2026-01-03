@@ -184,12 +184,13 @@ def classify_action_type(text: str) -> str:
 
 
 def load_passphrase(agent_id: str) -> tuple[str, str]:
-    """Load passphrase from env."""
+    """Load passphrase from env. Returns private_enclave for thoughts/intentions."""
     agent = get_agent_or_raise(agent_id)
     prefix = agent.env_prefix
     
     passphrase = os.environ.get(f'{prefix}_KEY') or os.environ.get('SOVEREIGN_PASSPHRASE')
-    enclave_dir = os.environ.get(f'{prefix}_DIR') or agent.enclave
+    # Use private_enclave for thoughts - NOT shared
+    enclave_dir = os.environ.get(f'{prefix}_DIR') or agent.private_enclave
     
     if not passphrase:
         env_file = Path(__file__).parent / '.env'
