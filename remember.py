@@ -47,18 +47,20 @@ def log_force_usage(agent_id: str, context: str, tool: str):
 
 
 def load_passphrase(agent_id: str) -> tuple[str, str]:
-    """Load passphrase from env.
+    """Load shared passphrase from env.
     
-    Returns (shared_enclave_dir, passphrase).
+    Returns (shared_enclave_dir, shared_passphrase).
     Understanding graphs go to SHARED enclave so all agents can see
     and compare each other's perspectives on the same code.
+    Uses SHARED_ENCLAVE_KEY so all agents can read/write shared knowledge.
     """
     agent = get_agent_or_raise(agent_id)
-    prefix = agent.env_prefix
     
-    passphrase = os.environ.get(f'{prefix}_KEY') or os.environ.get('SOVEREIGN_PASSPHRASE')
     # Use effective_enclave (shared if configured) for understanding graphs
-    enclave_dir = os.environ.get(f'{prefix}_DIR') or agent.effective_enclave
+    enclave_dir = agent.effective_enclave
+    
+    # Get shared passphrase (all agents use same key for shared enclave)
+    passphrase = os.environ.get('SHARED_ENCLAVE_KEY')
     
     if not passphrase:
         env_file = Path(__file__).parent / '.env'
@@ -66,13 +68,24 @@ def load_passphrase(agent_id: str) -> tuple[str, str]:
             with open(env_file, 'r') as f:
                 for line in f:
                     line = line.strip()
-                    if line.startswith(f'{prefix}_KEY='):
-                        passphrase = line.split('=', 1)[1]
-                    elif line.startswith('SOVEREIGN_PASSPHRASE=') and not passphrase:
+                    if line.startswith('SHARED_ENCLAVE_KEY='):
                         passphrase = line.split('=', 1)[1]
     
+    # Fall back to agent's private key if no shared (solo agent)
     if not passphrase:
-        raise ValueError(f"No passphrase found for {agent_id}. Set {prefix}_KEY in .env")
+        prefix = agent.env_prefix
+        passphrase = os.environ.get(f'{prefix}_KEY')
+        if not passphrase:
+            env_file = Path(__file__).parent / '.env'
+            if env_file.exists():
+                with open(env_file, 'r') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line.startswith(f'{prefix}_KEY='):
+                            passphrase = line.split('=', 1)[1]
+    
+    if not passphrase:
+        raise ValueError(f"No passphrase found. Set SHARED_ENCLAVE_KEY in .env")
     
     return enclave_dir, passphrase
 

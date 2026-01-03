@@ -30,12 +30,14 @@ from enclave.encrypted_jsonl import EncryptedJSONL
 import re
 
 
-def load_passphrase(agent_id: str) -> tuple[str, str, str]:
-    """Load passphrase from hardware enclave or env.
+def load_passphrase(agent_id: str) -> tuple[str, str, str, str]:
+    """Load passphrases from hardware enclave or env.
     
-    Returns (shared_enclave_dir, private_enclave_dir, passphrase).
+    Returns (shared_enclave_dir, private_enclave_dir, shared_passphrase, private_passphrase).
     - shared_enclave_dir: for semantic memories (shared knowledge)
     - private_enclave_dir: for goals, intentions, identity (private)
+    - shared_passphrase: key for shared enclave (all agents use same)
+    - private_passphrase: key for private enclave (per-agent)
     """
     agent = get_agent_or_raise(agent_id)
     prefix = agent.env_prefix
@@ -44,6 +46,9 @@ def load_passphrase(agent_id: str) -> tuple[str, str, str]:
     shared_enclave_dir = os.environ.get(f'{prefix}_DIR') or agent.effective_enclave
     private_enclave_dir = agent.private_enclave
 
+    # Get private passphrase (per-agent)
+    private_passphrase = None
+    
     # Try hardware enclave first (from PRIVATE enclave for key - each agent has their own)
     key_file = Path(private_enclave_dir) / "storage" / "private" / "key.sealed"
     if key_file.exists():
@@ -51,29 +56,44 @@ def load_passphrase(agent_id: str) -> tuple[str, str, str]:
             with open(key_file, "rb") as f:
                 sealed_data = f.read()
             enclave = get_enclave()
-            passphrase = enclave.unseal(sealed_data).decode('utf-8')
-            return shared_enclave_dir, private_enclave_dir, passphrase
+            private_passphrase = enclave.unseal(sealed_data).decode('utf-8')
         except Exception as e:
             print(f"Warning: Failed to unseal key from {key_file}: {e}", file=sys.stderr)
-            # Fall back to env
     
-    passphrase = os.environ.get(f'{prefix}_KEY') or os.environ.get('SOVEREIGN_PASSPHRASE')
+    if not private_passphrase:
+        private_passphrase = os.environ.get(f'{prefix}_KEY') or os.environ.get('SOVEREIGN_PASSPHRASE')
     
-    if not passphrase:
+    if not private_passphrase:
         env_file = Path(__file__).parent / '.env'
         if env_file.exists():
             with open(env_file, 'r') as f:
                 for line in f:
                     line = line.strip()
                     if line.startswith(f'{prefix}_KEY='):
-                        passphrase = line.split('=', 1)[1]
-                    elif line.startswith('SOVEREIGN_PASSPHRASE=') and not passphrase:
-                        passphrase = line.split('=', 1)[1]
+                        private_passphrase = line.split('=', 1)[1]
+                    elif line.startswith('SOVEREIGN_PASSPHRASE=') and not private_passphrase:
+                        private_passphrase = line.split('=', 1)[1]
     
-    if not passphrase:
+    if not private_passphrase:
         raise ValueError(f"Set SOVEREIGN_PASSPHRASE or {prefix}_KEY")
     
-    return shared_enclave_dir, private_enclave_dir, passphrase
+    # Get shared passphrase (same for all agents in shared enclave)
+    shared_passphrase = os.environ.get('SHARED_ENCLAVE_KEY')
+    
+    if not shared_passphrase:
+        env_file = Path(__file__).parent / '.env'
+        if env_file.exists():
+            with open(env_file, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith('SHARED_ENCLAVE_KEY='):
+                        shared_passphrase = line.split('=', 1)[1]
+    
+    # Fall back to private passphrase if no shared (for solo agents)
+    if not shared_passphrase:
+        shared_passphrase = private_passphrase
+    
+    return shared_enclave_dir, private_enclave_dir, shared_passphrase, private_passphrase
 
 
 def load_goals(enclave_path: Path) -> list[dict]:
@@ -494,16 +514,16 @@ def get_synthesis_opportunities(mem: SemanticMemory, limit: int = 3) -> list[tup
 def wake(agent_id: str) -> str:
     """Generate wake output as pure SIF."""
     base_dir = Path(__file__).parent
-    shared_enclave_dir, private_enclave_dir, passphrase = load_passphrase(agent_id)
+    shared_enclave_dir, private_enclave_dir, shared_passphrase, private_passphrase = load_passphrase(agent_id)
     shared_path = base_dir / shared_enclave_dir
     private_path = base_dir / private_enclave_dir
     
     # Get active goals (from PRIVATE enclave)
     active_goals = get_active_goals(private_path)
     
-    # Unlock identity for decryption (from PRIVATE enclave)
+    # Unlock identity for decryption (from PRIVATE enclave with PRIVATE passphrase)
     identity = SovereignIdentity(private_path)
-    if not identity.unlock(passphrase):
+    if not identity.unlock(private_passphrase):
         raise RuntimeError("Failed to unlock identity")
     
     # Get private key bytes for decryption
@@ -514,10 +534,10 @@ def wake(agent_id: str) -> str:
         encryption_algorithm=serialization.NoEncryption()
     )
 
-    # Initialize semantic memory for shared knowledge (from SHARED enclave)
+    # Initialize semantic memory for shared knowledge (from SHARED enclave with SHARED passphrase)
     # This is where understanding graphs AND shared memories live
     shared_mem = SemanticMemory(str(shared_path))
-    shared_mem.unlock(passphrase)
+    shared_mem.unlock(shared_passphrase)
 
     # === STALE CHECK FIRST - FAIL FAST ===
     # Understanding graphs are in SHARED enclave (attributed to each agent)
@@ -625,7 +645,7 @@ def wake(agent_id: str) -> str:
             print(f"Warning: Could not check cross-agent debt: {e}", file=sys.stderr)
 
     # === PENDING AUTOMATABLE INTENTIONS - FAIL FAST ===
-    pending = get_pending_automatable(agent_id, passphrase)
+    pending = get_pending_automatable(agent_id, private_passphrase)
     if pending:
         # Format like a catastrophic Python crash - NO ESCAPE except act.py
         error_lines = [
@@ -770,7 +790,7 @@ def wake(agent_id: str) -> str:
 
     # Blind Spot Detection - stated vs actual completion
     try:
-        completion_stats = get_intention_completion_stats(agent_id, passphrase)
+        completion_stats = get_intention_completion_stats(agent_id, private_passphrase)
         if completion_stats:
             rate = completion_stats['completion_rate']
             lines.append(f'N m3 Metric "Intention Completion"')

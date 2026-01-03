@@ -33,9 +33,9 @@ def calculate_synthesis(agent_id: str) -> float:
         import json
         import numpy as np
         
-        shared_enclave, private_enclave, passphrase = load_passphrase(agent_id)
+        shared_enclave, private_enclave, shared_passphrase, private_passphrase = load_passphrase(agent_id)
         memory = SemanticMemory(enclave_path=shared_enclave)
-        if not memory.unlock(passphrase):
+        if not memory.unlock(shared_passphrase):
             return 0.0
             
         # Ensure we can use embeddings (requires sentence-transformers)
@@ -223,9 +223,9 @@ def calculate_synthesis_debt(agent_id: str) -> dict:
     
     try:
         from wake import load_passphrase
-        shared_enclave, private_enclave, passphrase = load_passphrase(agent_id)
+        shared_enclave, private_enclave, shared_passphrase, private_passphrase = load_passphrase(agent_id)
         memory = SemanticMemory(enclave_path=shared_enclave)
-        if not memory.unlock(passphrase):
+        if not memory.unlock(shared_passphrase):
             return {'file_debt': 0, 'topic_debt': 0, 'total': 0}
         
         # --- FILE DEBT ---

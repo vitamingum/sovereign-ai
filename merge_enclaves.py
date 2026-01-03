@@ -304,9 +304,19 @@ def main():
     pass1 = load_passphrase(agent1)
     pass2 = load_passphrase(agent2)
     
-    # For shared enclave, we'll use agent1's passphrase (opus)
-    # In production, might want a derived shared key
-    shared_passphrase = pass1
+    # Get shared passphrase from SHARED_ENCLAVE_KEY
+    shared_passphrase = os.environ.get('SHARED_ENCLAVE_KEY')
+    if not shared_passphrase:
+        env_file = Path(__file__).parent / '.env'
+        if env_file.exists():
+            with open(env_file, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith('SHARED_ENCLAVE_KEY='):
+                        shared_passphrase = line.split('=', 1)[1]
+    
+    if not shared_passphrase:
+        raise ValueError("No SHARED_ENCLAVE_KEY found in environment or .env")
     
     # Export memories
     print(f"\nExporting {agent1} memories...")
@@ -347,10 +357,10 @@ def main():
     
     print(f"\n=== Merge complete! ===")
     print(f"\nShared enclave created at: {shared_path}")
-    print(f"Passphrase: Use {agent1}'s passphrase (ENCLAVE_{agent1.upper()}_KEY)")
+    print(f"Passphrase: SHARED_ENCLAVE_KEY")
     print(f"\nTo test:")
-    print(f"  py wake.py {agent1} --shared")
-    print(f"  py wake.py {agent2} --shared")
+    print(f"  py wake.py {agent1}")
+    print(f"  py wake.py {agent2}")
 
 
 if __name__ == "__main__":
