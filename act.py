@@ -28,9 +28,9 @@ def load_passphrase(agent_id: str) -> tuple[Path, str]:
     agent = get_agent_or_raise(agent_id)
     prefix = agent.env_prefix
     
-    passphrase = os.environ.get(f'{prefix}_KEY') or os.environ.get('SOVEREIGN_PASSPHRASE')
-    # Use private_enclave for intentions - NOT shared
+    # Use private_enclave for intentions - no fallback
     enclave_dir = Path(agent.private_enclave)
+    passphrase = os.environ.get(f'{prefix}_KEY')
     
     if not passphrase:
         env_file = Path(__file__).parent / '.env'
@@ -40,8 +40,9 @@ def load_passphrase(agent_id: str) -> tuple[Path, str]:
                     line = line.strip()
                     if line.startswith(f'{prefix}_KEY='):
                         passphrase = line.split('=', 1)[1]
-                    elif line.startswith('SOVEREIGN_PASSPHRASE=') and not passphrase:
-                        passphrase = line.split('=', 1)[1]
+    
+    if not passphrase:
+        raise ValueError(f"No passphrase found. Set {prefix}_KEY in .env")
     
     return enclave_dir, passphrase
 

@@ -671,14 +671,20 @@ def main():
     agent_id = sys.argv[1]
     agent = get_agent(agent_id)
     
-    # Get enclave directory
-    from pathlib import Path
-    enclave_dir = Path(f"enclave_{agent.name.lower()}")
+    # Use shared enclave for bridge analysis - no fallback
+    if not agent.shared_enclave:
+        print(f"Error: No shared_enclave configured for {agent_id}", file=sys.stderr)
+        sys.exit(1)
     
-    passphrase = os.getenv(f"ENCLAVE_{agent.name.upper()}_KEY") or os.getenv("SOVEREIGN_PASSPHRASE")
+    enclave_dir = Path(agent.shared_enclave)
+    passphrase = os.getenv('SHARED_ENCLAVE_KEY')
+    
+    if not passphrase:
+        print("Error: Set SHARED_ENCLAVE_KEY in .env", file=sys.stderr)
+        sys.exit(1)
+    
     sm = SemanticMemory(enclave_dir)
-    if passphrase:
-        sm.unlock(passphrase)
+    sm.unlock(passphrase)
     
     # Parse args
     if len(sys.argv) >= 3:

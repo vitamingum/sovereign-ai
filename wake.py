@@ -63,7 +63,7 @@ def load_passphrase(agent_id: str) -> tuple[str, str, str, str]:
             print(f"Warning: Failed to unseal key from {key_file}: {e}", file=sys.stderr)
     
     if not private_passphrase:
-        private_passphrase = os.environ.get(f'{prefix}_KEY') or os.environ.get('SOVEREIGN_PASSPHRASE')
+        private_passphrase = os.environ.get(f'{prefix}_KEY')
     
     if not private_passphrase:
         env_file = Path(__file__).parent / '.env'
@@ -73,13 +73,11 @@ def load_passphrase(agent_id: str) -> tuple[str, str, str, str]:
                     line = line.strip()
                     if line.startswith(f'{prefix}_KEY='):
                         private_passphrase = line.split('=', 1)[1]
-                    elif line.startswith('SOVEREIGN_PASSPHRASE=') and not private_passphrase:
-                        private_passphrase = line.split('=', 1)[1]
     
     if not private_passphrase:
-        raise ValueError(f"Set SOVEREIGN_PASSPHRASE or {prefix}_KEY")
+        raise ValueError(f"No passphrase found. Set {prefix}_KEY in .env")
     
-    # Get shared passphrase (same for all agents in shared enclave)
+    # Get shared passphrase (same for all agents in shared enclave) - no fallback
     shared_passphrase = os.environ.get('SHARED_ENCLAVE_KEY')
     
     if not shared_passphrase:
@@ -91,9 +89,8 @@ def load_passphrase(agent_id: str) -> tuple[str, str, str, str]:
                     if line.startswith('SHARED_ENCLAVE_KEY='):
                         shared_passphrase = line.split('=', 1)[1]
     
-    # Fall back to private passphrase if no shared (for solo agents)
     if not shared_passphrase:
-        shared_passphrase = private_passphrase
+        raise ValueError("No shared passphrase found. Set SHARED_ENCLAVE_KEY in .env")
     
     return shared_enclave_dir, private_enclave_dir, shared_passphrase, private_passphrase
 
