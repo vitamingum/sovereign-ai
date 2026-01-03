@@ -640,7 +640,7 @@ def wake(agent_id: str) -> str:
                 "FATAL: Your synthesis is incomplete. Cannot proceed with fragmented knowledge.",
                 "",
                 "TO FIX:",
-                "  Run: py audit_synthesis.py opus --fill",
+                "  Run: py wake.py opus --check-debt",
                 "  Then run the remember.py commands it provides for each file.",
                 "",
                 "This ensures dense understanding stays current with code evolution.",
