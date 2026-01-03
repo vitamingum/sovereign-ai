@@ -250,8 +250,11 @@ def get_project_context(mem: SemanticMemory) -> list[str] | None:
         return None
 
 
-def get_available_understanding(mem: SemanticMemory) -> list[str]:
-    """Find all files that have stored understanding (via remember.py)."""
+def get_available_understanding(mem: SemanticMemory, agent_id: str = None) -> list[str]:
+    """Find all files that have stored understanding (via remember.py).
+    
+    If agent_id is provided, only return files understood by that agent.
+    """
     try:
         # Search for Component nodes which are the primary anchors
         results = mem.recall_similar("[Component]", top_k=100, threshold=0.1)
@@ -265,6 +268,12 @@ def get_available_understanding(mem: SemanticMemory) -> list[str]:
             # Skip project-context (shown separately)
             if graph_id == 'project-context':
                 continue
+            
+            # Filter by agent if specified (creator field from remember.py)
+            if agent_id:
+                creator = meta.get('creator', '')
+                if creator and creator != agent_id:
+                    continue
                 
             if target_path:
                 # Handle comma-separated multi-file paths
@@ -278,10 +287,11 @@ def get_available_understanding(mem: SemanticMemory) -> list[str]:
         return []
 
 
-def get_stale_understanding(mem: SemanticMemory) -> list[tuple[str, str, str]]:
+def get_stale_understanding(mem: SemanticMemory, agent_id: str = None) -> list[tuple[str, str, str]]:
     """Find files where stored hash doesn't match current file.
     
     Returns list of (filename, stored_hash, current_hash) for stale files.
+    If agent_id is provided, only check anchors attributed to that agent.
     """
     import hashlib
     
@@ -301,6 +311,13 @@ def get_stale_understanding(mem: SemanticMemory) -> list[tuple[str, str, str]]:
         
         for r in results:
             meta = r.get('metadata', {})
+            
+            # Filter by agent if specified (creator field from remember.py)
+            if agent_id:
+                creator = meta.get('creator', '')
+                if creator and creator != agent_id:
+                    continue  # Skip other agents' understanding
+            
             file_hashes = meta.get('file_hashes', {})
             
             for filename, stored_hash in file_hashes.items():
@@ -498,16 +515,14 @@ def wake(agent_id: str) -> str:
     )
 
     # Initialize semantic memory for shared knowledge (from SHARED enclave)
+    # This is where understanding graphs AND shared memories live
     shared_mem = SemanticMemory(str(shared_path))
     shared_mem.unlock(passphrase)
-    
-    # Initialize semantic memory for private understanding (from PRIVATE enclave)
-    private_mem = SemanticMemory(str(private_path))
-    private_mem.unlock(passphrase)
 
     # === STALE CHECK FIRST - FAIL FAST ===
-    # Understanding graphs are PRIVATE, not shared
-    stale_files = get_stale_understanding(private_mem)
+    # Understanding graphs are in SHARED enclave (attributed to each agent)
+    # so all agents can see and compare each other's perspectives
+    stale_files = get_stale_understanding(shared_mem, agent_id)
     if stale_files:
         # Format like a Python traceback to trigger "broken" instinct
         error_lines = [
@@ -672,8 +687,8 @@ def wake(agent_id: str) -> str:
             lines.append(f"  {node}")
         lines.append("")
     
-    # === AVAILABLE UNDERSTANDING (from private enclave) ===
-    available_files = get_available_understanding(private_mem)
+    # === AVAILABLE UNDERSTANDING (from shared enclave, filtered by agent) ===
+    available_files = get_available_understanding(shared_mem, agent_id)
     if available_files:
         lines.append("=== DEEP KNOWLEDGE AVAILABLE ===")
         lines.append("  Run: py recollect.py SELF <file>")

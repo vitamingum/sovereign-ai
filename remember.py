@@ -47,12 +47,18 @@ def log_force_usage(agent_id: str, context: str, tool: str):
 
 
 def load_passphrase(agent_id: str) -> tuple[str, str]:
-    """Load passphrase from env."""
+    """Load passphrase from env.
+    
+    Returns (shared_enclave_dir, passphrase).
+    Understanding graphs go to SHARED enclave so all agents can see
+    and compare each other's perspectives on the same code.
+    """
     agent = get_agent_or_raise(agent_id)
     prefix = agent.env_prefix
     
     passphrase = os.environ.get(f'{prefix}_KEY') or os.environ.get('SOVEREIGN_PASSPHRASE')
-    enclave_dir = os.environ.get(f'{prefix}_DIR') or agent.enclave
+    # Use effective_enclave (shared if configured) for understanding graphs
+    enclave_dir = os.environ.get(f'{prefix}_DIR') or agent.effective_enclave
     
     if not passphrase:
         env_file = Path(__file__).parent / '.env'
