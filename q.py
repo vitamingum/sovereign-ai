@@ -196,20 +196,13 @@ Output ONLY a number 1-5:"""
         suggested_files = sorted(source_files)[:6]
         if suggested_files:
             files_arg = ",".join(suggested_files)
-            return f"""# Insufficient synthesis for: {question}
+            return f"""❌ FAIL: No synthesis for topic
 
-The search found fragments but couldn't synthesize a good answer.
-Relevant files found: {', '.join(suggested_files)}
-
-To create proper synthesis, run:
-  py recollect.py {agent_id} "{files_arg}"
-
-Then ask again."""
+py recollect.py {agent_id} "{files_arg}" """
         else:
-            return f"""# No relevant synthesis for: {question}
+            return f"""❌ FAIL: No relevant understanding
 
-The codebase doesn't have enough understanding to answer this.
-Consider running shallow_understand.py on relevant files first."""
+py shallow_understand.py <relevant_file> | py remember.py {agent_id}"""
     
     return synthesis
 
