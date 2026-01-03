@@ -323,6 +323,46 @@ def get_stale_understanding(mem: SemanticMemory) -> list[tuple[str, str, str]]:
         return []
 
 
+def get_intention_completion_stats(agent_id: str, passphrase: str) -> dict | None:
+    """Calculate intention completion rate for blind-spot detection.
+    
+    From blind-spot-definition graph:
+    - Operationalization: discrepancies between stated intentions and actual actions
+    - Mechanism: Track stated-vs-actual gaps via intention completion rates
+    """
+    agent = get_agent_or_raise(agent_id)
+    enclave_path = Path(agent.enclave)
+    encrypted_file = enclave_path / "storage" / "private" / "intentions.enc.jsonl"
+    
+    if not encrypted_file.exists() or not passphrase:
+        return None
+    
+    try:
+        ejsonl = EncryptedJSONL(encrypted_file, passphrase)
+        intentions = list(ejsonl.read_all())
+        
+        if not intentions:
+            return None
+        
+        statuses = {}
+        for i in intentions:
+            s = i.get('status', 'unknown')
+            statuses[s] = statuses.get(s, 0) + 1
+        
+        completed = statuses.get('completed', 0)
+        total = len(intentions)
+        
+        return {
+            'total': total,
+            'completed': completed,
+            'active': statuses.get('active', 0),
+            'dropped': statuses.get('dropped', 0),
+            'completion_rate': (completed / total * 100) if total > 0 else 0
+        }
+    except:
+        return None
+
+
 def get_pending_automatable(agent_id: str, passphrase: str) -> list[tuple[str, str, str]]:
     """Find active intentions that can be auto-executed.
     
@@ -614,6 +654,21 @@ def wake(agent_id: str) -> str:
                 lines.append(f'E v2 implies debt_risk')
     except Exception:
         pass  # Silent fail - not critical
+
+    # Blind Spot Detection - stated vs actual completion
+    try:
+        completion_stats = get_intention_completion_stats(agent_id, passphrase)
+        if completion_stats:
+            rate = completion_stats['completion_rate']
+            lines.append(f'N m3 Metric "Intention Completion"')
+            lines.append(f'N v3 Value "{rate:.0f}% ({completion_stats["completed"]}/{completion_stats["total"]})"')
+            lines.append(f'E {agent_id} has_metric m3')
+            lines.append(f'E m3 has_value v3')
+            if rate < 50:
+                lines.append(f'N blind_spot Warning "Low completion rate - stated vs actual gap"')
+                lines.append(f'E v3 reveals blind_spot')
+    except Exception:
+        pass  # Silent fail
 
     # Goals as dense SIF
     lines.append('')

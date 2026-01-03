@@ -177,6 +177,115 @@ def check_depth(graph: SIFKnowledgeGraph) -> tuple[bool, list[str]]:
     return is_deep, issues
 
 
+def check_operational(graph: SIFKnowledgeGraph) -> tuple[bool, list[str]]:
+    """
+    Check if understanding includes operational knowledge.
+    
+    Operational knowledge captures WHERE-IT-BREAKS:
+    - Gotcha: what surprises someone using this?
+    - Assumption: what must be true for this to work?
+    - Failure_Mode: how does this break?
+    
+    Returns (has_operational, missing_types)
+    """
+    nodes = [n for n in graph.nodes if n.type != "Anchor"]
+    node_types = {n.type.lower() for n in nodes}
+    
+    operational_types = {'gotcha', 'assumption', 'failure_mode'}
+    present = node_types & operational_types
+    missing = operational_types - present
+    
+    return len(present) > 0, list(missing)
+
+
+def prompt_operational(graph: SIFKnowledgeGraph) -> SIFKnowledgeGraph:
+    """
+    Interactive prompt to add operational knowledge if missing.
+    
+    Returns modified graph with any added nodes.
+    """
+    has_operational, missing = check_operational(graph)
+    
+    if has_operational:
+        return graph  # Already has operational knowledge
+    
+    print("\n⚠️  No operational knowledge found (gotcha, assumption, failure_mode)")
+    print("   Understanding has WHY but not WHERE-IT-BREAKS\n")
+    print("[y] Proceed anyway")
+    print("[n] Abort")
+    print("[a] Add now - I'll prompt for each")
+    
+    try:
+        choice = input("\nChoice [y/n/a]: ").strip().lower()
+    except EOFError:
+        # Non-interactive mode (pipe/redirect)
+        return graph
+    
+    if choice == 'n':
+        print("Aborted.")
+        sys.exit(1)
+    elif choice == 'a':
+        # Find highest node ID number for new nodes
+        max_id = 0
+        for node in graph.nodes:
+            if node.id.startswith('n') and node.id[1:].isdigit():
+                max_id = max(max_id, int(node.id[1:]))
+            elif node.id.startswith('g') and node.id[1:].isdigit():
+                max_id = max(max_id, int(node.id[1:]))
+            elif node.id.startswith('a') and node.id[1:].isdigit():
+                max_id = max(max_id, int(node.id[1:]))
+            elif node.id.startswith('f') and node.id[1:].isdigit():
+                max_id = max(max_id, int(node.id[1:]))
+        
+        next_id = max_id + 1
+        
+        # Find the first Component or main node to link to
+        target_node = None
+        for node in graph.nodes:
+            if node.type.lower() in ('component', 'function', 'class', 'module'):
+                target_node = node.id
+                break
+        if not target_node and graph.nodes:
+            target_node = graph.nodes[0].id
+        
+        print("\n(Press Enter to skip any)\n")
+        
+        # Gotcha
+        gotcha = input("Gotcha (what surprises someone using this?): ").strip()
+        if gotcha:
+            gid = f"g{next_id}"
+            graph.nodes.append(SIFNode(id=gid, type="Gotcha", content=gotcha))
+            if target_node:
+                graph.edges.append(SIFEdge(source=gid, target=target_node, relation="warns_about"))
+            next_id += 1
+            print(f"  Added: N {gid} Gotcha '{gotcha}'")
+        
+        # Assumption
+        assumption = input("Assumption (what must be true for this to work?): ").strip()
+        if assumption:
+            aid = f"a{next_id}"
+            graph.nodes.append(SIFNode(id=aid, type="Assumption", content=assumption))
+            if target_node:
+                graph.edges.append(SIFEdge(source=aid, target=target_node, relation="assumed_by"))
+            next_id += 1
+            print(f"  Added: N {aid} Assumption '{assumption}'")
+        
+        # Failure_Mode
+        failure = input("Failure_Mode (how does this break?): ").strip()
+        if failure:
+            fid = f"f{next_id}"
+            graph.nodes.append(SIFNode(id=fid, type="Failure_Mode", content=failure))
+            if target_node:
+                graph.edges.append(SIFEdge(source=fid, target=target_node, relation="breaks"))
+            next_id += 1
+            print(f"  Added: N {fid} Failure_Mode '{failure}'")
+        
+        if not (gotcha or assumption or failure):
+            print("  No operational knowledge added.")
+    
+    return graph
+
+
 def validate_comprehensiveness(graph: SIFKnowledgeGraph, file_content: str) -> tuple[bool, str]:
     """
     Use local LLM to validate understanding feels comprehensive.
@@ -414,6 +523,9 @@ def main():
         log_force_usage(agent_id, f"superficial understanding of {target_path}: {feedback}", 'remember.py')
         print("   --force specified, storing anyway...", file=sys.stderr)
         print("[--force logged for pattern analysis]", file=sys.stderr)
+    
+    # Check for operational knowledge and offer to add it
+    graph = prompt_operational(graph)
     
     # Store in memory
     mem = SemanticMemory(enclave_dir)

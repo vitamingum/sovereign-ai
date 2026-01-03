@@ -475,8 +475,9 @@ def think(agent_id: str, text: str, agency: int, force: bool = False) -> str:
     memory.unlock(passphrase)
     
     # Build tags - add 'synthesis' if content indicates synthesis
+    # Check for word "synthesis" OR node type " S " (single-letter shortcut for Synthesis)
     tags = ['thought', f'agency:{agency}']
-    if 'synthesis' in content.lower():
+    if 'synthesis' in content.lower() or ' S ' in content or ' s ' in content:
         tags.append('synthesis')
     
     # Extract topic from graph ID for better retrieval

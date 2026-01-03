@@ -7,6 +7,7 @@ Calculates 'Enclave Entropy' and other sovereignty metrics.
 import os
 import sys
 import time
+import traceback
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 
@@ -87,11 +88,17 @@ def calculate_synthesis(agent_id: str) -> float:
                         node_embeddings[node_id] = emb
                         
                         # Collect OUTGOING edges only to avoid double counting
-                        # (ingest_graph stores both in and out)
+                        # Format varies: "edges" (old ingest_graph) or "outgoing_edges" (current)
                         node_edges = meta.get("edges", [])
                         for e in node_edges:
                             if e.get("direction") == "out":
                                 edges.append((node_id, e["target"]))
+                        
+                        # Current format: outgoing_edges as [[relation, target], ...]
+                        outgoing = meta.get("outgoing_edges", [])
+                        for e in outgoing:
+                            if isinstance(e, list) and len(e) >= 2:
+                                edges.append((node_id, e[1]))
                                 
                 except Exception:
                     continue
@@ -121,7 +128,9 @@ def calculate_synthesis(agent_id: str) -> float:
                 
         return total_potential
         
-    except Exception:
+    except Exception as e:
+        # Memory: "Returns 0.0 on any exception - silent failure masks real problems"
+        print(f"[metrics] calculate_synthesis failed: {e}", file=sys.stderr)
         return 0.0
 
 def get_key_security_score(agent_id: str) -> float:

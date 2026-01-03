@@ -26,6 +26,16 @@ from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional
 
+# Cache for LLM responses
+cache_file = Path(__file__).parent / ".shallow_cache.json"
+cache = {}
+if cache_file.exists():
+    try:
+        with open(cache_file, 'r', encoding='utf-8') as f:
+            cache = json.load(f)
+    except:
+        cache = {}
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # LLM Prompts
@@ -164,6 +174,11 @@ def generate_sif(filepath: str, model: str = 'qwen2.5:7b', deep: bool = False) -
         date=date
     )
     
+    # Cache key based on content and prompt
+    key = hashlib.md5((content + prompt).encode('utf-8')).hexdigest()
+    if key in cache:
+        return cache[key]
+    
     try:
         response = requests.post(
             'http://localhost:11434/api/generate',
@@ -182,6 +197,15 @@ def generate_sif(filepath: str, model: str = 'qwen2.5:7b', deep: bool = False) -
         
         # Extract SIF from response
         sif = extract_sif(result, filename, date)
+        
+        # Cache the result
+        cache[key] = sif
+        try:
+            with open(cache_file, 'w', encoding='utf-8') as f:
+                json.dump(cache, f, indent=2)
+        except:
+            pass  # Ignore cache write errors
+        
         return sif
         
     except Exception as e:
@@ -373,18 +397,22 @@ Examples:
     
     # INSTANT MODE (default) - no LLM, just docstrings
     if not use_llm:
-        for filepath in valid_files:
+        def process_instant(filepath):
             filename = os.path.basename(filepath)
             purpose, funcs = instant_understand(filepath)
             purpose_short = purpose[:55] if len(purpose) > 55 else purpose
-            results_for_table.append([filename, purpose_short])
-            
-            # Minimal SIF for storage
             sif = f"@G {filename}-instant opus\nN n1 Purpose '{purpose}'"
             for i, fn in enumerate(funcs[:5], 2):
                 sif += f"\nN n{i} Component '{fn}'"
-            all_sif.append(f"# {filepath}\n{sif}\n")
-            summaries.append((filepath, sif))
+            return [filename, purpose_short], f"# {filepath}\n{sif}\n", (filepath, sif)
+        
+        with ThreadPoolExecutor(max_workers=min(len(valid_files), 4)) as executor:
+            futures = [executor.submit(process_instant, f) for f in valid_files]
+            for future in as_completed(futures):
+                row, sif, summary = future.result()
+                results_for_table.append(row)
+                all_sif.append(sif)
+                summaries.append(summary)
         
         # Output as beautiful table
         if has_table:
