@@ -291,14 +291,26 @@ def cluster_keywords(file_keywords: dict[str, list[str]], threshold: float = CLU
 
 def get_existing_syntheses(sm: SemanticMemory) -> set[str]:
     """Find which themes already have synthesis documents."""
-    syntheses = sm.list_by_tag("synthesis")
     themes = set()
     
+    # Check semantic memory for theme tags
+    syntheses = sm.list_by_tag("synthesis")
     for s in syntheses:
         tags = s.get("tags", [])
         for tag in tags:
             if tag.startswith("theme:"):
                 themes.add(tag[6:].lower())
+    
+    # Also check synthesis_material_*.txt files
+    import glob
+    for path in glob.glob("synthesis_material_*.txt"):
+        # Extract topic from filename
+        name = path.replace("synthesis_material_", "").replace(".txt", "")
+        # Normalize: remove ---synthesize suffix, replace - with space
+        name = name.replace("---synthesize", "").replace("-", " ").strip()
+        themes.add(name.lower())
+    
+    return themes
     
     return themes
 
