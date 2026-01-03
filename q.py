@@ -164,10 +164,15 @@ Keep descriptions <80 chars. Output ONLY SIF:"""
     return llm_query(synth_prompt)
 
 
-def run_command(cmd: dict, agent_id: str, sm: SemanticMemory = None) -> str:
+def run_command(cmd: dict, agent_id: str, sm: SemanticMemory = None, question: str = "") -> str:
     """Execute the classified command and return output."""
     
     cmd_type = cmd.get("cmd", "search")
+    
+    # Handle malformed responses - if cmd looks like a topic name, treat as topic lookup
+    if cmd_type not in ("recollect_topic", "memory_debt", "search", "recollect"):
+        # LLM returned topic name directly as cmd
+        return run_command({"cmd": "recollect_topic", "topic": cmd_type}, agent_id, sm, question)
     
     if cmd_type == "recollect_topic":
         topic = cmd.get("topic", "")
