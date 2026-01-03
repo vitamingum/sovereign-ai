@@ -19,23 +19,28 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from enclave.config import get_agent_or_raise, canonical_agent_id
+from enclave.config import get_agent_or_raise, canonical_agent_id, get_enclave_partners
 from enclave.semantic_memory import SemanticMemory
 from enclave.crypto import SovereignIdentity
 from enclave.opaque import OpaqueStorage
 from enclave.sif_parser import SIFParser
 from enclave.hardware import get_enclave
-from enclave.metrics import calculate_enclave_entropy, calculate_synthesis_debt
+from enclave.metrics import calculate_enclave_entropy, calculate_synthesis_debt, calculate_cross_agent_debt
 from enclave.encrypted_jsonl import EncryptedJSONL
 import re
 
 
 def load_passphrase(agent_id: str) -> tuple[str, str]:
-    """Load passphrase from hardware enclave or env."""
+    """Load passphrase from hardware enclave or env.
+    
+    Returns (enclave_dir, passphrase).
+    If agent has a shared_enclave configured, returns that instead.
+    """
     agent = get_agent_or_raise(agent_id)
     prefix = agent.env_prefix
     
-    enclave_dir = os.environ.get(f'{prefix}_DIR') or agent.enclave
+    # Use effective_enclave which returns shared_enclave if configured
+    enclave_dir = os.environ.get(f'{prefix}_DIR') or agent.effective_enclave
 
     # Try hardware enclave first
     key_file = Path(enclave_dir) / "storage" / "private" / "key.sealed"
@@ -554,6 +559,46 @@ def wake(agent_id: str) -> str:
         # If debt calculation fails, don't block - but log
         print(f"Warning: Could not check synthesis debt: {e}", file=sys.stderr)
 
+    # === CROSS-AGENT DEBT CHECK (shared enclave) ===
+    agent = get_agent_or_raise(agent_id)
+    if agent.shared_enclave:
+        try:
+            cross_debt = calculate_cross_agent_debt(agent_id, mem)
+            if cross_debt['debt_count'] > 5:  # Lower threshold - you should keep up with partners
+                partner_files = cross_debt['partner_files']
+                error_lines = [
+                    "Traceback (most recent call last):",
+                    f'  File "wake.py", line 1, in <module>',
+                    "    from sovereign.shared import verify_peer_parity",
+                    f'  File "c:\\sovereign\\shared\\parity.py", line 1, in verify_peer_parity',
+                    "    raise AgentDebtError(cross_debt)",
+                    f'AgentDebtError: {cross_debt["debt_count"]} file(s) understood by partners but not by you',
+                    "",
+                    "FATAL: Your partners have denser understanding than you.",
+                    "       In a shared enclave, all agents must contribute equally.",
+                    "",
+                    "FILES YOU'RE MISSING (that partners understand):",
+                ]
+                for partner, files in partner_files.items():
+                    debt_files = cross_debt['my_debt'] & files
+                    if debt_files:
+                        error_lines.append(f"  From {partner}:")
+                        for f in sorted(debt_files)[:10]:  # Show first 10
+                            error_lines.append(f"    - {f}")
+                        if len(debt_files) > 10:
+                            error_lines.append(f"    ... and {len(debt_files) - 10} more")
+                error_lines.extend([
+                    "",
+                    "TO FIX:",
+                    "  Run: py recollect.py opus <file>  # See what partners know",
+                    "  Then: py remember.py opus <file> \"<your understanding>\"",
+                    "",
+                    "The shared enclave requires mutual understanding.",
+                ])
+                return '\n'.join(error_lines), len(stale_files), 0
+        except Exception as e:
+            print(f"Warning: Could not check cross-agent debt: {e}", file=sys.stderr)
+
     # === PENDING AUTOMATABLE INTENTIONS - FAIL FAST ===
     pending = get_pending_automatable(agent_id, passphrase)
     if pending:
@@ -625,6 +670,24 @@ def wake(agent_id: str) -> str:
         for f in available_files:
             lines.append(f"    - {f}")
         lines.append("")
+    
+    # === SHARED ENCLAVE PARTNERS ===
+    if agent.shared_enclave:
+        partners = get_enclave_partners(agent_id)
+        if partners:
+            partner_names = [p.id for p in partners]
+            lines.append("=== SHARED ENCLAVE ===")
+            lines.append(f"  Partners: {', '.join(partner_names)}")
+            try:
+                cross_debt = calculate_cross_agent_debt(agent_id, mem)
+                if cross_debt['debt_count'] > 0:
+                    lines.append(f"  Your debt: {cross_debt['debt_count']} files to understand")
+                else:
+                    lines.append("  Debt: 0 - you're caught up!")
+                lines.append("  Run: py recollect.py opus <file>  # See all perspectives")
+            except:
+                pass
+            lines.append("")
     
     # === SYNTHESIS OPPORTUNITIES ===
     synthesis = get_synthesis_opportunities(mem)

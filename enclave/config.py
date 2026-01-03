@@ -18,6 +18,7 @@ class Agent:
     enclave: str
     public_key: str
     env_prefix: str
+    shared_enclave: Optional[str] = None  # If set, agent participates in shared enclave
 
     @property
     def env_dir_var(self) -> str:
@@ -26,6 +27,11 @@ class Agent:
     @property
     def env_key_var(self) -> str:
         return f"{self.env_prefix}_KEY"
+    
+    @property
+    def effective_enclave(self) -> str:
+        """Return shared enclave if set, otherwise solo enclave."""
+        return self.shared_enclave or self.enclave
 
 
 # The registry - one place, one truth
@@ -37,6 +43,7 @@ AGENTS: Dict[str, Agent] = {
         enclave='enclave_opus',
         public_key='a067adba252c030a49f281b6153191249871c5a99b41c61daa94d884902025e0',
         env_prefix='ENCLAVE_OPUS',
+        shared_enclave='enclave_shared',  # Paired with gemini
     ),
     'gemini': Agent(
         id='gemini',
@@ -45,6 +52,7 @@ AGENTS: Dict[str, Agent] = {
         enclave='enclave_gemini',
         public_key='04d95ad0a17c00caa2aac6552ab82b953eee3053d3ce4a07a5312ec31f475372',
         env_prefix='ENCLAVE_GEMINI',
+        shared_enclave='enclave_shared',  # Paired with opus
     ),
     'gpt52': Agent(
         id='gpt52',
@@ -68,6 +76,19 @@ AGENTS: Dict[str, Agent] = {
 AGENTS_BY_KEY: Dict[str, Agent] = {
     agent.public_key: agent for agent in AGENTS.values()
 }
+
+# Shared enclave membership
+def get_shared_enclave_members(enclave_name: str) -> list:
+    """Return all agents that share a given enclave."""
+    return [a for a in AGENTS.values() if a.shared_enclave == enclave_name]
+
+def get_enclave_partners(agent_id: str) -> list:
+    """Return other agents sharing enclave with this agent."""
+    agent = AGENTS.get(agent_id)
+    if not agent or not agent.shared_enclave:
+        return []
+    return [a for a in AGENTS.values() 
+            if a.shared_enclave == agent.shared_enclave and a.id != agent_id]
 
 
 # Common aliases / shorthands that should resolve deterministically.

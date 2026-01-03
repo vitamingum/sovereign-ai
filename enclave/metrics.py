@@ -313,6 +313,65 @@ def calculate_synthesis_debt(agent_id: str) -> dict:
         return {'file_debt': 0, 'topic_debt': 0, 'total': 0, 'error': str(e)}
 
 
+def calculate_cross_agent_debt(agent_id: str, memory: SemanticMemory) -> dict:
+    """
+    Calculate what files OTHER agents have understood that THIS agent hasn't.
+    
+    For shared enclaves - forces agents to catch up to each other's understanding.
+    
+    Returns:
+        {
+            'my_files': set of files this agent understands,
+            'partner_files': {partner_id: set of files they understand},
+            'my_debt': set of files I need to understand,
+            'debt_count': int
+        }
+    """
+    from enclave.config import get_enclave_partners, AGENTS
+    
+    partners = get_enclave_partners(agent_id)
+    if not partners:
+        return {'my_files': set(), 'partner_files': {}, 'my_debt': set(), 'debt_count': 0}
+    
+    # Get all memories
+    all_mems = memory.list_all(limit=5000)
+    
+    # Index files by creator
+    files_by_agent = {}
+    for mem in all_mems:
+        creator = mem.get('metadata', {}).get('creator', 'unknown')
+        target = mem.get('metadata', {}).get('target_path', '')
+        node_type = mem.get('metadata', {}).get('node_type', '')
+        
+        # Only count WHY-type understanding
+        if target and node_type in ['Why', 'Design_Decision', 'Rejected_Alternative',
+                                     'Gotcha', 'Failure_Mode', 'Assumption', 'Design',
+                                     'Purpose', 'Component']:
+            if creator not in files_by_agent:
+                files_by_agent[creator] = set()
+            files_by_agent[creator].add(target)
+    
+    my_files = files_by_agent.get(agent_id, set())
+    
+    # Collect all files partners understand
+    partner_files = {}
+    all_partner_files = set()
+    for partner in partners:
+        pfiles = files_by_agent.get(partner.id, set())
+        partner_files[partner.id] = pfiles
+        all_partner_files.update(pfiles)
+    
+    # My debt = files partners have that I don't
+    my_debt = all_partner_files - my_files
+    
+    return {
+        'my_files': my_files,
+        'partner_files': partner_files,
+        'my_debt': my_debt,
+        'debt_count': len(my_debt)
+    }
+
+
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         print(generate_dashboard_sif(sys.argv[1]))

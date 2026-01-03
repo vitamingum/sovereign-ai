@@ -24,18 +24,23 @@ from collections import defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from enclave.config import get_agent_or_raise
+from enclave.config import get_agent_or_raise, get_enclave_partners
 from enclave.semantic_memory import SemanticMemory
 from enclave.sif_parser import TYPE_SHORTCUTS
 
 
 def load_passphrase(agent_id: str) -> tuple[str, str]:
-    """Load passphrase from env."""
+    """Load passphrase from env.
+    
+    Returns (enclave_dir, passphrase).
+    If agent has shared_enclave configured, returns that directory.
+    """
     agent = get_agent_or_raise(agent_id)
     prefix = agent.env_prefix
     
     passphrase = os.environ.get(f'{prefix}_KEY') or os.environ.get('SOVEREIGN_PASSPHRASE')
-    enclave_dir = os.environ.get(f'{prefix}_DIR') or agent.enclave
+    # Use effective_enclave which returns shared_enclave if configured
+    enclave_dir = os.environ.get(f'{prefix}_DIR') or agent.effective_enclave
     
     if not passphrase:
         env_file = Path(__file__).parent / '.env'
@@ -365,6 +370,17 @@ def main():
     except ValueError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
+    
+    # Check for shared enclave - inform user
+    agent = get_agent_or_raise(agent_id)
+    if agent.shared_enclave:
+        partners = get_enclave_partners(agent_id)
+        if partners:
+            partner_names = [p.id for p in partners]
+            print(f"🔗 SHARED ENCLAVE: {agent.shared_enclave}")
+            print(f"   Partners: {', '.join(partner_names)}")
+            print(f"   (Showing all perspectives combined)")
+            print("")
     
     # Search memory for understanding of this file
     mem = SemanticMemory(enclave_dir)
