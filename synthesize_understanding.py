@@ -57,8 +57,13 @@ def cosine_similarity(a: List[float], b: List[float]) -> float:
     return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
 
 
-def load_understanding_graphs(mem: SemanticMemory, filepath: str) -> Dict[str, dict]:
+def load_understanding_graphs(mem: SemanticMemory, filepath: str, exclude_synthesis: bool = True) -> Dict[str, dict]:
     """Load all agents' understanding graphs for a file.
+    
+    Args:
+        mem: SemanticMemory instance
+        filepath: File to load understanding for
+        exclude_synthesis: If True, skip nodes with creator=synthesis (default True)
     
     Returns dict of agent -> {nodes: [...], edges: [...]}
     """
@@ -86,6 +91,10 @@ def load_understanding_graphs(mem: SemanticMemory, filepath: str) -> Dict[str, d
         # Default to opus if no creator found (legacy data)
         if not creator:
             creator = 'opus'
+        
+        # Skip synthesis nodes when building input for new synthesis
+        if exclude_synthesis and creator == 'synthesis':
+            continue
         
         if creator not in graphs:
             graphs[creator] = {'nodes': [], 'edges': [], 'raw_results': []}
@@ -431,38 +440,49 @@ def synthesize_graphs(
             # Add agreement metadata (not a graph edge, but recorded)
             print(f"    {match['agent_a']} agrees_with {match['agent_b']} on: {match['node_a'].get('content', '')[:40]}...")
     
-    # Build output SIF
+    # Build DENSE output SIF - no comments, no verbose IDs
     filename = os.path.basename(filepath)
     timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d')
     agents_str = '+'.join(sorted(graphs.keys()))
     
-    sif_lines = [f"@G {filename.replace('.', '-')}-unified-synthesis {agents_str} {timestamp}"]
+    sif_lines = [f"@G {filename.replace('.', '-')}-synthesis {agents_str} {timestamp}"]
     
-    # Group nodes by match type for clearer output
-    for match_type in ['same', 'related', 'unique']:
-        type_nodes = [n for n in unified_nodes if n['match_type'] == match_type]
-        if type_nodes:
-            if match_type == 'same':
-                sif_lines.append(f"\n# MERGED ({len(type_nodes)} nodes - both agents agree)")
-            elif match_type == 'related':
-                sif_lines.append(f"\n# RELATED ({len(type_nodes)} nodes - connected insights)")
-            else:
-                sif_lines.append(f"\n# UNIQUE ({len(type_nodes)} nodes - single agent insight)")
-            
-            for node in type_nodes:
-                creators = '+'.join(node['creators'])
-                sim_note = f" sim={node['similarity']:.2f}" if node['similarity'] else ""
-                sif_lines.append(f"N {node['id']} {node['type']} '{node['content']}' creator={creators}{sim_note}")
+    # Assign sequential dense IDs by type
+    type_counters = {}
+    TYPE_PREFIXES = {
+        'Component': 'c', 'Purpose': 'p', 'Design_Decision': 'd',
+        'Gotcha': 'g', 'Assumption': 'a', 'Failure_Mode': 'f',
+        'Rule': 'r', 'Insight': 'i', 'Anchor': 'x'
+    }
     
-    # Add edges
-    sif_lines.append(f"\n# RELATIONSHIPS ({len(unified_edges)} edges)")
+    # Map old IDs to new dense IDs
+    id_remap = {}
+    
+    for node in unified_nodes:
+        node_type = node['type']
+        prefix = TYPE_PREFIXES.get(node_type, 'n')
+        type_counters[prefix] = type_counters.get(prefix, 0) + 1
+        new_id = f"{prefix}{type_counters[prefix]}"
+        id_remap[node['id']] = new_id
+        
+        # Dense creator: 'both' if multiple, else single agent
+        if len(node['creators']) > 1:
+            creator = 'both'
+        else:
+            creator = node['creators'][0]
+        
+        sif_lines.append(f"N {new_id} {node_type} '{node['content']}' creator={creator}")
+    
+    # Add edges with remapped IDs
     seen_edges = set()
     for edge in unified_edges:
-        edge_key = (edge['source'], edge['target'], edge['relation'])
+        new_src = id_remap.get(edge['source'], edge['source'])
+        new_tgt = id_remap.get(edge['target'], edge['target'])
+        edge_key = (new_src, new_tgt, edge['relation'])
         if edge_key in seen_edges:
             continue
         seen_edges.add(edge_key)
-        sif_lines.append(f"E {edge['source']} {edge['relation']} {edge['target']}")
+        sif_lines.append(f"E {new_src} {edge['relation']} {new_tgt}")
     
     return '\n'.join(sif_lines)
 
