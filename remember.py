@@ -56,8 +56,8 @@ def load_passphrase(agent_id: str) -> tuple[str, str]:
     """
     agent = get_agent_or_raise(agent_id)
     
-    # Use effective_enclave (shared if configured) for understanding graphs
-    enclave_dir = agent.effective_enclave
+    # Use shared_enclave for understanding graphs
+    enclave_dir = agent.shared_enclave or agent.enclave
     
     # Get shared passphrase (all agents use same key for shared enclave)
     passphrase = os.environ.get('SHARED_ENCLAVE_KEY')

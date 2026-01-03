@@ -43,8 +43,10 @@ def load_passphrase(agent_id: str) -> tuple[str, str, str, str]:
     prefix = agent.env_prefix
     
     # Separate shared vs private enclave paths
-    shared_enclave_dir = os.environ.get(f'{prefix}_DIR') or agent.effective_enclave
-    private_enclave_dir = agent.private_enclave
+    # shared_enclave always from config (agent.shared_enclave)
+    # private_enclave from env var override or config default
+    shared_enclave_dir = agent.shared_enclave
+    private_enclave_dir = os.environ.get(f'{prefix}_DIR') or agent.private_enclave
 
     # Get private passphrase (per-agent)
     private_passphrase = None
