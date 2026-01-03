@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
 """
+"""
 msg.py - Send a message to another agent.
 
 Usage:
-    py msg <from> <to> "content"
+    py msg <from> <to> "content"              # Public (unencrypted, signed)
+    py msg <from> <to> --private "content"    # Private (encrypted, signed)
     
 Examples:
     py msg opus gemini "What does saturation feel like?"
+    py msg opus gemini --private "Secret coordination plan"
     py msg opus gemini "@G question opus 2025-12-31; N n1 Question 'What is saturation?'"
 
-Accepts both plain text and SIF format.
-Plain text for simple messages, SIF for structured graphs.
-Messages are signed with Ed25519 and verifiable by any agent.
+Public messages: Signed but unencrypted - any agent can read.
+Private messages: Encrypted to recipient's key - only they can decrypt.
+All messages are signed with Ed25519 and verifiable by any agent.
 """
 
 import sys
@@ -29,13 +32,16 @@ from enclave.opaque import OpaqueStorage
 
 
 def load_credentials(agent_id: str) -> tuple[Path, SovereignIdentity]:
-    """Load enclave and identity for an agent."""
+    """Load identity from PRIVATE enclave for signing messages."""
     agent = get_agent_or_raise(agent_id)
     prefix = agent.env_prefix
     base_dir = Path(__file__).parent
     
-    passphrase = os.environ.get(f'{prefix}_KEY') or os.environ.get('SOVEREIGN_PASSPHRASE')
-    enclave_dir = os.environ.get(f'{prefix}_DIR') or agent.enclave
+    # Private enclave for identity - no fallback
+    enclave_dir = agent.private_enclave
+    
+    # Try private key - no fallback
+    passphrase = os.environ.get(f'{prefix}_KEY')
     
     if not passphrase:
         env_file = base_dir / '.env'
@@ -45,11 +51,9 @@ def load_credentials(agent_id: str) -> tuple[Path, SovereignIdentity]:
                     line = line.strip()
                     if line.startswith(f'{prefix}_KEY='):
                         passphrase = line.split('=', 1)[1]
-                    elif line.startswith('SOVEREIGN_PASSPHRASE=') and not passphrase:
-                        passphrase = line.split('=', 1)[1]
     
     if not passphrase:
-        raise ValueError(f"Set SOVEREIGN_PASSPHRASE or {prefix}_KEY")
+        raise ValueError(f"No passphrase found. Set {prefix}_KEY in .env")
     
     enclave_path = base_dir / enclave_dir
     identity = SovereignIdentity(enclave_path)
@@ -59,8 +63,8 @@ def load_credentials(agent_id: str) -> tuple[Path, SovereignIdentity]:
     return enclave_path, identity
 
 
-def send(from_agent: str, to_agent: str, content: str) -> str:
-    """Send a signed message."""
+def send(from_agent: str, to_agent: str, content: str, private: bool = False) -> str:
+    """Send a signed message. If private=True, encrypt to recipient."""
     base_dir = Path(__file__).parent
     messages_dir = base_dir / "messages"
     messages_dir.mkdir(exist_ok=True)
@@ -95,17 +99,20 @@ def send(from_agent: str, to_agent: str, content: str) -> str:
     if is_sif:
         msg_type = 'protocol/sif'
     
-    # Get recipient's public key (hex string from config)
-    recipient_agent = get_agent_or_raise(recipient_id)
-    recipient_key_hex = recipient_agent.public_key
-    recipient_key_bytes = bytes.fromhex(recipient_key_hex)
-
-    # Encrypt content
-    encrypted_bundle = OpaqueStorage.encrypt_share(
-        content.encode('utf-8'), 
-        recipient_key_bytes
-    )
-    final_content = json.dumps(encrypted_bundle)
+    if private:
+        # PRIVATE: Encrypt to recipient's public key
+        recipient_agent = get_agent_or_raise(recipient_id)
+        recipient_key_hex = recipient_agent.public_key
+        recipient_key_bytes = bytes.fromhex(recipient_key_hex)
+        encrypted_bundle = OpaqueStorage.encrypt_share(
+            content.encode('utf-8'), 
+            recipient_key_bytes
+        )
+        final_content = json.dumps(encrypted_bundle)
+        msg_type = f'{msg_type}/encrypted' if is_sif else 'text/encrypted'
+    else:
+        # PUBLIC: Plaintext, but still signed
+        final_content = content
 
     timestamp = datetime.now(timezone.utc).isoformat()
     msg_id = f"msg_{int(datetime.now(timezone.utc).timestamp() * 1000)}"
@@ -161,7 +168,15 @@ def main():
     
     from_agent = sys.argv[1]
     to_agent = sys.argv[2]
-    content = ' '.join(sys.argv[3:])
+    
+    # Check for --private flag
+    remaining_args = sys.argv[3:]
+    private = False
+    if '--private' in remaining_args:
+        private = True
+        remaining_args.remove('--private')
+    
+    content = ' '.join(remaining_args)
     
     # Optimization: If content is a file path, read the file
     # This allows sending SIF JSON files directly: py message gemini opus graph.json
@@ -174,7 +189,7 @@ def main():
             sys.exit(1)
     
     try:
-        result = send(from_agent, to_agent, content)
+        result = send(from_agent, to_agent, content, private=private)
         print(result)
     except Exception as e:
         print(f"Error: {e}")

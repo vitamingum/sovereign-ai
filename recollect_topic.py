@@ -226,10 +226,12 @@ def load_passphrase(agent_id: str) -> tuple[str, str]:
     """Load passphrase from env. Uses shared_enclave for synthesis lookup."""
     agent = get_agent_or_raise(agent_id)
     
-    # Use shared_enclave for synthesis (same as remember.py, recollect.py)
-    enclave_dir = agent.shared_enclave or agent.enclave
+    # Use shared_enclave for synthesis - no fallback
+    if not agent.shared_enclave:
+        raise ValueError(f"No shared_enclave configured for {agent_id}")
+    enclave_dir = agent.shared_enclave
     
-    # Get shared passphrase
+    # Get shared passphrase - no fallback
     passphrase = os.environ.get('SHARED_ENCLAVE_KEY')
     
     if not passphrase:

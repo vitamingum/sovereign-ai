@@ -141,12 +141,13 @@ def get_key_security_score(agent_id: str) -> float:
     0.0 = Missing/Unknown
     """
     agent = get_agent_or_raise(agent_id)
-    enclave_dir = os.environ.get(f'{agent.env_prefix}_DIR') or agent.enclave
+    # Key is in private enclave
+    enclave_dir = agent.private_enclave
     key_file = Path(enclave_dir) / "storage" / "private" / "key.sealed"
     
     if key_file.exists():
         return 1.0
-    elif os.environ.get(f'{agent.env_prefix}_KEY') or os.environ.get('SOVEREIGN_PASSPHRASE'):
+    elif os.environ.get(f'{agent.env_prefix}_KEY'):
         return 0.5
     else:
         return 0.0

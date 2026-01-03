@@ -202,18 +202,25 @@ Output ONLY a number 1-5:"""
         score = 3  # Default to medium if parse fails
     
     if score <= 2:
-        # Weak answer - suggest synthesis
+        # Weak answer - dump raw understanding for Claude to synthesize
         suggested_files = sorted(source_files)[:6]
         if suggested_files:
-            files_arg = ",".join(suggested_files)
-            # Generate proper topic slug
+            # Generate topic slug for synth command
             slug_prompt = f'Generate a 2-3 word topic slug for: "{question}"\nExamples: error-handling, backup-restore, semantic-search\nOutput ONLY the slug:'
             topic = llm_query(slug_prompt).strip().lower().replace(" ", "-")[:40]
             if not topic or not topic[0].isalpha():
                 topic = "synthesis"
-            return f"""❌ FAIL: No synthesis for topic
+            
+            # Output raw findings as context for Claude to synthesize
+            return f"""❌ NO SYNTHESIS: You must synthesize from this context:
 
-py recollect.py {agent_id} "{files_arg}" | py remember.py {agent_id} --topic {topic}"""
+{findings}
+
+After reading above, create synthesis SIF and run:
+echo "@G {topic}-synthesis {agent_id} 2026-01-03
+N n1 I 'your insight here'
+N n2 D 'design decision'
+E n1 enables n2" | py synth.py {agent_id} {topic} -"""
         else:
             return f"""❌ FAIL: No relevant understanding
 

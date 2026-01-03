@@ -56,10 +56,12 @@ def load_passphrase(agent_id: str) -> tuple[str, str]:
     """
     agent = get_agent_or_raise(agent_id)
     
-    # Use shared_enclave for understanding graphs
-    enclave_dir = agent.shared_enclave or agent.enclave
+    # Use shared_enclave for understanding graphs - no fallback
+    if not agent.shared_enclave:
+        raise ValueError(f"No shared_enclave configured for {agent_id}")
+    enclave_dir = agent.shared_enclave
     
-    # Get shared passphrase (all agents use same key for shared enclave)
+    # Get shared passphrase - no fallback
     passphrase = os.environ.get('SHARED_ENCLAVE_KEY')
     
     if not passphrase:
@@ -71,21 +73,8 @@ def load_passphrase(agent_id: str) -> tuple[str, str]:
                     if line.startswith('SHARED_ENCLAVE_KEY='):
                         passphrase = line.split('=', 1)[1]
     
-    # Fall back to agent's private key if no shared (solo agent)
     if not passphrase:
-        prefix = agent.env_prefix
-        passphrase = os.environ.get(f'{prefix}_KEY')
-        if not passphrase:
-            env_file = Path(__file__).parent / '.env'
-            if env_file.exists():
-                with open(env_file, 'r') as f:
-                    for line in f:
-                        line = line.strip()
-                        if line.startswith(f'{prefix}_KEY='):
-                            passphrase = line.split('=', 1)[1]
-    
-    if not passphrase:
-        raise ValueError(f"No passphrase found. Set SHARED_ENCLAVE_KEY in .env")
+        raise ValueError("No passphrase found. Set SHARED_ENCLAVE_KEY in .env")
     
     return enclave_dir, passphrase
 

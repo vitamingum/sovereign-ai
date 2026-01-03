@@ -64,8 +64,13 @@ def get_evaluation_hash(topic1: str, content1: str, topic2: str, content2: str) 
     return hashlib.sha256(combined.encode()).hexdigest()
 
 
-def load_evaluation_cache(sm: SemanticMemory) -> dict:
-    """Load cached evaluations from semantic memory."""
+def load_evaluation_cache(sm: SemanticMemory, require_themes: bool = True) -> dict:
+    """Load cached evaluations from semantic memory.
+    
+    Args:
+        sm: SemanticMemory instance
+        require_themes: If True, skip cache entries without theme_words (forces re-eval)
+    """
     cache = {}
     cache_memories = sm.list_by_tag("bridge_cache")
     for mem in cache_memories:
@@ -73,7 +78,11 @@ def load_evaluation_cache(sm: SemanticMemory) -> dict:
         cache_hash = meta.get("evaluation_hash")
         if cache_hash:
             try:
-                cache[cache_hash] = json.loads(mem["content"])
+                evaluation = json.loads(mem["content"])
+                # Skip entries without theme_words if required (old format)
+                if require_themes and not evaluation.get("theme_words"):
+                    continue
+                cache[cache_hash] = evaluation
             except json.JSONDecodeError:
                 continue  # Skip corrupted cache entries
     return cache
