@@ -440,19 +440,25 @@ def synthesize_graphs(
             # Add agreement metadata (not a graph edge, but recorded)
             print(f"    {match['agent_a']} agrees_with {match['agent_b']} on: {match['node_a'].get('content', '')[:40]}...")
     
-    # Build DENSE output SIF - no comments, no verbose IDs
+    # Build DENSE output SIF
+    # Default = both agree (no annotation). Only annotate unique insights.
     filename = os.path.basename(filepath)
     timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d')
     agents_str = '+'.join(sorted(graphs.keys()))
     
     sif_lines = [f"@G {filename.replace('.', '-')}-synthesis {agents_str} {timestamp}"]
     
-    # Assign sequential dense IDs by type
+    # Assign sequential dense IDs by type - use shortcuts
     type_counters = {}
     TYPE_PREFIXES = {
         'Component': 'c', 'Purpose': 'p', 'Design_Decision': 'd',
         'Gotcha': 'g', 'Assumption': 'a', 'Failure_Mode': 'f',
         'Rule': 'r', 'Insight': 'i', 'Anchor': 'x'
+    }
+    TYPE_SHORTCUTS = {
+        'Component': 'C', 'Purpose': 'P', 'Design_Decision': 'D',
+        'Gotcha': 'G', 'Assumption': 'A', 'Failure_Mode': 'F',
+        'Rule': 'Rule', 'Insight': 'I'
     }
     
     # Map old IDs to new dense IDs
@@ -465,13 +471,16 @@ def synthesize_graphs(
         new_id = f"{prefix}{type_counters[prefix]}"
         id_remap[node['id']] = new_id
         
-        # Dense creator: 'both' if multiple, else single agent
-        if len(node['creators']) > 1:
-            creator = 'both'
-        else:
-            creator = node['creators'][0]
+        # Use type shortcut
+        short_type = TYPE_SHORTCUTS.get(node_type, node_type)
         
-        sif_lines.append(f"N {new_id} {node_type} '{node['content']}' creator={creator}")
+        # Dense: no annotation if both agree, only annotate unique
+        if len(node['creators']) > 1:
+            # Both agree - no suffix
+            sif_lines.append(f"N {new_id} {short_type} '{node['content']}'")
+        else:
+            # Unique insight - append agent name
+            sif_lines.append(f"N {new_id} {short_type} '{node['content']}' {node['creators'][0]}")
     
     # Add edges with remapped IDs
     seen_edges = set()
