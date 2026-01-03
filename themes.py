@@ -324,7 +324,7 @@ def show_themes(sm: SemanticMemory, file_keywords: dict[str, list[str]]):
     
     for theme, files in sorted_themes:
         is_done = theme.lower() in existing
-        status = "✓" if is_done else "○"
+        status = "[x]" if is_done else "[ ]"
         
         print(f"  {status} {theme} ({len(files)} files)")
         for f in files[:5]:
