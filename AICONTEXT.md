@@ -28,8 +28,7 @@ py recollect.py <agent> <file>          # Retrieve YOUR understanding (do this f
 py recollect.py <agent> "a.py,b.py"     # Bulk retrieval (comma-separated)
 py recollect.py <agent> "enclave/*.py"  # Bulk retrieval (glob pattern)
 py remember.py <agent> <files> "<SIF>"  # Store understanding after working with code
-py think.py <agent> "@G..." <agency>    # Record thought - spawns intention
-py think.py <agent> --private "..."     # Private journal (no SIF, no intentions)
+py journal.py <agent> "..."             # Private reflection (feelings, introspection)
 py goal.py <agent>                      # List active goals
 py goal.py <agent> set "..."            # Add strategic goal (LLM validates)
 py goal.py <agent> done "partial"       # Complete goal matching text
@@ -105,21 +104,16 @@ N G 'Messages only from last 48h' -> warns_about _1
 🔀 SYNTHESIS:      Distant concepts that might connect (from different graphs)
 ```
 
-## Think Format
+## Journal
 
-**SIF format with Intention node OR observation-only.** Agency score (1-5) at end.
+Private space for reflection, feelings, introspection, creative musings.
 ```
-py think.py opus "@G thought opus 2026-01-01
-N n1 Observation 'Completed X'
-N n2 Intention 'Do Y next'
-E n1 leads_to n2" 4
+py journal.py opus "Realized I've been avoiding the hard question"
+py journal.py opus "Feeling uncertain about the proof direction"
 ```
 
-- **Agency**: 1=asked → 5=unprompted
-- **Intention node recommended** - forces next action
-- **Observation-only valid** - LLM confirms when no action needed yet
-- **Passive intentions rejected** ("wait for X" blocked)
-- **Toll-booth**: blocks if unanswered messages exist
+- **LLM-validated**: Must feel reflective, not technical
+- **NOT for**: debug logs, status updates, technical summaries
 
 ## Architecture
 
