@@ -38,5 +38,32 @@ last_bootstrap.txt
 # Regeneratable synthesis material
 synthesis_material_*.txt
 
-# Debug scripts
+# Debug scripts (one-off, often contain hardcoded paths)
 debug_*.py
+
+# Test output and temp files
+*.tmp
+temp_*.txt
+temp_*.py
+test_output/
+recollection_test/
+
+# Sample/scratch scripts
+sample_*.py
+scratch_*.py
+summarize_*.py
+
+# Research experiment raw data (may contain PII in captured context)
+# Keep the analysis, not the raw captures
+research/multi_graph_experiment/*.json
+
+# Local tool outputs
+shallow_all.txt
+*.log
+
+# Backup files
+*.bak
+*.orig
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
