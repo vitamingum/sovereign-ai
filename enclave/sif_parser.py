@@ -220,6 +220,14 @@ class SIFParser:
             """Expand type shortcuts to full names."""
             return TYPE_SHORTCUTS.get(type_str.upper(), type_str)
         
+        # Auto-ID counter for nodes without explicit IDs
+        auto_id_counter = [0]  # List to allow mutation in nested function
+        
+        def next_auto_id() -> str:
+            """Generate next auto-ID like _1, _2, etc."""
+            auto_id_counter[0] += 1
+            return f"_{auto_id_counter[0]}"
+        
         nodes = []
         edges = []
         
@@ -236,14 +244,60 @@ class SIFParser:
             kind = parts[0]
             
             if kind == 'N':
-                # N <id> <type> "<content>" [confidence] [visibility]
-                if len(parts) < 4: continue
-                nid = scope_id(parts[1])
-                ntype = expand_type(parts[2])
-                content = parts[3]
-                conf = float(parts[4]) if len(parts) > 4 else 1.0
-                vis = parts[5] if len(parts) > 5 else "public"
+                # Auto-ID support: N <type> "<content>" (no ID - auto-generate)
+                # Standard:        N <id> <type> "<content>" [confidence] [visibility]
+                # Inline edges:    N <id> <type> "<content>" -> <rel> <tgt> [-> <rel2> <tgt2> ...]
+                
+                # Detect auto-ID: second token is a type shortcut or known type
+                is_auto_id = len(parts) >= 3 and (
+                    parts[1].upper() in TYPE_SHORTCUTS or 
+                    parts[1] in ['Component', 'Gotcha', 'Failure_Mode', 'Purpose', 
+                                 'Design_Decision', 'Assumption', 'Operational', 'Why',
+                                 'Synthesis', 'Insight', 'Link', 'Question', 'Tradeoff',
+                                 'Gap', 'Problem', 'Proposal', 'Next', 'Example', 
+                                 'Mechanism', 'Observation']
+                )
+                
+                if is_auto_id:
+                    # N <type> "<content>" [...] - auto-generate ID
+                    nid = scope_id(next_auto_id())
+                    ntype = expand_type(parts[1])
+                    content = parts[2]
+                    rest = parts[3:]
+                else:
+                    # N <id> <type> "<content>" [...] - explicit ID
+                    if len(parts) < 4: continue
+                    nid = scope_id(parts[1])
+                    ntype = expand_type(parts[2])
+                    content = parts[3]
+                    rest = parts[4:]
+                
+                # Check for inline edges: -> rel target [-> rel2 target2 ...]
+                inline_edges = []
+                i = 0
+                conf = 1.0
+                vis = "public"
+                while i < len(rest):
+                    if rest[i] == '->':
+                        # Inline edge: -> relation target
+                        if i + 2 < len(rest):
+                            inline_edges.append((rest[i+1], rest[i+2]))
+                            i += 3
+                        else:
+                            break
+                    else:
+                        # Could be confidence or visibility
+                        try:
+                            conf = float(rest[i])
+                        except ValueError:
+                            vis = rest[i]
+                        i += 1
+                
                 nodes.append(SIFNode(id=nid, type=ntype, content=content, confidence=conf, visibility=vis))
+                
+                # Add inline edges
+                for rel, tgt in inline_edges:
+                    edges.append(SIFEdge(source=nid, target=scope_id(tgt), relation=rel))
                 
             elif kind == 'E':
                 # E <src> <rel> <tgt> [weight] [confidence]
