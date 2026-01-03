@@ -26,6 +26,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave.config import get_agent_or_raise
 from enclave.semantic_memory import SemanticMemory
+from enclave.sif_parser import TYPE_SHORTCUTS
 
 
 def load_passphrase(agent_id: str) -> tuple[str, str]:
@@ -266,16 +267,25 @@ def format_understanding(graph: dict, target_path: str, hash_status: dict) -> st
             lines.append(f"    {src} --{rel}--> {tgt}")
         lines.append("")
     
-    # Output as SIF for re-use
+    # Output as SIF for re-use (dense format)
     lines.append("📋 AS SIF (for editing/extending):")
     graph_id = graph['metadata'].get('graph_id', 'understanding')
     lines.append(f"@G {graph_id}")
+    # Reverse lookup for type shortcuts
+    type_to_short = {v: k for k, v in TYPE_SHORTCUTS.items()}
     for node in graph['nodes']:
         if node['type'] != 'Anchor':
-            lines.append(f"N {node['id']} {node['type']} '{node['content']}'")
+            # Use shortcut if available, otherwise full type
+            short_type = type_to_short.get(node['type'], node['type'])
+            # Strip graph prefix from ID for density
+            node_id = node['id'].split(':')[-1] if ':' in node['id'] else node['id']
+            lines.append(f"N {node_id} {short_type} '{node['content']}'")
     for src, rel, tgt in graph['edges']:
         if not tgt.startswith('anchor_'):
-            lines.append(f"E {src} {rel} {tgt}")
+            # Strip graph prefixes from edge IDs
+            src_short = src.split(':')[-1] if ':' in src else src
+            tgt_short = tgt.split(':')[-1] if ':' in tgt else tgt
+            lines.append(f"E {src_short} {rel} {tgt_short}")
     
     return '\n'.join(lines)
 

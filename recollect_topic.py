@@ -550,9 +550,9 @@ def format_output(topic: str, agent: str, results: list[tuple[str, str, bool]], 
     lines.append("Read the file, then synthesize:")
     lines.append(f'  python think.py {agent} "@G {topic_slug}-synthesis {agent} 2026-01-02')
     lines.append("  N overview Overview '<what this system does>'")
-    lines.append("  N c1 Component '<key component>'")
-    lines.append("  N g1 Gotcha '<from material>'")
-    lines.append("  N f1 Failure_Mode '<from material>'")
+    lines.append("  N c1 C '<key component>'")
+    lines.append("  N g1 G '<from material>'")
+    lines.append("  N f1 F '<from material>'")
     lines.append('  E c1 causes f1" 5')
     
     return '\n'.join(lines), str(material_file)

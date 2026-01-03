@@ -58,6 +58,25 @@ VALID_RELATIONS = {
     'invalidated_by',    # Assumption → breaking condition
 }
 
+# Type shortcuts for dense SIF authoring
+# Single letter -> full node type (case insensitive in parser)
+TYPE_SHORTCUTS = {
+    'C': 'Component',
+    'G': 'Gotcha', 
+    'F': 'Failure_Mode',
+    'P': 'Purpose',
+    'D': 'Design_Decision',
+    'A': 'Assumption',
+    'O': 'Operational',
+    'W': 'Why',
+    'S': 'Synthesis',
+    'I': 'Insight',
+    'L': 'Link',           # Cross-graph connection
+    'Q': 'Question',
+    'T': 'Tradeoff',
+    'X': 'Gap',            # Missing capability
+}
+
 class SIFParser:
     """Parses and validates SIF JSON-LD payloads."""
 
@@ -135,10 +154,43 @@ class SIFParser:
 
     @staticmethod
     def parse_compact(text: str) -> SIFKnowledgeGraph:
-        """Parse Compact SIF string into SIFKnowledgeGraph object."""
+        """Parse Compact SIF string into SIFKnowledgeGraph object.
+        
+        Supports dense authoring features:
+        - Type shortcuts: C='Component', G='Gotcha', F='Failure_Mode', etc.
+        - Scoped IDs: bare 'c1' becomes 'graphid:c1' automatically
+        - Multi-statement: semicolons separate N/E statements
+        """
         import shlex
         
-        lines = text.strip().split('\n')
+        # Normalize: handle both newlines and semicolons as separators
+        # Split on newlines first, then on semicolons within each line
+        raw_lines = text.strip().split('\n')
+        lines = []
+        for raw_line in raw_lines:
+            # Split on semicolons but preserve quoted content
+            # Simple approach: only split on ; that aren't inside quotes
+            parts = []
+            current = []
+            in_quote = False
+            quote_char = None
+            for char in raw_line:
+                if char in '"\'':
+                    if not in_quote:
+                        in_quote = True
+                        quote_char = char
+                    elif char == quote_char:
+                        in_quote = False
+                    current.append(char)
+                elif char == ';' and not in_quote:
+                    parts.append(''.join(current).strip())
+                    current = []
+                else:
+                    current.append(char)
+            if current:
+                parts.append(''.join(current).strip())
+            lines.extend(p for p in parts if p)
+        
         if not lines or not lines[0].startswith('@G'):
             raise ValueError("Invalid Compact SIF: Missing @G header")
         
@@ -150,6 +202,16 @@ class SIFParser:
         graph_id = header_parts[1]
         generator = header_parts[2]
         timestamp = header_parts[3]
+        
+        def scope_id(node_id: str) -> str:
+            """Add graph scope to bare IDs (no colon)."""
+            if ':' in node_id:
+                return node_id  # Already scoped
+            return f"{graph_id}:{node_id}"
+        
+        def expand_type(type_str: str) -> str:
+            """Expand type shortcuts to full names."""
+            return TYPE_SHORTCUTS.get(type_str.upper(), type_str)
         
         nodes = []
         edges = []
@@ -169,8 +231,8 @@ class SIFParser:
             if kind == 'N':
                 # N <id> <type> "<content>" [confidence] [visibility]
                 if len(parts) < 4: continue
-                nid = parts[1]
-                ntype = parts[2]
+                nid = scope_id(parts[1])
+                ntype = expand_type(parts[2])
                 content = parts[3]
                 conf = float(parts[4]) if len(parts) > 4 else 1.0
                 vis = parts[5] if len(parts) > 5 else "public"
@@ -180,9 +242,9 @@ class SIFParser:
                 # E <src> <rel> <tgt> [weight] [confidence]
                 # Note: Natural order for readability ("n1 implements n2")
                 if len(parts) < 4: continue
-                src = parts[1]
+                src = scope_id(parts[1])
                 rel = parts[2]
-                tgt = parts[3]
+                tgt = scope_id(parts[3])
                 weight = float(parts[4]) if len(parts) > 4 else 1.0
                 conf = float(parts[5]) if len(parts) > 5 else 1.0
                 edges.append(SIFEdge(source=src, target=tgt, relation=rel, weight=weight, confidence=conf))
@@ -226,3 +288,25 @@ class SIFParser:
             ]
         }
         return json.dumps(data, indent=2)
+
+    @staticmethod
+    def to_compact(graph: SIFKnowledgeGraph) -> str:
+        """Serialize SIFKnowledgeGraph to compact SIF string with dense notation."""
+        # Build reverse lookup for type shortcuts
+        shortcut_reverse = {v: k for k, v in TYPE_SHORTCUTS.items()}
+        
+        lines = [f"@G {graph.id} {graph.generator} {graph.timestamp}"]
+        
+        for n in graph.nodes:
+            ntype = shortcut_reverse.get(n.type, n.type)
+            # Strip graph prefix from ID
+            nid = n.id.split(':')[-1] if ':' in n.id else n.id
+            content = n.content.replace("'", "\\'")
+            lines.append(f"N {nid} {ntype} '{content}'")
+        
+        for e in graph.edges:
+            src = e.source.split(':')[-1] if ':' in e.source else e.source
+            tgt = e.target.split(':')[-1] if ':' in e.target else e.target
+            lines.append(f"E {src} {e.relation} {tgt}")
+        
+        return '\n'.join(lines)

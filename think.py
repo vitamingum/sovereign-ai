@@ -479,6 +479,19 @@ def think(agent_id: str, text: str, agency: int, force: bool = False) -> str:
     if 'synthesis' in content.lower():
         tags.append('synthesis')
     
+    # Extract topic from graph ID for better retrieval
+    # @G topic-synthesis -> adds 'topic:topic-name' tag
+    if '@G ' in content:
+        start = content.find('@G ') + 3
+        end = content.find(' ', start)
+        if end == -1:
+            end = content.find(';', start)
+        if end > start:
+            graph_id = content[start:end]
+            # Strip common suffixes and convert to topic tag
+            topic = graph_id.replace('-synthesis', '').replace('-understanding', '')
+            tags.append(f'topic:{topic}')
+    
     # Store the content with tags
     result = memory.remember(content, tags=tags)
     memory_id = result['id']

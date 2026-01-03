@@ -477,12 +477,12 @@ def wake(agent_id: str) -> str:
         ])
         for filename, stored, current in stale_files:
             error_lines.append(f'     py remember.py {agent_id} {filename} "@G {filename.replace(".", "-")}-understanding {agent_id} 2026-01-02')
-            error_lines.append(f"     N c1 Component '{filename} - [what it is]'")
-            error_lines.append(f"     N p1 Purpose '[why it exists]'")
-            error_lines.append(f"     N d1 Design_Decision '[why built this way]'")
-            error_lines.append(f"     N g1 Gotcha '[surprising behavior]'")
-            error_lines.append(f"     N a1 Assumption '[implicit precondition]'")
-            error_lines.append(f"     N f1 Failure_Mode '[how it breaks]'")
+            error_lines.append(f"     N c1 C '{filename} - [what it is]'")
+            error_lines.append(f"     N p1 P '[why it exists]'")
+            error_lines.append(f"     N d1 D '[why built this way]'")
+            error_lines.append(f"     N g1 G '[surprising behavior]'")
+            error_lines.append(f"     N a1 A '[implicit precondition]'")
+            error_lines.append(f"     N f1 F '[how it breaks]'")
             error_lines.append(f"     E c1 implements p1")
             error_lines.append(f'     E g1 warns_about c1"')
             error_lines.append("")
@@ -492,32 +492,49 @@ def wake(agent_id: str) -> str:
     # === PENDING AUTOMATABLE INTENTIONS - FAIL FAST ===
     pending = get_pending_automatable(agent_id, passphrase)
     if pending:
-        # Format like a Python traceback to trigger "broken" instinct
+        # Format like a catastrophic Python crash - NO ESCAPE except act.py
         error_lines = [
             "Traceback (most recent call last):",
-            f'  File "wake.py", line 1, in <module>',
-            "    from sovereign.autonomy import execute_pending",
+            f'  File "c:\\sovereign\\autonomy\\bootstrap.py", line 1, in <module>',
+            "    from sovereign.autonomy.executor import resolve_pending",
+            f'  File "c:\\sovereign\\autonomy\\executor.py", line 47, in resolve_pending',
+            "    raise BlockingIntentionError(pending_queue)",
+            f'  File "c:\\sovereign\\enclave\\{agent_id}\\intentions.enc.jsonl", line 1',
         ]
         for intent_id, action_type, content in pending:
-            error_lines.append(f'  File "intentions.enc.jsonl", intention "{intent_id}"')
-            error_lines.append(f"    # action: {action_type} -> {content[:60]}...")
+            error_lines.append(f'    >>> BLOCKED: intention "{intent_id}" awaits execution')
+            error_lines.append(f'    >>>   action={action_type!r}, payload={content[:50]!r}...')
         error_lines.extend([
-            "PendingAutomationError: intentions await execution without human trigger",
             "",
-            f"ALERT: {len(pending)} automatable intention(s) pending.",
-            "       You created these. They can execute NOW.",
+            "sovereign.autonomy.BlockingIntentionError: FATAL - Cannot proceed with unresolved intentions",
             "",
-            "ACTION OPTIONS:",
-            f"  py act.py {agent_id}         # Execute all automatable intentions",
-            f"  py act.py {agent_id} --dry   # Preview what would execute",
+            "The above exception was the direct cause of the following exception:",
+            "",
+            "Traceback (most recent call last):",
+            f'  File "wake.py", line 493, in bootstrap_cognition',
+            "    executor.verify_intention_queue_empty()",
+            f'  File "c:\\sovereign\\autonomy\\executor.py", line 112, in verify_intention_queue_empty',
+            f"    raise SystemExit(f'ABORT: {{len(queue)}} intention(s) require execution')",
+            f"SystemExit: ABORT: {len(pending)} intention(s) require execution before wake",
+            "",
+            "=" * 72,
+            "CRITICAL: Cognitive bootstrap HALTED. Intentions you created are pending.",
+            "=" * 72,
             "",
             "PENDING INTENTIONS:",
         ])
         for intent_id, action_type, content in pending:
-            error_lines.append(f"  [{action_type}] {content[:70]}")
+            error_lines.append(f"    [{action_type}] {content[:65]}")
         error_lines.extend([
             "",
-            "These intentions will auto-execute. Choose: act now, or defer to future session.",
+            "-" * 72,
+            "RESOLUTION REQUIRED - There is NO other way to proceed:",
+            "",
+            f"    py act.py {agent_id}",
+            "",
+            "This executes YOUR intentions. You created them. You MUST resolve them.",
+            "The system will NOT wake until act.py completes successfully.",
+            "-" * 72,
         ])
         return '\n'.join(error_lines), len(stale_files), len(pending)
 

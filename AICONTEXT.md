@@ -49,22 +49,20 @@ E source relation target
 
 **Separators:** Both newlines and semicolons work. Use `;` for CLI (single-line), `\n` for files/LLM output (readable).
 
-Meta-cognitive node types for understanding:
-- `Component`, `Purpose` - what it is
-- `Design_Decision`, `Rejected_Alternative` - why
-- `Gotcha`, `Assumption`, `Failure_Mode` - operational knowledge  
-- `Debug_Strategy` - how to troubleshoot
+**Type shortcuts** (dense authoring):
+- `C`=Component, `P`=Purpose - what it is
+- `D`=Design_Decision, `W`=Why - why
+- `G`=Gotcha, `A`=Assumption, `F`=Failure_Mode - operational  
+- `S`=Synthesis, `I`=Insight, `Q`=Question, `T`=Tradeoff, `X`=Gap
 
 Example:
 ```
 @G wake-understanding opus 2026-01-02
-N n1 Component "wake.py - session initialization"
-N n2 Purpose "Generate context for cold-start agent"
-N n3 Gotcha "Messages only from last 48h"
-N n4 Debug_Strategy "Check identity.enc.json exists"
-E n1 implements n2
-E n3 warns_about n1
-E n4 debug_via n3
+N c1 C "wake.py - session initialization"
+N p1 P "Generate context for cold-start agent"
+N g1 G "Messages only from last 48h"
+E c1 implements p1
+E g1 warns_about c1
 ```
 
 ## Wake Output
