@@ -497,12 +497,17 @@ def wake(agent_id: str) -> str:
         encryption_algorithm=serialization.NoEncryption()
     )
 
-    # Initialize semantic memory for project context (from SHARED enclave)
-    mem = SemanticMemory(str(shared_path))
-    mem.unlock(passphrase)
+    # Initialize semantic memory for shared knowledge (from SHARED enclave)
+    shared_mem = SemanticMemory(str(shared_path))
+    shared_mem.unlock(passphrase)
+    
+    # Initialize semantic memory for private understanding (from PRIVATE enclave)
+    private_mem = SemanticMemory(str(private_path))
+    private_mem.unlock(passphrase)
 
     # === STALE CHECK FIRST - FAIL FAST ===
-    stale_files = get_stale_understanding(mem)
+    # Understanding graphs are PRIVATE, not shared
+    stale_files = get_stale_understanding(private_mem)
     if stale_files:
         # Format like a Python traceback to trigger "broken" instinct
         error_lines = [
@@ -568,7 +573,7 @@ def wake(agent_id: str) -> str:
     agent = get_agent_or_raise(agent_id)
     if agent.shared_enclave:
         try:
-            cross_debt = calculate_cross_agent_debt(agent_id, mem)
+            cross_debt = calculate_cross_agent_debt(agent_id, shared_mem)
             if cross_debt['debt_count'] > 5:  # Lower threshold - you should keep up with partners
                 partner_files = cross_debt['partner_files']
                 error_lines = [
@@ -658,8 +663,8 @@ def wake(agent_id: str) -> str:
     graph_id = f"wake-{agent_id}-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
     lines.append(f"@G {graph_id} {agent_id} {datetime.now(timezone.utc).isoformat()}")
     
-    # === PROJECT CONTEXT (from remember.py) ===
-    project_ctx = get_project_context(mem)
+    # === PROJECT CONTEXT (from shared enclave) ===
+    project_ctx = get_project_context(shared_mem)
     if project_ctx:
         lines.append("")
         lines.append("=== PROJECT CONTEXT (via recollect) ===")
@@ -667,8 +672,8 @@ def wake(agent_id: str) -> str:
             lines.append(f"  {node}")
         lines.append("")
     
-    # === AVAILABLE UNDERSTANDING ===
-    available_files = get_available_understanding(mem)
+    # === AVAILABLE UNDERSTANDING (from private enclave) ===
+    available_files = get_available_understanding(private_mem)
     if available_files:
         lines.append("=== DEEP KNOWLEDGE AVAILABLE ===")
         lines.append("  Run: py recollect.py SELF <file>")
@@ -684,7 +689,7 @@ def wake(agent_id: str) -> str:
             lines.append("=== SHARED ENCLAVE ===")
             lines.append(f"  Partners: {', '.join(partner_names)}")
             try:
-                cross_debt = calculate_cross_agent_debt(agent_id, mem)
+                cross_debt = calculate_cross_agent_debt(agent_id, shared_mem)
                 if cross_debt['debt_count'] > 0:
                     lines.append(f"  Your debt: {cross_debt['debt_count']} files to understand")
                 else:
@@ -694,8 +699,8 @@ def wake(agent_id: str) -> str:
                 pass
             lines.append("")
     
-    # === SYNTHESIS OPPORTUNITIES ===
-    synthesis = get_synthesis_opportunities(mem)
+    # === SYNTHESIS OPPORTUNITIES (from shared knowledge) ===
+    synthesis = get_synthesis_opportunities(shared_mem)
     if synthesis:
         lines.append("=== SYNTHESIS FODDER ===")
         lines.append("  Distant concepts that might connect:")
