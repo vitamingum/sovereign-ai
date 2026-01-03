@@ -129,12 +129,21 @@ Return ONLY a JSON array: ["query1", "[Gotcha] query2", ...]"""
     # Search memory
     seen = set()
     results = []
+    source_files = set()
     for q in queries:
         for r in sm.recall_similar(q, top_k=8, threshold=0.35):
             key = r.get('content', '')[:100]
             if key not in seen:
                 seen.add(key)
                 results.append(r)
+                # Track source files for suggested synthesis
+                graph_id = r.get('metadata', {}).get('graph_id', '')
+                if '-understanding' in graph_id:
+                    # Extract filename from graph_id like "opus:backup-py-understanding"
+                    parts = graph_id.replace('-understanding', '').split(':')[-1]
+                    fname = parts.replace('-', '.') if parts else ''
+                    if fname:
+                        source_files.add(fname)
     
     results.sort(key=lambda x: x.get('similarity', 0), reverse=True)
     results = results[:25]
@@ -161,7 +170,48 @@ E source rel target
 Types: C=code, D=design, G=gotcha, F=fragility, I=insight
 Keep descriptions <80 chars. Output ONLY SIF:"""
     
-    return llm_query(synth_prompt)
+    synthesis = llm_query(synth_prompt)
+    
+    # Self-evaluate quality
+    eval_prompt = f"""Rate this SIF answer quality 1-5:
+Question: "{question}"
+Answer:
+{synthesis}
+
+Criteria:
+5 = Specific, actionable, references real components
+3 = Partial answer, some useful info
+1 = Generic, vague, doesn't answer the question
+
+Output ONLY a number 1-5:"""
+    
+    score_response = llm_query(eval_prompt)
+    try:
+        score = int(''.join(c for c in score_response if c.isdigit())[:1])
+    except:
+        score = 3  # Default to medium if parse fails
+    
+    if score <= 2:
+        # Weak answer - suggest synthesis
+        suggested_files = sorted(source_files)[:6]
+        if suggested_files:
+            files_arg = ",".join(suggested_files)
+            return f"""# Insufficient synthesis for: {question}
+
+The search found fragments but couldn't synthesize a good answer.
+Relevant files found: {', '.join(suggested_files)}
+
+To create proper synthesis, run:
+  py recollect.py {agent_id} "{files_arg}"
+
+Then ask again."""
+        else:
+            return f"""# No relevant synthesis for: {question}
+
+The codebase doesn't have enough understanding to answer this.
+Consider running shallow_understand.py on relevant files first."""
+    
+    return synthesis
 
 
 def run_command(cmd: dict, agent_id: str, sm: SemanticMemory = None, question: str = "") -> str:
