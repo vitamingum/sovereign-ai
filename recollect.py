@@ -410,8 +410,7 @@ def main():
     if not results:
         results = mem.recall_similar(f"[Component] {filename} understanding", top_k=100, threshold=0.1)
     
-    # Separate synthesis from individual perspectives
-    synthesis_nodes = []
+    # Filter to individual perspectives (exclude synthesis - agents compare raw views)
     individual_nodes = []
     
     canonical_path = None
@@ -427,36 +426,23 @@ def main():
             if canonical_path is None:
                 canonical_path = stored_path
             
-            # Separate synthesis from individual
-            if creator == 'synthesis':
-                synthesis_nodes.append(mem_entry)
-            else:
+            # Skip synthesis - show raw perspectives for accurate comparison
+            if creator != 'synthesis':
                 individual_nodes.append(mem_entry)
     
-    # PREFER SYNTHESIS: Use synthesis if exists, else fall back to individuals
-    # --raw flag shows individual perspectives instead
-    show_raw = '--raw' in sys.argv or '--perspectives' in sys.argv
+    relevant = individual_nodes
     
-    if synthesis_nodes and not show_raw:
-        relevant = synthesis_nodes
-        # Count unique sources from synthesis metadata
-        all_sources = set()
-        for m in synthesis_nodes:
-            sources = m.get('metadata', {}).get('sources', [])
-            all_sources.update(sources)
-        source_info = f"[SYNTHESIS from {len(all_sources)} perspectives: {'+'.join(sorted(all_sources))}]"
-    elif individual_nodes:
-        relevant = individual_nodes
-        # Count unique creators
-        creators = set()
-        for m in individual_nodes:
-            creator = m.get('metadata', {}).get('creator')
-            if creator:
-                creators.add(creator)
-        if len(creators) > 1:
-            source_info = f"[COMBINED: {'+'.join(sorted(creators))}] (use 'synthesize_understanding.py' to merge)"
-        else:
-            source_info = f"[{list(creators)[0] if creators else 'unknown'}]"
+    # Count unique creators
+    creators = set()
+    for m in individual_nodes:
+        creator = m.get('metadata', {}).get('creator')
+        if creator:
+            creators.add(creator)
+    
+    if len(creators) > 1:
+        source_info = f"[PERSPECTIVES: {'+'.join(sorted(creators))}]"
+    elif creators:
+        source_info = f"[{list(creators)[0]}]"
     else:
         relevant = []
         source_info = None

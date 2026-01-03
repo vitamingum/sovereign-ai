@@ -622,13 +622,64 @@ def main():
     for edge in graph.edges:
         print(f"    {edge.source} --{edge.relation}--> {edge.target}")
     
-    # Auto-synthesize if multiple perspectives exist
-    try:
-        from synthesize_understanding import maybe_synthesize
-        maybe_synthesize(mem, target_path, agent_id)
-    except Exception as e:
-        # Synthesis failure shouldn't break remember
-        print(f"\n  (synthesis skipped: {e})")
+    # Show other agents' understanding for comparison (conflict detection via cognition)
+    show_other_perspectives(mem, target_path, agent_id)
+
+
+def show_other_perspectives(mem: SemanticMemory, target_path: str, current_agent: str):
+    """Show other agents' understanding so current agent can spot conflicts."""
+    filename = Path(target_path).name
+    
+    # Get all understanding of this file
+    results = mem.list_by_tag(filename, limit=100)
+    
+    # Group by creator, excluding current agent and synthesis
+    other_perspectives = {}  # agent -> [nodes]
+    
+    for result in results:
+        meta = result.get('metadata', {})
+        creator = meta.get('creator', '')
+        
+        if not creator or creator == current_agent or creator == 'synthesis':
+            continue
+        
+        node_type = meta.get('node_type', 'Unknown')
+        if node_type.lower() == 'anchor':
+            continue
+            
+        content = result.get('content', '')
+        if content.startswith('['):
+            content = content.split('] ', 1)[-1]
+        
+        if creator not in other_perspectives:
+            other_perspectives[creator] = []
+        other_perspectives[creator].append({
+            'type': node_type,
+            'content': content
+        })
+    
+    if not other_perspectives:
+        return
+    
+    # Type shortcuts for dense display
+    TYPE_SHORT = {
+        'Component': 'C', 'Purpose': 'P', 'Design_Decision': 'D',
+        'Gotcha': 'G', 'Assumption': 'A', 'Failure_Mode': 'F',
+        'Rule': 'R', 'Insight': 'I'
+    }
+    
+    print(f"\n{'─' * 60}")
+    print("📎 OTHER PERSPECTIVES (review for conflicts):")
+    
+    for agent, nodes in other_perspectives.items():
+        print(f"\n  {agent} understood:")
+        for node in nodes[:8]:  # Limit to avoid spam
+            short = TYPE_SHORT.get(node['type'], node['type'][:1])
+            print(f"    [{short}] {node['content'][:55]}...")
+        if len(nodes) > 8:
+            print(f"    ... and {len(nodes) - 8} more")
+    
+    print(f"\n  Full comparison: python recollect.py {current_agent} {target_path} --raw")
 
 
 if __name__ == "__main__":
