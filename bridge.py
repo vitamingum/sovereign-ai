@@ -619,11 +619,12 @@ def show_themes(sm: SemanticMemory):
         topics_str = ' '.join(top['topics'])
         print(f"  To clear '{top['theme']}':")
         print(f"    py recollect.py opus {topics_str}")
-        print(f"    py remember.py opus - \"@G {top['theme']}-synthesis opus {datetime.now().strftime('%Y-%m-%d')}\"")
-        print(f"       N i1 I '[insight weaving these topics]'")
-        print(f"       tags: synthesis, theme:{top['theme']}")
-        for t in top['topics']:
-            print(f"             topic:{t}")
+        print(f"    py remember.py opus --theme \"{top['theme']}\" \"@G {top['theme']}-synthesis opus {datetime.now().strftime('%Y-%m-%d')}")
+        print(f"    N I '[insight weaving these topics]'")
+        print(f"    N D '[design decision]' -> implements _1\"")
+        print()
+        print("SIF format: N <Type> '<content>' -> <relation> <target>")
+        print("Types: S=Synthesis P=Purpose C=Component D=Design G=Gotcha I=Insight")
     else:
         print("  All themes synthesized! ✓")
     

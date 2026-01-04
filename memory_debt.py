@@ -213,6 +213,9 @@ def print_understanding_debt(debt: list[dict], cross_agent: list[str], agent_id:
         print(f"  N P '[why it exists]'")
         print(f"  N G '[gotcha]' -> warns_about _1\"")
         print()
+    
+    print("SIF format: N <Type> '<content>' -> <relation> <target>")
+    print("Types: S=Synthesis P=Purpose C=Component D=Design G=Gotcha I=Insight")
 
 
 def print_synthesis_debt(debt: list[dict], agent_id: str):
@@ -234,6 +237,9 @@ def print_synthesis_debt(debt: list[dict], agent_id: str):
     print("TO FIX:")
     print(f"  1. py recall.py {agent_id} <files>")
     print(f"  2. py remember.py {agent_id} --theme \"<topic>\" \"@G ...\"")
+    print()
+    print("SIF format: N <Type> '<content>' -> <relation> <target>")
+    print("Types: S=Synthesis P=Purpose C=Component D=Design G=Gotcha I=Insight")
 
 
 def print_message_debt(debt: list[dict], agent_id: str):
@@ -287,6 +293,11 @@ def print_all_debt(understanding: list[dict], cross_agent: list[str],
             status = "stale" if item['status'] == 'stale' else "none"
             print(f"\n{item['correspondent']}: {item['message_count']} msgs ({status})")
             print(f"    {item['cmd']}")
+    
+    # Show SIF format hint at bottom
+    print()
+    print("SIF format: N <Type> '<content>' -> <relation> <target>")
+    print("Types: S=Synthesis P=Purpose C=Component D=Design G=Gotcha I=Insight")
 
 
 def main():

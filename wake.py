@@ -589,6 +589,8 @@ def wake(agent_id: str) -> str:
             error_lines.append(f"  N P '[why it exists]'")
             error_lines.append(f"  N G '[gotcha]' -> warns_about _1\"")
             error_lines.append("")
+        error_lines.append("SIF format: N <Type> '<content>' -> <relation> <target>")
+        error_lines.append("Types: S=Synthesis P=Purpose C=Component D=Design G=Gotcha I=Insight")
         return '\n'.join(error_lines), len(stale_files), len(missing_files)
 
     # === SYNTHESIS DEBT CHECK - FAIL FAST ===
@@ -611,6 +613,9 @@ def wake(agent_id: str) -> str:
             "TO FIX:",
             f"  1. py recall.py {agent_id} <files>",
             f"  2. py remember.py {agent_id} --theme \"<topic>\" \"@G ...\"",
+            "",
+            "SIF format: N <Type> '<content>' -> <relation> <target>",
+            "Types: S=Synthesis P=Purpose C=Component D=Design G=Gotcha I=Insight",
         ])
         return '\n'.join(error_lines), 0, 0
 
