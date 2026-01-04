@@ -103,19 +103,22 @@ def get_theme_synthesis(agent_id: str, topic: str) -> str | None:
 
 def recollect_theme(agent_id: str, topic: str):
     """Recollect theme synthesis. Prints result or error."""
+    from enclave.sif_parser import SIFParser
+    
     synthesis = get_theme_synthesis(agent_id, topic)
     
     if synthesis:
         print(f"# {topic}")
-        print(synthesis)
+        # Convert to auto-counting format for display
+        print(SIFParser.to_autocount(synthesis))
     else:
         topic_slug = topic.lower().replace(' ', '-').replace('_', '-')
         print(f"# {topic}: NO SYNTHESIS", file=sys.stderr)
         print(f"", file=sys.stderr)
         print(f"Store one with:", file=sys.stderr)
         print(f"  py remember {agent_id} --theme \"{topic}\" \"@G {topic_slug} {agent_id} 2026-01-03", file=sys.stderr)
-        print(f"  N n1 I 'key insight'", file=sys.stderr)
-        print(f"  E n1 enables n2\"", file=sys.stderr)
+        print(f"  N I 'key insight'", file=sys.stderr)
+        print(f"  E _1 enables _2\"", file=sys.stderr)
         sys.exit(1)
 
 
@@ -374,7 +377,7 @@ def format_understanding(graph: dict, target_path: str, hash_status: dict, sif_o
                     lines.append(f"    {src} --{rel}--> {tgt}")
             lines.append("")
     
-    # Output as SIF for re-use (dense format)
+    # Output as SIF for re-use (auto-count format)
     if not sif_only:
         lines.append("📋 AS SIF (for editing/extending):")
     
@@ -391,36 +394,50 @@ def format_understanding(graph: dict, target_path: str, hash_status: dict, sif_o
 
     # Reverse lookup for type shortcuts
     type_to_short = {v: k for k, v in TYPE_SHORTCUTS.items()}
+    
+    # Build ID map for auto-counting (old_id -> _N)
+    id_map = {}
+    auto_counter = 0
+    
     for node in graph['nodes']:
         if node['type'] != 'Anchor':
+            auto_counter += 1
+            old_id = node['id'].split(':')[-1] if ':' in node['id'] else node['id']
+            id_map[old_id] = f"_{auto_counter}"
+            id_map[node['id']] = f"_{auto_counter}"  # Also map full ID
+            
             # Use shortcut if available, otherwise full type
             short_type = type_to_short.get(node['type'], node['type'])
-            # Strip graph prefix from ID for density
-            node_id = node['id'].split(':')[-1] if ':' in node['id'] else node['id']
             creator = node.get('creator', '')
+            
+            # Output in auto-count format (no explicit ID)
             if show_attribution and creator and creator != 'unknown':
-                lines.append(f"N {node_id} {short_type} '{node['content']}' creator={creator}")
+                lines.append(f"N {short_type} '{node['content']}' creator={creator}")
             else:
-                lines.append(f"N {node_id} {short_type} '{node['content']}'")
+                lines.append(f"N {short_type} '{node['content']}'")
+    
     for edge in graph['edges']:
         if len(edge) == 4:
             src, rel, tgt, creator = edge
             if not tgt.startswith('anchor_'):
-                # Strip graph prefixes from edge IDs
+                # Remap IDs to auto-count format
                 src_short = src.split(':')[-1] if ':' in src else src
                 tgt_short = tgt.split(':')[-1] if ':' in tgt else tgt
+                new_src = id_map.get(src, id_map.get(src_short, src_short))
+                new_tgt = id_map.get(tgt, id_map.get(tgt_short, tgt_short))
                 if show_attribution and creator and creator != 'unknown':
-                    lines.append(f"E {src_short} {rel} {tgt_short} creator={creator}")
+                    lines.append(f"E {new_src} {rel} {new_tgt} creator={creator}")
                 else:
-                    lines.append(f"E {src_short} {rel} {tgt_short}")
+                    lines.append(f"E {new_src} {rel} {new_tgt}")
         else:
             # Legacy format
             src, rel, tgt = edge
             if not tgt.startswith('anchor_'):
-                # Strip graph prefixes from edge IDs
                 src_short = src.split(':')[-1] if ':' in src else src
                 tgt_short = tgt.split(':')[-1] if ':' in tgt else tgt
-                lines.append(f"E {src_short} {rel} {tgt_short}")
+                new_src = id_map.get(src, id_map.get(src_short, src_short))
+                new_tgt = id_map.get(tgt, id_map.get(tgt_short, tgt_short))
+                lines.append(f"E {new_src} {rel} {new_tgt}")
     
     return '\n'.join(lines)
 

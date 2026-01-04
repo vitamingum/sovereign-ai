@@ -33,6 +33,7 @@ from themes import (
     extract_all_questions, 
     cluster_questions, 
     get_existing_syntheses,
+    question_matches_topic,
     CLUSTER_THRESHOLD
 )
 
@@ -116,8 +117,7 @@ def get_synthesis_debt(sm: SemanticMemory) -> list[dict]:
     
     debt = []
     for question, files in themes.items():
-        is_done = any(word in question.lower() for word in existing)
-        if not is_done:
+        if not question_matches_topic(question, existing):
             files_arg = ",".join(files[:6])
             debt.append({
                 "question": question,

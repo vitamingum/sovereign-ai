@@ -210,8 +210,17 @@ def extract_all_questions(sm: SemanticMemory, force_file: str = None, force_all:
     Uses cache - only re-extracts if content changed (unless force_all=True).
     Returns: {filename: [questions]}
     """
-    understandings = get_file_understandings(sm)
     cache = load_question_cache(sm)
+    
+    # Fast path: if not forcing anything, just return cached questions
+    # Only load understandings (slow) if we need to check for staleness
+    if not force_file and not force_all and cache:
+        # Check if any understanding has changed by sampling
+        # Full staleness check requires get_file_understandings which is slow
+        # For debt purposes, cached questions are good enough
+        return {f: c["questions"] for f, c in cache.items() if c.get("questions")}
+    
+    understandings = get_file_understandings(sm)
     
     result = {}
     
@@ -309,27 +318,113 @@ def cluster_questions(file_questions: dict[str, list[str]], threshold: float = C
 
 
 def get_existing_syntheses(sm: SemanticMemory) -> set[str]:
-    """Find which themes already have synthesis documents."""
-    themes = set()
+    """Find which themes already have synthesis documents.
     
-    # Check semantic memory for theme tags
+    Returns set of topic slugs (lowercase, hyphenated).
+    """
+    topics = set()
+    
+    # Check semantic memory for topic: tags (used by remember.py --theme)
     syntheses = sm.list_by_tag("synthesis")
     for s in syntheses:
         tags = s.get("tags", [])
         for tag in tags:
-            if tag.startswith("theme:"):
-                themes.add(tag[6:].lower())
+            if tag.startswith("topic:"):
+                topics.add(tag[6:].lower())
     
     # Also check synthesis_material_*.txt files
     import glob
     for path in glob.glob("synthesis_material_*.txt"):
         # Extract topic from filename
         name = path.replace("synthesis_material_", "").replace(".txt", "")
-        # Normalize: remove ---synthesize suffix, replace - with space
-        name = name.replace("---synthesize", "").replace("-", " ").strip()
-        themes.add(name.lower())
+        # Normalize: remove ---synthesize suffix, convert to slug
+        name = name.replace("---synthesize", "").replace("_", "-").strip()
+        topics.add(name.lower())
     
-    return themes
+    return topics
+
+
+def stem_word(word: str) -> str:
+    """Simple suffix stripping for matching."""
+    # Remove common suffixes (order matters - longer first)
+    for suffix in ['ation', 'tion', 'ment', 'ing', 'ed', 'es', 'ly', 's']:
+        if word.endswith(suffix) and len(word) > len(suffix) + 3:
+            return word[:-len(suffix)]
+    return word
+
+
+def words_match(w1: str, w2: str) -> bool:
+    """Check if two words match (allowing prefix/stem overlap)."""
+    if w1 == w2:
+        return True
+    # Check if one is prefix of other (min 4 chars)
+    if len(w1) >= 4 and len(w2) >= 4:
+        if w1.startswith(w2[:4]) or w2.startswith(w1[:4]):
+            return True
+    return False
+
+
+def question_matches_topic(question: str, topics: set[str]) -> bool:
+    """Check if a question is covered by an existing topic synthesis.
+    
+    Uses keyword overlap - if significant words from the question
+    appear in any topic slug, consider it covered.
+    """
+    # Normalize question to comparable form
+    q_lower = question.lower()
+    # Remove punctuation and file extensions
+    q_clean = q_lower.replace('?', '').replace("'", '').replace('.py', '').replace('.md', '')
+    q_clean = q_clean.replace('/', ' ').replace('_', ' ').replace('-', ' ')
+    q_words = set(q_clean.split())
+    
+    # Filter out generic words
+    significant = q_words - {
+        'how', 'does', 'the', 'what', 'is', 'are', 'why', 'when', 'where',
+        'can', 'you', 'a', 'an', 'in', 'of', 'to', 'for', 'and', 'or',
+        'this', 'that', 'it', 'its', 'with', 'by', 'from', 'on', 'at',
+        'be', 'been', 'being', 'was', 'were', 'will', 'would', 'could',
+        'should', 'may', 'might', 'must', 'shall', 'have', 'has', 'had',
+        'do', 'did', 'done', 'make', 'made', 'ensure', 'process', 'work',
+        'used', 'using', 'use', 'script', 'file', 'function', 'method',
+        'research', 'enclave', 'py', 'project', 'structure'
+    }
+    
+    if not significant:
+        return False
+    
+    # Stem question words for better matching
+    significant_stems = {stem_word(w) for w in significant}
+    
+    # Check if any topic contains 2+ significant words from question
+    for topic in topics:
+        topic_words = set(topic.split('-'))
+        topic_stems = {stem_word(w) for w in topic_words}
+        
+        # Count matching words (using flexible prefix matching)
+        match_count = 0
+        matched_concepts = set()
+        for qw in significant_stems:
+            for tw in topic_stems:
+                if words_match(qw, tw):
+                    match_count += 1
+                    matched_concepts.add(tw)
+                    break
+        
+        if match_count >= 2:
+            return True
+            
+        # Also check for key concept match (single important word)
+        key_concepts = {'shamir', 'backup', 'encrypt', 'key', 
+                       'sovereign', 'monitor', 'bridge', 'wake', 'recollect',
+                       'remember', 'identity', 'messag', 'agent', 'dream',
+                       'explore', 'explor', 'mirror', 'goal', 'journal', 'sif', 'kdf',
+                       'crypto', 'semantic', 'memory', 'debt', 'judg', 'gap',
+                       'intention', 'graph', 'context', 'migrat', 'key',
+                       'passphras', 'succession', 'rule'}
+        if matched_concepts & key_concepts:
+            return True
+    
+    return False
 
 
 def show_themes(sm: SemanticMemory, file_questions: dict[str, list[str]]):

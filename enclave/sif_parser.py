@@ -399,3 +399,174 @@ class SIFParser:
             lines.append(f"E {src} {e.relation} {tgt}")
         
         return '\n'.join(lines)
+
+    @staticmethod
+    def to_autocount(sif_content: str) -> str:
+        """
+        Convert SIF with explicit IDs to auto-counting format.
+        
+        Input:  N s1 S 'text'; N c1 C 'text'; E s1 relates_to c1
+        Output: N S 'text'; N C 'text'; E _1 relates_to _2
+        
+        This is the canonical display format - dense and readable.
+        """
+        import re
+        import shlex
+        
+        # Normalize separators: convert semicolons to newlines
+        normalized = sif_content.replace(';', '\n')
+        lines = [l.strip() for l in normalized.strip().split('\n') if l.strip()]
+        
+        if not lines:
+            return sif_content
+            
+        # Parse header
+        header = lines[0].strip()
+        output_lines = [header]
+        
+        # Map old IDs to new auto-count IDs
+        id_map = {}
+        auto_counter = 0
+        
+        # Build reverse lookup for type shortcuts
+        shortcut_reverse = {v: k for k, v in TYPE_SHORTCUTS.items()}
+        
+        # Separate nodes and edges
+        node_lines = []
+        edge_lines = []
+        
+        for line in lines[1:]:
+            if line.startswith('N '):
+                node_lines.append(line)
+            elif line.startswith('E '):
+                edge_lines.append(line)
+        
+        # Process nodes
+        for line in node_lines:
+            try:
+                parts = shlex.split(line)
+            except ValueError:
+                output_lines.append(line)
+                continue
+                
+            if len(parts) < 3:
+                output_lines.append(line)
+                continue
+            
+            # Detect if already auto-ID format (N <type> content)
+            is_already_auto = parts[1].upper() in TYPE_SHORTCUTS or parts[1] in shortcut_reverse
+            
+            if is_already_auto:
+                # Already auto-count format, just track it
+                auto_counter += 1
+                output_lines.append(line)
+            else:
+                # Has explicit ID: N <id> <type> <content> [extras...]
+                if len(parts) < 4:
+                    output_lines.append(line)
+                    continue
+                    
+                old_id = parts[1]
+                node_type = parts[2]
+                content = parts[3]
+                rest = parts[4:]
+                
+                # Map old ID to new auto-count ID
+                auto_counter += 1
+                new_id = f"_{auto_counter}"
+                id_map[old_id] = new_id
+                
+                # Strip graph prefix from old ID for mapping
+                if ':' in old_id:
+                    bare_id = old_id.split(':')[-1]
+                    id_map[bare_id] = new_id
+                
+                # Get type shortcut
+                short_type = shortcut_reverse.get(node_type, node_type)
+                if node_type.upper() in TYPE_SHORTCUTS:
+                    short_type = node_type.upper()
+                
+                # Reconstruct without ID (auto-count format)
+                # Filter out creator= from rest for cleaner output
+                extras = [r for r in rest if not r.startswith('creator=')]
+                if extras:
+                    output_lines.append(f"N {short_type} {content!r} {' '.join(extras)}")
+                else:
+                    output_lines.append(f"N {short_type} {content!r}")
+        
+        # Process edges with ID remapping
+        for line in edge_lines:
+            try:
+                parts = shlex.split(line)
+            except ValueError:
+                output_lines.append(line)
+                continue
+                
+            if len(parts) < 4:
+                output_lines.append(line)
+                continue
+            
+            # E <src> <rel> <tgt> [extras...]
+            src = parts[1]
+            rel = parts[2]
+            tgt = parts[3]
+            rest = parts[4:]
+            
+            # Remap IDs
+            new_src = id_map.get(src, id_map.get(src.split(':')[-1], src))
+            new_tgt = id_map.get(tgt, id_map.get(tgt.split(':')[-1], tgt))
+            
+            # Filter out creator= from rest
+            extras = [r for r in rest if not r.startswith('creator=')]
+            if extras:
+                output_lines.append(f"E {new_src} {rel} {new_tgt} {' '.join(extras)}")
+            else:
+                output_lines.append(f"E {new_src} {rel} {new_tgt}")
+        
+        return '\n'.join(output_lines)
+
+    @staticmethod
+    def uses_autocount(sif_content: str) -> tuple[bool, list[str]]:
+        """
+        Check if SIF uses auto-counting format (no explicit IDs on nodes).
+        
+        Returns (is_valid, issues) where issues lists any explicit IDs found.
+        """
+        import shlex
+        
+        lines = sif_content.strip().split('\n')
+        issues = []
+        
+        shortcut_reverse = {v: k for k, v in TYPE_SHORTCUTS.items()}
+        
+        for line in lines[1:]:  # Skip header
+            line = line.strip()
+            if not line or not line.startswith('N '):
+                continue
+            
+            try:
+                parts = shlex.split(line)
+            except ValueError:
+                continue
+            
+            if len(parts) < 3:
+                continue
+            
+            # Check if second token is a type (auto-count) or an ID (explicit)
+            second_token = parts[1]
+            is_type = (
+                second_token.upper() in TYPE_SHORTCUTS or 
+                second_token in shortcut_reverse or
+                second_token in ['Component', 'Gotcha', 'Failure_Mode', 'Purpose', 
+                                 'Design_Decision', 'Assumption', 'Operational', 'Why',
+                                 'Synthesis', 'Insight', 'Link', 'Question', 'Tradeoff',
+                                 'Gap', 'Problem', 'Proposal', 'Next', 'Example', 
+                                 'Mechanism', 'Observation']
+            )
+            
+            if not is_type:
+                # This is an explicit ID - not auto-count format
+                issues.append(f"Explicit ID '{second_token}' in: {line[:60]}...")
+        
+        return (len(issues) == 0, issues)
+

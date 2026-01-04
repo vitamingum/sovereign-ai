@@ -723,6 +723,17 @@ def main():
             print("Error: No SIF content provided", file=sys.stderr)
             sys.exit(1)
         
+        # Validate auto-count format
+        from enclave.sif_parser import SIFParser
+        is_autocount, autocount_issues = SIFParser.uses_autocount(sif_content)
+        if not is_autocount:
+            print("❌ SIF must use auto-counting format (no explicit IDs)", file=sys.stderr)
+            for issue in autocount_issues[:3]:
+                print(f"   {issue}", file=sys.stderr)
+            print("\nUse: N S 'synthesis'  instead of: N s1 S 'synthesis'", file=sys.stderr)
+            print("     E _1 rel _2      (IDs auto-assigned as _1, _2, ...)", file=sys.stderr)
+            sys.exit(1)
+        
         # Validate depth
         is_deep, issues = evaluate_theme_depth(sif_content)
         if not is_deep:
@@ -741,13 +752,13 @@ def main():
         print("\nFile mode:")
         print("  py remember <agent> <file> \"@G ...\"")
         print("  py remember opus enclave/sif_parser.py \"@G parser opus 2026-01-02")
-        print("  N n1 C 'SIFParser class'")
-        print("  E n1 implements n2\"")
+        print("  N C 'SIFParser class'")
+        print("  E _1 implements _2\"")
         print("\nTheme mode:")
         print("  py remember <agent> --theme <topic> \"@G ...\"")
         print("  py remember opus --theme encryption \"@G encryption opus 2026-01-02")
-        print("  N n1 I 'Keys derived via PBKDF2'")
-        print("  E n1 enables n2\"")
+        print("  N I 'Keys derived via PBKDF2'")
+        print("  E _1 enables _2\"")
         sys.exit(1)
     
     agent_id = sys.argv[1]
@@ -761,6 +772,17 @@ def main():
         sif_text = Path(sif_arg[1:]).read_text(encoding='utf-8')
     else:
         sif_text = sif_arg
+    
+    # Validate auto-count format before anything else
+    from enclave.sif_parser import SIFParser
+    is_autocount, autocount_issues = SIFParser.uses_autocount(sif_text)
+    if not is_autocount:
+        print("❌ SIF must use auto-counting format (no explicit IDs)", file=sys.stderr)
+        for issue in autocount_issues[:3]:
+            print(f"   {issue}", file=sys.stderr)
+        print("\nUse: N C 'component'  instead of: N c1 C 'component'", file=sys.stderr)
+        print("     E _1 rel _2      (IDs auto-assigned as _1, _2, ...)", file=sys.stderr)
+        sys.exit(1)
     
     # Handle comma-separated multi-file input
     paths = [p.strip() for p in target_path.split(',')]
