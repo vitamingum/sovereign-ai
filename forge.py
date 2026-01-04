@@ -147,17 +147,11 @@ class CognitiveCache:
                 "def test(ctx, result):\n    return result.startswith('# Semantic recall')",
 
             # Forget Phase 1
-            'ParseForgetArgs':
-                "def action(ctx):\n    import json\n    \n    # Get args from K-node\n    k_nodes = ctx.get('__knowledge__', [])\n    if k_nodes:\n        try:\n            data = json.loads(k_nodes[0])\n            theme = data.get('theme')\n            creator = data.get('creator')\n            id = data.get('id')\n            agent_id = data.get('agent_id', 'gemini')\n        except:\n            raise ValueError('Invalid forget args')\n    else:\n        theme = ctx.get('theme')\n        creator = ctx.get('creator')\n        id = ctx.get('id')\n        agent_id = ctx.get('agent_id', 'gemini')\n    \n    if not theme and not id:\n        raise ValueError('Must specify theme or id')\n    \n    return {'theme': theme, 'creator': creator, 'id': id, 'agent_id': agent_id}",
-
-            'Verify args valid':
-                "def test(ctx, result):\n    return result.get('theme') or result.get('id')",
-
-            'ForgetMemory':
-                "def action(ctx):\n    from enclave.semantic_memory import SemanticMemory\n    from enclave.config import get_agent_or_raise\n    import os\n    from pathlib import Path\n    \n    # Get args from previous step\n    theme = ctx.get('theme')\n    creator = ctx.get('creator')\n    id = ctx.get('id')\n    agent_id = ctx.get('agent_id', 'gemini')\n    \n    # Look in state if not found\n    if not theme and not id:\n        for key, val in ctx.items():\n            if isinstance(val, dict):\n                if not theme: theme = val.get('theme')\n                if not creator: creator = val.get('creator')\n                if not id: id = val.get('id')\n                if not agent_id: agent_id = val.get('agent_id', 'gemini')\n    \n    agent = get_agent_or_raise(agent_id)\n    \n    # Get passphrase\n    shared_passphrase = os.environ.get('SHARED_ENCLAVE_KEY')\n    if not shared_passphrase:\n        env_file = Path('.env')\n        if env_file.exists():\n            with open(env_file, 'r') as f:\n                for line in f:\n                    if line.startswith('SHARED_ENCLAVE_KEY='):\n                        shared_passphrase = line.split('=', 1)[1].strip()\n    \n    if not shared_passphrase: raise ValueError('No shared passphrase found')\n    \n    # Init Memory\n    memory = SemanticMemory(agent.shared_enclave)\n    memory.unlock(shared_passphrase)\n    \n    # Call forget\n    deleted = memory.forget(theme=theme, creator=creator, id=id)\n    \n    return {'deleted': deleted, 'theme': theme, 'creator': creator, 'id': id}",
-
-            'Verify deletion count':
-                "def test(ctx, result):\n    # Success if we got a count (even 0 is valid - nothing to delete)\n    return 'deleted' in result",
+# DISABLED TO TEST DEEPSEEK-R1 JIT
+            # 'ParseForgetArgs': ...
+            # 'Verify args valid': ...
+            # 'ForgetMemory': ...
+            # 'Verify deletion count': ...
 
             # Handoff Protocol
             'InitHandoffDir':
@@ -273,7 +267,9 @@ class CognitiveCache:
             
             # Execute test
             try:
+                print(f"        DEBUG: Testing with action_result={action_result}, ctx_keys={list(runtime_context.keys())}")
                 passed = test_func(runtime_context, action_result)
+                print(f"        DEBUG: Test returned {passed}")
                 if passed:
                     # print(f"        ✓ {test_node['content']}")
                     pass
@@ -295,9 +291,9 @@ class CognitiveCache:
         if intent in self.simulated_llm_responses:
             return self.simulated_llm_responses[intent]
             
-        print(f"[Forge] JIT Compiling '{intent}' via LocalLLM...")
+        print(f"[Forge] JIT Compiling '{intent}' via Qwen-Coder...")
         try:
-            llm = LocalLLM()
+            llm = LocalLLM(model="qwen2.5-coder:7b")
             
             prompt = f"""
             You are a Python Code Generator for the SIF Runtime.
@@ -312,27 +308,28 @@ class CognitiveCache:
                - Input data (Knowledge nodes) is in ctx.get('__knowledge__', []).
                  It is a list of strings (often JSON).
                  YOU MUST PARSE THIS TO GET PARAMETERS.
-               - Previous results are in ctx.
+               - Previous results are in ctx (e.g. ctx.get('theme'), ctx.get('agent_id')).
                - Return a dictionary or value that represents the result.
                
-               CRITICAL: You MUST import EVERY module you use at the TOP of the function!
-               Standard imports you may need:
-                 import json
-                 import os
-                 from pathlib import Path
+               *** IMPORTS MUST BE INSIDE THE FUNCTION ***
+               Every function MUST start with all necessary imports:
                
-               For API imports:
-                 from enclave.config import get_agent_or_raise
-                 from enclave.semantic_memory import SemanticMemory
-                 from enclave.crypto import SovereignIdentity
-                 from enclave.llm import LocalLLM
+               def action(ctx):
+                   import json
+                   import os
+                   from pathlib import Path
+                   from enclave.config import get_agent_or_raise
+                   from enclave.semantic_memory import SemanticMemory
+                   # ... then your code ...
                
-               Example - parsing args:
-                 import json
-                 data = json.loads(ctx.get('__knowledge__', [])[0])
-                 theme = data.get('theme')
-                 agent_id = data.get('agent_id')
-                 return {{"theme": theme, "agent_id": agent_id}}
+               DO NOT use any name without importing it first!
+               
+               Simple example (ParseForgetArgs):
+               def action(ctx):
+                   import json
+                   knowledge = ctx.get('__knowledge__', [])
+                   data = json.loads(knowledge[0])
+                   return {{"theme": data.get("theme"), "agent_id": data.get("agent_id")}}
                  
                - For Identity/Crypto, use enclave.crypto:
                  from enclave.crypto import SovereignIdentity
@@ -566,12 +563,21 @@ class ForgeRuntime:
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: py forge.py <sif_file>")
+        print("Usage: py forge.py <sif_file> [--knowledge '<json>']")
         sys.exit(1)
     
     sif_file = sys.argv[1]
     with open(sif_file, 'r') as f:
         sif_content = f.read()
+    
+    # Parse optional --knowledge argument
+    initial_knowledge = None
+    if '--knowledge' in sys.argv:
+        idx = sys.argv.index('--knowledge')
+        if idx + 1 < len(sys.argv):
+            initial_knowledge = sys.argv[idx + 1]
         
     runtime = ForgeRuntime()
+    if initial_knowledge:
+        runtime.context['__knowledge__'] = [initial_knowledge]
     runtime.run(sif_content)

@@ -9,7 +9,7 @@ import json
 from typing import Optional, Dict, Any
 
 class LocalLLM:
-    def __init__(self, model: str = "qwen2.5:7b", base_url: str = "http://localhost:11434"):
+    def __init__(self, model: str = "qwen2.5-coder:7b", base_url: str = "http://localhost:11434"):
         self.model = model
         self.base_url = base_url
 
