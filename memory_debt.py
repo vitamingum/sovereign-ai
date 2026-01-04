@@ -147,11 +147,12 @@ def print_debt(understanding: list[dict], synthesis: list[dict], agent_id: str):
     # Synthesis debt - show both commands
     if synthesis:
         print(f"\n# {len(synthesis)} theme(s) need synthesis:")
-        for item in synthesis:
+        for i, item in enumerate(synthesis, 1):
             files_arg = " ".join(item['files'][:4])
             theme = item['question'][:40].replace(' ', '-').lower()
-            print(f"py recollect.py {agent_id} {files_arg}")
-            print(f"py synth.py {agent_id} \"{theme}\" {files_arg}")
+            print(f"\n[{i}] {item['question'][:60]}")
+            print(f"    py recollect.py {agent_id} {files_arg}")
+            print(f"    py synth.py {agent_id} \"{theme}\" {files_arg}")
 
 
 def main():
