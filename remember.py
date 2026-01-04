@@ -32,21 +32,6 @@ from enclave.semantic_memory import SemanticMemory
 from enclave.sif_parser import SIFParser, SIFKnowledgeGraph, SIFNode, SIFEdge
 
 
-def log_force_usage(agent_id: str, context: str, tool: str):
-    """Log when --force is used for pattern analysis."""
-    agent = get_agent_or_raise(agent_id)
-    log_file = Path(agent.enclave) / "storage" / "private" / "force_log.jsonl"
-    log_file.parent.mkdir(parents=True, exist_ok=True)
-    
-    entry = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "tool": tool,
-        "context": context[:200]  # First 200 chars for brevity
-    }
-    with open(log_file, 'a', encoding='utf-8') as f:
-        f.write(json.dumps(entry) + '\n')
-
-
 def load_passphrase(agent_id: str) -> tuple[str, str]:
     """Load shared passphrase from env.
     
@@ -836,13 +821,7 @@ def main():
         print("", file=sys.stderr)
         print("Gotchas/Assumptions/Failure_Modes are valuable when GENUINE,", file=sys.stderr)
         print("but not required. Don't force them.", file=sys.stderr)
-        print("", file=sys.stderr)
-        print("Add --force to store anyway, but this defeats the purpose.", file=sys.stderr)
-        if '--force' not in sys.argv:
-            sys.exit(1)
-        log_force_usage(agent_id, f"shallow understanding of {target_path}: missing {', '.join(missing)}", 'remember.py')
-        print("--force specified, storing shallow understanding...", file=sys.stderr)
-        print("[--force logged for pattern analysis]", file=sys.stderr)
+        sys.exit(1)
     
     # LLM comprehensiveness check - does this feel like real understanding?
     file_content = ""
@@ -857,11 +836,8 @@ def main():
     if not is_comprehensive:
         print("\n❌ Understanding seems superficial.", file=sys.stderr)
         print("   Add more depth - WHY decisions were made, WHAT breaks.", file=sys.stderr)
-        if '--force' not in sys.argv:
-            sys.exit(1)
-        log_force_usage(agent_id, f"superficial understanding of {target_path}: {feedback}", 'remember.py')
-        print("   --force specified, storing anyway...", file=sys.stderr)
-        print("[--force logged for pattern analysis]", file=sys.stderr)
+        print(f"   LLM feedback: {feedback}", file=sys.stderr)
+        sys.exit(1)
     
     # Synthesis quality check - did they capture the specific details?
     total_lines = len(file_content.split('\n'))
@@ -876,12 +852,7 @@ def main():
             print(f"     ... and {len(shallow_sections) - 5} more", file=sys.stderr)
         print("", file=sys.stderr)
         print("   Add the specific numbers, formulas, and comparisons you read.", file=sys.stderr)
-        print("   Use --force to store anyway (logged for analysis).", file=sys.stderr)
-        if '--force' not in sys.argv:
-            sys.exit(1)
-        log_force_usage(agent_id, f"shallow synthesis of {target_path}: missed {', '.join(shallow_sections)}", 'remember.py')
-        print("   --force specified, storing shallow understanding...", file=sys.stderr)
-        print("[--force logged for pattern analysis]", file=sys.stderr)
+        sys.exit(1)
     
     # Check for operational knowledge and offer to add it
     graph = prompt_operational(graph)

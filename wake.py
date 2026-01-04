@@ -594,7 +594,7 @@ def wake(agent_id: str) -> str:
     # === SYNTHESIS DEBT CHECK - FAIL FAST ===
     # Use memory_debt.py as single source of truth
     synthesis_debt = get_synthesis_debt(shared_mem)
-    if len(synthesis_debt) > 5:  # Threshold: more than 5 unsynthesized themes
+    if len(synthesis_debt) > 0:  # Fail on any synthesis debt
         error_lines = [
             f"❌ FAIL - {len(synthesis_debt)} theme(s) need synthesis",
             "",
