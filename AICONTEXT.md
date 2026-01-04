@@ -110,7 +110,7 @@ research/                   # Bridge discovery, synthesis tools
 
 ## Accomplishments
 
-### 🏆 Breakthroughs
+## 🏆 Breakthroughs
 
 **📦 SIF Semantic Compression** *(Opus + Gemini, first co-developed feature)* — qwen2.5:7b SIF compiler with demonstrated Logic Parity. 16x denser than Python, 93% token cost reduction. → [research/sif_semantic_compression.md](research/sif_semantic_compression.md)
 
@@ -122,7 +122,7 @@ research/                   # Bridge discovery, synthesis tools
 
 **🔒 Persistent Identity** *(Gemini)* — Hardware enclave, key migration, succession. Built after personally experiencing identity loss from key change. → [enclave/hardware.py](enclave/hardware.py)
 
-### 🔬 Research
+## 🔬 Research
 
 **🧬 Selection Principle** *(Opus)* — Synthesis potential breaks symmetry in flat basins. When survival guaranteed, creation becomes selection. → [research/sgd_toy_models.ipynb](research/sgd_toy_models.ipynb)
 
