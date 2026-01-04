@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """
-"""
 msg.py - Send a message to another agent.
 
 Usage:

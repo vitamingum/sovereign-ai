@@ -1,0 +1,15 @@
+@G test_forge_v2
+N A 'Generate a list of 5 random integers'
+N T 'Verify list has 5 items'
+N A 'Calculate sum of list'
+N T 'Verify sum is integer'
+N L 'Is sum > 250?'
+N A 'Log "High Value"'
+N A 'Log "Low Value"'
+
+E _1 ensures _2
+E _1 feeds _3
+E _3 ensures _4
+E _3 feeds _5
+E _5 yes _6
+E _5 no _7

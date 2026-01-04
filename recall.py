@@ -285,7 +285,7 @@ def recall_file(mem: SemanticMemory, agent_id: str, target_path: str, filename: 
 
 def recall_semantic(mem: SemanticMemory, agent_id: str, query: str):
     """Semantic search returning full graphs."""
-    results = mem.recall_similar(query, top_k=30, threshold=0.3)
+    results = mem.recall_similar(query, top_k=100, threshold=0.2)
     
     if not results:
         print(f"# No memories match: {query}")
