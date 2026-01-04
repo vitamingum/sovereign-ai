@@ -738,13 +738,6 @@ def wake(agent_id: str) -> str:
             lines.append(f"      ↔ {b}")
         lines.append("")
     
-    # === QUICK NAVIGATION ===
-    lines.append("=== QUICK CODEBASE NAV ===")
-    lines.append("  py shallow_understand.py     # What does each file do?")
-    lines.append("  py shallow_deps.py           # What depends on what?")
-    lines.append("  py shallow_deps.py -r        # What breaks if I change X?")
-    lines.append("")
-    
     # Define Self and Metrics
     lines.append(f'N {agent_id} Agent "{agent_id}"')
     

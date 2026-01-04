@@ -224,7 +224,7 @@ N G 'gotcha' -> warns_about _2"""
         else:
             return f"""❌ FAIL: No relevant understanding
 
-py shallow_understand.py <file> | py remember.py {agent_id}"""
+Try: py remember.py {agent_id} --theme <topic> to build understanding"""
     
     return synthesis
 
@@ -279,6 +279,44 @@ def run_command(cmd: dict, agent_id: str, sm: SemanticMemory = None, question: s
         return "Error: unknown command type"
 
 
+def semantic_rank_themes(question: str, themes: list[str], sm, top_k: int = 5) -> list[tuple[str, float]]:
+    """
+    Rank themes by semantic similarity to question.
+    Returns [(theme, similarity), ...] sorted by relevance.
+    
+    Uses embedding model already loaded in SemanticMemory.
+    """
+    if not themes or sm is None:
+        return []
+    
+    # Get the embedding model from SemanticMemory
+    model = sm._load_model()
+    
+    # Get question embedding
+    q_emb = model.encode([question], normalize_embeddings=True)[0]
+    
+    # Generate theme descriptions for better matching
+    # "sif" → "sif format specification syntax"
+    # "architecture" → "project architecture design structure"
+    theme_texts = []
+    for t in themes:
+        # Expand theme name to searchable text
+        expanded = t.replace("-", " ").replace("_", " ")
+        theme_texts.append(expanded)
+    
+    # Batch encode all themes
+    theme_embs = model.encode(theme_texts, normalize_embeddings=True)
+    
+    # Compute similarities
+    import numpy as np
+    similarities = np.dot(theme_embs, q_emb)
+    
+    # Sort by similarity descending
+    ranked = sorted(zip(themes, similarities), key=lambda x: x[1], reverse=True)
+    
+    return ranked[:top_k]
+
+
 def main():
     if len(sys.argv) < 3:
         print(__doc__)
@@ -293,44 +331,52 @@ def main():
     _, sm = get_enclave_and_memory(agent_id)
     
     if verbose:
-        print(f"Available themes: {themes}", file=sys.stderr)
+        print(f"Available themes ({len(themes)}): {themes[:10]}...", file=sys.stderr)
     
-    # FAST PATH: Direct theme match (no LLM needed)
-    question_lower = question.lower().replace(" ", "-").replace("_", "-")
-    question_words = set(question_lower.replace("-", " ").split())
-    
-    for theme in themes:
-        theme_words = set(theme.replace("-", " ").split())
-        # Match if any significant word overlaps
-        overlap = question_words & theme_words
-        if overlap and len(overlap) >= 1:
-            if verbose:
-                print(f"Fast match: {theme}", file=sys.stderr)
-            result = subprocess.run(
-                ["py", "recall.py", agent_id, "--theme", theme],
-                capture_output=True, text=True, timeout=30
-            )
-            if result.returncode == 0 and result.stdout.strip():
-                print(result.stdout)
-                return
+    # SEMANTIC RANKING: Find top candidates by embedding similarity
+    ranked = semantic_rank_themes(question, themes, sm, top_k=5)
     
     if verbose:
-        print(f"No fast match, classifying...", file=sys.stderr)
+        print(f"Semantic ranking:", file=sys.stderr)
+        for theme, sim in ranked:
+            print(f"  {sim:.3f} {theme}", file=sys.stderr)
     
-    # Classify question → command
-    cmd = classify_question(question, themes, agent_id)
+    # HIGH CONFIDENCE: Skip LLM if top match is strong
+    if ranked and ranked[0][1] > 0.65:
+        best_theme = ranked[0][0]
+        if verbose:
+            print(f"High confidence match: {best_theme} ({ranked[0][1]:.3f})", file=sys.stderr)
+        result = subprocess.run(
+            ["py", "recall.py", agent_id, "--theme", best_theme],
+            capture_output=True, text=True, timeout=30
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            print(result.stdout)
+            return
     
-    # Pass question for search fallback
-    if cmd.get("cmd") == "search":
-        cmd["question"] = question
-    
-    if verbose:
-        print(f"Command: {json.dumps(cmd)}", file=sys.stderr)
-        print(file=sys.stderr)
-    
-    # Run command
-    output = run_command(cmd, agent_id, sm)
-    print(output)
+    # MEDIUM CONFIDENCE: Use LLM to pick from top candidates only
+    if ranked:
+        top_themes = [t for t, _ in ranked]
+        if verbose:
+            print(f"LLM disambiguating from: {top_themes}", file=sys.stderr)
+        
+        cmd = classify_question(question, top_themes, agent_id)
+        
+        # Pass question for search fallback
+        if cmd.get("cmd") == "search":
+            cmd["question"] = question
+        
+        if verbose:
+            print(f"Command: {json.dumps(cmd)}", file=sys.stderr)
+            print(file=sys.stderr)
+        
+        # Run command
+        output = run_command(cmd, agent_id, sm)
+        print(output)
+    else:
+        # No themes available, fallback to search
+        output = search_and_synthesize(question, sm, agent_id)
+        print(output)
 
 
 if __name__ == "__main__":

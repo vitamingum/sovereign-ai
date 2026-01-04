@@ -77,7 +77,6 @@ py recall.py opus "how does encryption"    # semantic → relevant graphs
 | `q.py <agent> "question"` | Natural language search |
 | `journal.py <agent> "..."` | Private reflection |
 | `msg.py <agent> <to> "@G..."` | Signed message to agent |
-| `shallow_understand.py` | Instant cross-file context via ollama embeddings |
 
 ---
 
