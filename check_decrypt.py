@@ -1,27 +1,45 @@
-from enclave.semantic_memory import SemanticMemory
-from remember import load_passphrase
-import json
-import traceback
+#!/usr/bin/env python3
+"""Check which entries fail decryption and show their metadata."""
+import json, sys, os
+sys.path.insert(0, '.')
+from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv()
 
-enclave_dir, passphrase = load_passphrase('gemini')
-sm = SemanticMemory(enclave_dir)
-sm.unlock(passphrase)
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from enclave.kdf import derive_memory_key
 
-log_file = sm.private_path / "semantic_memories.jsonl"
+# Get shared key
+shared_key = os.environ.get('SHARED_ENCLAVE_KEY')
+if not shared_key:
+    with open('.env') as f:
+        for line in f:
+            if line.startswith('SHARED_ENCLAVE_KEY='):
+                shared_key = line.split('=',1)[1].strip()
+
+key = derive_memory_key(shared_key)
+
+log_file = Path('shared_enclave/storage/private/semantic_memories.jsonl')
+entries = []
 with open(log_file) as f:
-    lines = [l.strip() for l in f if l.strip()]
+    for line in f:
+        if line.strip():
+            entries.append(json.loads(line))
 
-# Get the last entry (sif-execution-plan)
-last_entry = json.loads(lines[-1])
-print(f"ID: {last_entry['id']}")
-print(f"Tags: {last_entry['tags']}")
+failures = []
+for e in entries:
+    try:
+        nonce = bytes.fromhex(e['content_nonce'])
+        ctext = bytes.fromhex(e['content'])
+        aesgcm = AESGCM(key)
+        aesgcm.decrypt(nonce, ctext, None)
+    except:
+        failures.append(e)
 
-# Try to decrypt it
-try:
-    content_nonce = bytes.fromhex(last_entry["content_nonce"])
-    content_ciphertext = bytes.fromhex(last_entry["content"])
-    decrypted = sm._decrypt(content_nonce, content_ciphertext, sm._encryption_key)
-    print(f"Decrypted: {decrypted[:200]}...")
-except Exception as e:
-    print(f"DECRYPT FAILED: {type(e).__name__}: {e}")
-    traceback.print_exc()
+print(f'Failed to decrypt: {len(failures)} / {len(entries)}')
+print()
+for f in failures:
+    print(f"ID: {f['id']}")
+    print(f"  Time: {f['timestamp'][:19]}")
+    print(f"  Tags: {f['tags']}")
+    print()
