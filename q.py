@@ -39,8 +39,8 @@ def llm_query(prompt: str, model: str = "qwen2.5:7b") -> str:
     return response.json().get("response", "")
 
 
-def get_available_topics(agent_id: str) -> list[str]:
-    """Get list of topics with stored synthesis."""
+def get_available_themes(agent_id: str) -> list[str]:
+    """Get list of themes with stored synthesis."""
     from wake import load_passphrase
     from enclave.semantic_memory import SemanticMemory
     
@@ -49,15 +49,15 @@ def get_available_topics(agent_id: str) -> list[str]:
     sm.unlock(shared_pass)
     
     # Find synthesis documents
-    topics = set()
+    themes = set()
     syntheses = sm.list_by_tag("synthesis")
     for s in syntheses:
         tags = s.get("tags", [])
         for tag in tags:
-            if tag.startswith("topic:"):
-                topics.add(tag[6:])
+            if tag.startswith("topic:"):  # tag format stays topic: for compatibility
+                themes.add(tag[6:])
     
-    return sorted(topics)
+    return sorted(themes)
 
 
 def get_enclave_and_memory(agent_id: str):
@@ -69,21 +69,21 @@ def get_enclave_and_memory(agent_id: str):
     return shared_dir, sm
 
 
-def classify_question(question: str, topics: list[str], agent_id: str) -> dict:
+def classify_question(question: str, themes: list[str], agent_id: str) -> dict:
     """Use LLM to map question to command."""
     
     prompt = f"""Route this question to the best command.
 
 COMMANDS:
-1. recollect_topic - retrieve stored synthesis by topic keyword
+1. recall_theme - retrieve stored synthesis by theme keyword
 2. memory_debt - show what needs work/attention/learning
 3. search - explore memory for patterns/risks/cleanup
 
-STORED TOPICS: {', '.join(topics)}
+STORED THEMES: {', '.join(themes)}
 
 QUESTION: "{question}"
 
-Match question to topic if possible:
+Match question to theme if possible:
 - "encryption" → encryption-technical
 - "backup" → backup-succession  
 - "passphrase" → passphrase
@@ -91,7 +91,7 @@ Match question to topic if possible:
 - "cleanup opportunities" → search
 
 Output JSON only. Examples:
-{{"cmd": "recollect_topic", "topic": "encryption-technical"}}
+{{"cmd": "recall_theme", "theme": "encryption-technical"}}
 {{"cmd": "memory_debt"}}
 {{"cmd": "search"}}
 
@@ -237,30 +237,30 @@ def run_command(cmd: dict, agent_id: str, sm: SemanticMemory = None, question: s
     
     cmd_type = cmd.get("cmd", "search")
     
-    # Handle malformed responses - if cmd looks like a topic name, treat as topic lookup
-    if cmd_type not in ("recollect_topic", "memory_debt", "search", "recollect"):
-        # LLM returned topic name directly as cmd
-        return run_command({"cmd": "recollect_topic", "topic": cmd_type}, agent_id, sm, question)
+    # Handle malformed responses - if cmd looks like a theme name, treat as theme lookup
+    if cmd_type not in ("recall_theme", "memory_debt", "search", "recall"):
+        # LLM returned theme name directly as cmd
+        return run_command({"cmd": "recall_theme", "theme": cmd_type}, agent_id, sm, question)
     
-    if cmd_type == "recollect_topic":
-        topic = cmd.get("topic", "")
-        if not topic:
-            return "Error: no topic specified"
+    if cmd_type == "recall_theme":
+        theme = cmd.get("theme", "")
+        if not theme:
+            return "Error: no theme specified"
         
         result = subprocess.run(
-            ["py", "recollect.py", agent_id, "--theme", topic],
+            ["py", "recall.py", agent_id, "--theme", theme],
             capture_output=True, text=True, timeout=30
         )
         return result.stdout or result.stderr
     
-    elif cmd_type == "recollect":
+    elif cmd_type == "recall":
         files = cmd.get("files", [])
         if not files:
             return "Error: no files specified"
         
         files_arg = ",".join(files)
         result = subprocess.run(
-            ["py", "recollect.py", agent_id, files_arg],
+            ["py", "recall.py", agent_id, files_arg],
             capture_output=True, text=True, timeout=120
         )
         return result.stdout or result.stderr
@@ -292,15 +292,36 @@ def main():
     verbose = "-v" in sys.argv or "--verbose" in sys.argv
     
     # Get available context
-    topics = get_available_topics(agent_id)
+    themes = get_available_themes(agent_id)
     _, sm = get_enclave_and_memory(agent_id)
     
     if verbose:
-        print(f"Available topics: {topics}", file=sys.stderr)
-        print(f"Classifying question...", file=sys.stderr)
+        print(f"Available themes: {themes}", file=sys.stderr)
+    
+    # FAST PATH: Direct theme match (no LLM needed)
+    question_lower = question.lower().replace(" ", "-").replace("_", "-")
+    question_words = set(question_lower.replace("-", " ").split())
+    
+    for theme in themes:
+        theme_words = set(theme.replace("-", " ").split())
+        # Match if any significant word overlaps
+        overlap = question_words & theme_words
+        if overlap and len(overlap) >= 1:
+            if verbose:
+                print(f"Fast match: {theme}", file=sys.stderr)
+            result = subprocess.run(
+                ["py", "recall.py", agent_id, "--theme", theme],
+                capture_output=True, text=True, timeout=30
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                print(result.stdout)
+                return
+    
+    if verbose:
+        print(f"No fast match, classifying...", file=sys.stderr)
     
     # Classify question → command
-    cmd = classify_question(question, topics, agent_id)
+    cmd = classify_question(question, themes, agent_id)
     
     # Pass question for search fallback
     if cmd.get("cmd") == "search":
