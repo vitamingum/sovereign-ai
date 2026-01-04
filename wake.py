@@ -388,6 +388,8 @@ def wake(agent_id: str) -> str:
         debt_output = format_message_debt(message_debt, agent_id)
         return debt_output, 0, len(message_debt)
 
+    print("⚡ Know what's here. Your next move is in this context.\n")
+
     # === 1. ARCHITECTURE (authoritative boot context) ===
     arch_output = ""
     try:
@@ -419,13 +421,13 @@ def wake(agent_id: str) -> str:
     except Exception:
         goal_output = 'N G "Run: py recall.py opus --theme quick-current-goal"'
 
-    # === 3. INBOX - messages and state ===
+    # === 3. INBOX - dialogue syntheses + recent activity ===
     inbox_lines = []
     
-    # Get all recent messages
+    # Get all recent messages for activity detection
     messages = get_all_messages(since_hours=48)
     
-    # Helper to decrypt content
+    # Helper to decrypt content (only works for messages TO us)
     def decrypt_content(msg):
         content = msg['content']
         try:
@@ -437,45 +439,53 @@ def wake(agent_id: str) -> str:
             pass
         return content
 
-    # Unanswered - questions I asked, no reply yet
-    unanswered = find_unanswered(agent_id, messages)
-    for i, msg in enumerate(unanswered):
-        ago = time_ago(msg['timestamp'])
-        recipient = msg['to']
-        if msg.get('type') == 'protocol/sif':
-            content = "[SIF Graph]"
-        else:
-            content = msg['content'].replace('"', "'").replace('\n', ' ')
-        msg_id = f"out{i}"
-        inbox_lines.append(f'N {msg_id} Message "{content} (sent {ago} ago)"')
-        inbox_lines.append(f'N {recipient} Agent "{recipient}"')
-        inbox_lines.append(f'E {agent_id} sent {msg_id}')
-        inbox_lines.append(f'E {msg_id} sent_to {recipient}')
-        inbox_lines.append(f'E {agent_id} awaits {recipient}')
-
-    # Recent inbox - messages TO me in last 24h
+    # Find active correspondents (anyone we've exchanged messages with recently)
     agent_lower = agent_id.lower()
     agent_canon = canonical_agent_id(agent_lower) or agent_lower
-    recent_incoming = [
-        m for m in messages
-        if (canonical_agent_id(m.get('to', '')) or m.get('to', '')) == agent_canon
-        and (canonical_agent_id(m.get('from', '')) or m.get('from', '')) != agent_canon
-        and (datetime.now(timezone.utc) - m['timestamp']).total_seconds() < 86400
-    ][-5:]
-
-    from_senders = {}
-    for msg in recent_incoming:
-        sender = msg['from']
-        if sender not in from_senders:
-            from_senders[sender] = []
-        from_senders[sender].append(msg)
-
-    for sender, msgs in from_senders.items():
-        inbox_lines.append("")
-        inbox_lines.append(f"From {sender}:")
-        for msg in msgs:
-            content = decrypt_content(msg)
-            inbox_lines.append(content)
+    
+    active_correspondents = set()
+    for msg in messages:
+        from_agent = canonical_agent_id(msg.get('from', '')) or msg.get('from', '')
+        to_agent = canonical_agent_id(msg.get('to', '')) or msg.get('to', '')
+        if from_agent == agent_canon:
+            active_correspondents.add(to_agent)
+        elif to_agent == agent_canon:
+            active_correspondents.add(from_agent)
+    
+    # For each active correspondent, show their dialogue synthesis
+    for correspondent in sorted(active_correspondents):
+        # Use list_by_tag to find synthesis (semantic search doesn't work well here)
+        all_syntheses = shared_mem.list_by_tag('synthesis', limit=100)
+        
+        # Find the one tagged with this correspondent
+        synthesis = None
+        for r in all_syntheses:
+            tags = r.get('tags', [])
+            if f"topic:{correspondent}" in tags:
+                synthesis = r
+                break
+        
+        if synthesis:
+            inbox_lines.append(f"\n💬 Dialogue with {correspondent}:")
+            inbox_lines.append(synthesis.get('content', ''))
+        else:
+            # No synthesis yet - show that we have messages but need to synthesize
+            correspondent_msgs = [
+                m for m in messages
+                if (canonical_agent_id(m.get('from', '')) or m.get('from', '')) == correspondent
+                or (canonical_agent_id(m.get('to', '')) or m.get('to', '')) == correspondent
+            ]
+            inbox_lines.append(f"\n💬 {correspondent}: {len(correspondent_msgs)} messages (no synthesis yet)")
+            inbox_lines.append(f"   Run: py msg_synthesis.py {agent_id} {correspondent}")
+    
+    # Also show unanswered outbound (awaiting reply)
+    unanswered = find_unanswered(agent_id, messages)
+    if unanswered:
+        inbox_lines.append("\n⏳ Awaiting reply:")
+        for msg in unanswered:
+            ago = time_ago(msg['timestamp'])
+            recipient = msg['to']
+            inbox_lines.append(f"  → {recipient} (sent {ago} ago)")
 
     # === BUILD FINAL OUTPUT with section headers ===
     final_lines = []
