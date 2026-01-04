@@ -585,8 +585,8 @@ def wake(agent_id: str) -> str:
         for f in all_files[:3]:
             safe_name = f.replace(".", "-").replace("/", "-")
             error_lines.append(f'  py remember.py {agent_id} {f} "@G {safe_name} {agent_id} 2026-01-03')
-            error_lines.append(f"  N S '{f} - [what it is]'")
-            error_lines.append(f"  N P '[why it exists]' -> motivated_by _1")
+            error_lines.append(f"  N S '[what it is]'")
+            error_lines.append(f"  N P '[why it exists]'")
             error_lines.append(f"  N G '[gotcha]' -> warns_about _1\"")
             error_lines.append("")
         return '\n'.join(error_lines), len(stale_files), len(missing_files)

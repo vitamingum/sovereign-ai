@@ -54,6 +54,8 @@ def get_enclave_and_memory(agent_id: str):
 def get_file_understandings(sm: SemanticMemory) -> dict[str, str]:
     """Get all file understandings (SIF content) keyed by filename.
     
+    Filters out files that no longer exist (stale understanding debt).
+    
     Returns: {filename: sif_content}
     """
     understandings = {}
@@ -88,11 +90,28 @@ def get_file_understandings(sm: SemanticMemory) -> dict[str, str]:
         if file_content:
             # Normalize path - convert absolute to relative, use forward slashes
             normalized = normalize_path(target)
+            
+            # Skip files that no longer exist (stale understanding)
+            if not _file_exists(normalized):
+                continue
+            
             # Skip duplicates (same file with different path forms)
             if normalized not in understandings:
                 understandings[normalized] = "\n".join(file_content)
     
     return understandings
+
+
+def _file_exists(filename: str) -> bool:
+    """Check if a file exists, trying multiple path resolutions."""
+    # Direct path
+    if Path(filename).exists():
+        return True
+    # Relative to project root
+    project_root = Path(__file__).parent
+    if (project_root / filename).exists():
+        return True
+    return False
 
 
 def normalize_path(path: str) -> str:

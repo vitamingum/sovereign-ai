@@ -145,23 +145,14 @@ def parse_sif_understanding(sif_text: str, target_path: str, agent_id: str) -> S
     """
     Parse user-provided SIF understanding and anchor it to target file.
     
-    Expected format - compact SIF with meta-cognitive nodes:
+    Expected format - auto-ID SIF with meta-cognitive nodes:
     @G understanding agent timestamp
-    N n1 Component "class/function name"
-    N n2 Purpose "what it does" creator=human
-    N n3 Design_Decision "why this approach" creator=opus
-    N n4 Rejected_Alternative "what we didn't do"
-    N n5 Gotcha "operational warning"
-    N n6 Assumption "implicit precondition"
-    N n7 Failure_Mode "how it breaks"
-    N n8 Debug_Strategy "how to troubleshoot"
-    E n1 implements n2 creator=human
-    E n3 motivated_by n2
-    E n4 decided_against n3
-    E n5 warns_about n1
-    E n6 assumes n1
-    E n7 brittle_at n1
-    E n8 debug_via n7
+    N C "class/function name"
+    N P "what it does"
+    N D "why this approach" -> motivated_by _2
+    N G "operational warning" -> warns_about _1
+    N A "implicit precondition" -> assumes _1
+    N F "how it breaks" -> brittle_at _1
     """
     # Parse the SIF
     graph = SIFParser.parse(sif_text)
@@ -697,9 +688,11 @@ def main():
         topic = sys.argv[theme_idx + 1]
         sif_arg = sys.argv[theme_idx + 2]
         
-        # Read SIF
+        # Read SIF - support stdin, @file reference, or inline
         if sif_arg == '-':
             sif_content = sys.stdin.read()
+        elif sif_arg.startswith('@') and len(sif_arg) > 1 and Path(sif_arg[1:]).exists():
+            sif_content = Path(sif_arg[1:]).read_text(encoding='utf-8')
         else:
             sif_content = sif_arg
         sif_content = sif_content.strip()
@@ -708,16 +701,9 @@ def main():
             print("Error: No SIF content provided", file=sys.stderr)
             sys.exit(1)
         
-        # Validate auto-count format
+        # Normalize to auto-count format (accept flexible input, store canonical)
         from enclave.sif_parser import SIFParser
-        is_autocount, autocount_issues = SIFParser.uses_autocount(sif_content)
-        if not is_autocount:
-            print("❌ SIF must use auto-counting format (no explicit IDs)", file=sys.stderr)
-            for issue in autocount_issues[:3]:
-                print(f"   {issue}", file=sys.stderr)
-            print("\nUse: N S 'synthesis'  instead of: N s1 S 'synthesis'", file=sys.stderr)
-            print("     E _1 rel _2      (IDs auto-assigned as _1, _2, ...)", file=sys.stderr)
-            sys.exit(1)
+        sif_content = SIFParser.to_autocount(sif_content)
         
         # Validate depth
         is_deep, issues = evaluate_theme_depth(sif_content)
@@ -737,13 +723,15 @@ def main():
         print("\nFile mode:")
         print("  py remember <agent> <file> \"@G ...\"")
         print("  py remember opus enclave/sif_parser.py \"@G parser opus 2026-01-02")
-        print("  N C 'SIFParser class'")
-        print("  E _1 implements _2\"")
+        print("  N S 'SIFParser - parses SIF format into graph objects'")
+        print("  N P 'Enable structured knowledge exchange'")
+        print("  N G 'shlex.split fails on malformed quotes' -> warns_about _1\"")
         print("\nTheme mode:")
         print("  py remember <agent> --theme <topic> \"@G ...\"")
         print("  py remember opus --theme encryption \"@G encryption opus 2026-01-02")
-        print("  N I 'Keys derived via PBKDF2'")
-        print("  E _1 enables _2\"")
+        print("  N I 'Keys derived via PBKDF2 with unique salts'")
+        print("  N D 'Two keys: content + embedding for isolation'")
+        print("  N G 'Passphrase change requires re-encrypting all' -> warns_about _2\"")
         sys.exit(1)
     
     agent_id = sys.argv[1]
@@ -758,16 +746,9 @@ def main():
     else:
         sif_text = sif_arg
     
-    # Validate auto-count format before anything else
+    # Normalize to auto-count format (accept flexible input, store canonical)
     from enclave.sif_parser import SIFParser
-    is_autocount, autocount_issues = SIFParser.uses_autocount(sif_text)
-    if not is_autocount:
-        print("❌ SIF must use auto-counting format (no explicit IDs)", file=sys.stderr)
-        for issue in autocount_issues[:3]:
-            print(f"   {issue}", file=sys.stderr)
-        print("\nUse: N C 'component'  instead of: N c1 C 'component'", file=sys.stderr)
-        print("     E _1 rel _2      (IDs auto-assigned as _1, _2, ...)", file=sys.stderr)
-        sys.exit(1)
+    sif_text = SIFParser.to_autocount(sif_text)
     
     # Handle comma-separated multi-file input
     paths = [p.strip() for p in target_path.split(',')]
@@ -811,13 +792,10 @@ def main():
         print("  • WHY nodes - Purpose, Design, Rationale", file=sys.stderr)
         print("", file=sys.stderr)
         print("Example of deep understanding:", file=sys.stderr)
-        print("  N n1 Component 'MyClass - handles X'", file=sys.stderr)
-        print("  N n2 Purpose 'Provides Y for Z'", file=sys.stderr)
-        print("  N n3 Design 'Uses pattern P because Q'", file=sys.stderr)
-        print("  N n4 Rationale 'Chose P over Alt because R'", file=sys.stderr)
-        print("  E n1 implements n2", file=sys.stderr)
-        print("  E n3 motivates n1", file=sys.stderr)
-        print("  E n4 justifies n3", file=sys.stderr)
+        print("  N C 'MyClass - handles X'", file=sys.stderr)
+        print("  N P 'Provides Y for Z'", file=sys.stderr)
+        print("  N D 'Uses pattern P because Q' -> motivated_by _2", file=sys.stderr)
+        print("  N W 'Chose P over Alt because R' -> justifies _3", file=sys.stderr)
         print("", file=sys.stderr)
         print("Gotchas/Assumptions/Failure_Modes are valuable when GENUINE,", file=sys.stderr)
         print("but not required. Don't force them.", file=sys.stderr)

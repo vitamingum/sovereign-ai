@@ -107,6 +107,8 @@ def get_cross_agent_debt(sm: SemanticMemory, agent_id: str) -> list[str]:
 def get_synthesis_debt(sm: SemanticMemory) -> list[dict]:
     """Find cross-file questions without synthesis.
     
+    Filters out questions about files that no longer exist.
+    
     Returns list of {question, files}
     """
     try:
@@ -129,14 +131,31 @@ def get_synthesis_debt(sm: SemanticMemory) -> list[dict]:
         debt = []
         for question, files in themes.items():
             if not question_matches_topic(question, existing):
-                debt.append({
-                    "question": question,
-                    "files": files,
-                })
+                # Filter out stale files - only keep files that exist
+                valid_files = [f for f in files if _file_exists(f)]
+                if valid_files:  # Only add if at least one file still exists
+                    debt.append({
+                        "question": question,
+                        "files": valid_files,
+                    })
         
         return debt
     except Exception:
         return []
+
+
+def _file_exists(filename: str) -> bool:
+    """Check if a file exists, trying multiple path resolutions."""
+    # Direct path
+    if Path(filename).exists():
+        return True
+    # Relative to project root
+    project_root = Path(__file__).parent
+    if (project_root / filename).exists():
+        return True
+    # Glob search (expensive, but catches relocated files)
+    matches = list(project_root.glob(f'**/{Path(filename).name}'))
+    return len(matches) > 0
 
 
 def get_message_debt(sm: SemanticMemory, agent_id: str) -> list[dict]:
@@ -190,8 +209,8 @@ def print_understanding_debt(debt: list[dict], cross_agent: list[str], agent_id:
     for f in all_files[:3]:
         safe_name = f.replace(".", "-").replace("/", "-")
         print(f'  py remember.py {agent_id} {f} "@G {safe_name} {agent_id} 2026-01-03')
-        print(f"  N S '{f} - [what it is]'")
-        print(f"  N P '[why it exists]' -> motivated_by _1")
+        print(f"  N S '[what it is]'")
+        print(f"  N P '[why it exists]'")
         print(f"  N G '[gotcha]' -> warns_about _1\"")
         print()
 

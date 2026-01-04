@@ -218,12 +218,9 @@ Output ONLY a number 1-5:"""
 
 After reading above, create synthesis SIF and run:
 py remember.py {agent_id} --theme "{topic}" "@G {topic}-synthesis {agent_id} 2026-01-03
-N n1 I 'your insight here'
-N n2 D 'design decision'
-N n3 G 'gotcha'
-N n4 C 'component'
-E n1 enables n2
-E n3 warns_about n4"""
+N I 'your insight here'
+N D 'design decision' -> implements _1
+N G 'gotcha' -> warns_about _2"""
         else:
             return f"""❌ FAIL: No relevant understanding
 

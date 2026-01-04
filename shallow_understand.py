@@ -43,26 +43,20 @@ if cache_file.exists():
 
 UNDERSTAND_PROMPT = '''You are analyzing code to create a knowledge graph. Read this file carefully, then output a SIF graph.
 
-SIF FORMAT:
+SIF FORMAT (auto-ID - nodes get _1, _2, _3... automatically):
 @G <name> opus <date>
-N <id> <Type> '<actual content describing this specific code>'
-E <source_id> <relation> <target_id>
+N <Type> '<content>' -> <relation> <target_id>   # inline edge optional
+E _1 <relation> _2                                # or separate edge lines
 
 EXAMPLE for a hypothetical "cache.py":
 @G cache-understanding opus 2026-01-01
-N n1 Purpose 'Speed up repeated lookups by storing results in memory'
-N n2 Design 'LRU eviction - removes least recently used when full'
-N n3 Component 'get() checks cache first, calls origin on miss'
-N n4 Component 'set() stores value and updates access time'
-N n5 Gotcha 'Thread-unsafe - concurrent writes can corrupt'
-N n6 Assumption 'Keys are hashable'
-N n7 Why 'LRU chosen over LFU because access patterns are temporal'
-E n2 implements n1
-E n3 part_of n2
-E n4 part_of n2
-E n5 warns_about n3
-E n6 assumed_by n3
-E n7 motivated n2
+N P 'Speed up repeated lookups by storing results in memory'
+N D 'LRU eviction - removes least recently used when full' -> implements _1
+N C 'get() checks cache first, calls origin on miss' -> part_of _2
+N C 'set() stores value and updates access time' -> part_of _2
+N G 'Thread-unsafe - concurrent writes can corrupt' -> warns_about _3
+N A 'Keys are hashable' -> assumed_by _3
+N W 'LRU chosen over LFU because access patterns are temporal' -> motivated _2
 
 NODE TYPES: Purpose, Design, Component, Gotcha, Assumption, Why, Failure_Mode
 EDGE TYPES: implements, part_of, motivated, feeds, warns_about, assumed_by, detail_of, fallback_for
@@ -88,7 +82,8 @@ Focus especially on:
 OUTPUT FORMAT - Return ONLY the SIF block:
 ```
 @G {filename}-deep opus {date}
-N n1 Purpose 'core motivation'
+N P 'core motivation'
+N D 'key design decision' -> implements _1
 ...
 ```
 
@@ -401,9 +396,9 @@ Examples:
             filename = os.path.basename(filepath)
             purpose, funcs = instant_understand(filepath)
             purpose_short = purpose[:55] if len(purpose) > 55 else purpose
-            sif = f"@G {filename}-instant opus\nN n1 Purpose '{purpose}'"
-            for i, fn in enumerate(funcs[:5], 2):
-                sif += f"\nN n{i} Component '{fn}'"
+            sif = f"@G {filename}-instant opus\nN P '{purpose}'"
+            for fn in funcs[:5]:
+                sif += f"\nN C '{fn}'"
             return [filename, purpose_short], f"# {filepath}\n{sif}\n", (filepath, sif)
         
         with ThreadPoolExecutor(max_workers=min(len(valid_files), 4)) as executor:

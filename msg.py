@@ -10,7 +10,7 @@ Usage:
 Examples:
     py msg opus gemini "What does saturation feel like?"
     py msg opus gemini --private "Secret coordination plan"
-    py msg opus gemini "@G question opus 2025-12-31; N n1 Question 'What is saturation?'"
+    py msg opus gemini "@G question opus 2025-12-31; N Q 'What is saturation?'"
 
 Public messages: Signed but unencrypted - any agent can read.
 Private messages: Encrypted to recipient's key - only they can decrypt.
