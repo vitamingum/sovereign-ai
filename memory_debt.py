@@ -9,9 +9,8 @@ Two types:
   2. Synthesis debt: cross-file questions without synthesis
 
 Usage:
-    py memory_debt.py opus              # Show all debt
+    py memory_debt.py opus              # Show debt + commands to fix
     py memory_debt.py opus --json       # Machine-readable output
-    py memory_debt.py opus --fix        # Show commands to fix debt
 """
 
 import sys
@@ -129,37 +128,29 @@ def get_synthesis_debt(sm: SemanticMemory) -> list[dict]:
     return debt
 
 
-def print_debt(understanding: list[dict], synthesis: list[dict], show_cmds: bool = False):
-    """Print unified debt report."""
+def print_debt(understanding: list[dict], synthesis: list[dict], agent_id: str):
+    """Print dense actionable debt report."""
     total = len(understanding) + len(synthesis)
     
     if total == 0:
-        print("No memory debt. All clear.")
+        print("✅ No memory debt")
         return
     
-    print(f"MEMORY DEBT: {total} item(s)\n")
+    print(f"MEMORY DEBT: {total}")
     
-    # Understanding debt
+    # Understanding debt - show commands
     if understanding:
-        print(f"  Understanding: {len(understanding)} file(s) changed")
+        print(f"\n# {len(understanding)} file(s) need re-understanding:")
         for item in understanding:
-            print(f"    - {item['file']} ({item['stored_hash']} → {item['current_hash']})")
-            if show_cmds:
-                print(f"      {item['cmd']}")
-        print()
+            print(f"py remember.py {agent_id} {item['file']} \"@G ...\"")
     
-    # Synthesis debt
+    # Synthesis debt - show commands  
     if synthesis:
-        print(f"  Synthesis: {len(synthesis)} question(s) pending")
+        print(f"\n# {len(synthesis)} theme(s) need synthesis:")
         for item in synthesis:
-            print(f"    - {item['question']}")
-            print(f"      ({', '.join(item['files'][:3])}{'...' if len(item['files']) > 3 else ''})")
-            if show_cmds:
-                print(f"      {item['cmd']}")
-        print()
-    
-    # Summary
-    print(f"Total: {len(understanding)} understanding + {len(synthesis)} synthesis = {total} debt")
+            files_arg = " ".join(item['files'][:4])
+            theme = item['question'][:40].replace(' ', '-').lower()
+            print(f"py synth.py {agent_id} \"{theme}\" {files_arg}")
 
 
 def main():
@@ -169,7 +160,6 @@ def main():
     
     agent_id = sys.argv[1]
     json_mode = "--json" in sys.argv
-    show_cmds = "--fix" in sys.argv
     
     _, sm = get_enclave_and_memory(agent_id)
     
@@ -183,7 +173,7 @@ def main():
             "total": len(understanding) + len(synthesis)
         }, indent=2))
     else:
-        print_debt(understanding, synthesis, show_cmds)
+        print_debt(understanding, synthesis, agent_id)
     
     # Exit code = total debt (useful for CI)
     sys.exit(len(understanding) + len(synthesis))

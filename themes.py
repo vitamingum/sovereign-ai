@@ -213,8 +213,6 @@ def extract_all_questions(sm: SemanticMemory, force_file: str = None, force_all:
     understandings = get_file_understandings(sm)
     cache = load_question_cache(sm)
     
-    print(f"Found {len(understandings)} file understandings")
-    
     result = {}
     
     for filename, content in understandings.items():
@@ -229,17 +227,11 @@ def extract_all_questions(sm: SemanticMemory, force_file: str = None, force_all:
         
         # Check cache (skip if force_all)
         if not force_all and filename in cache and cache[filename]["hash"] == content_hash:
-            print(f"  [cached] {filename}")
             result[filename] = cache[filename]["questions"]
             continue
         
         # Extract fresh
-        print(f"  [extract] {filename}...", flush=True)
         questions = extract_questions_llm(content, filename)
-        if questions:
-            print(f"    -> {questions}")
-        else:
-            print(f"    -> (no questions extracted)")
         
         if questions:
             save_questions(sm, filename, questions, content_hash)
@@ -265,8 +257,6 @@ def cluster_questions(file_questions: dict[str, list[str]], threshold: float = C
     all_questions = list(question_files.keys())
     if not all_questions:
         return {}
-    
-    print(f"\nClustering {len(all_questions)} unique questions...")
     
     # Get embeddings
     model = SentenceTransformer('all-MiniLM-L6-v2')
