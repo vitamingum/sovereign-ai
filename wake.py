@@ -393,7 +393,7 @@ def wake(agent_id: str) -> str:
     try:
         import subprocess
         result = subprocess.run(
-            ['python', 'recall.py', agent_id, '--theme', 'project-architecture'],
+            [sys.executable, 'recall.py', agent_id, '--theme', 'project-architecture'],
             capture_output=True,
             text=True,
             encoding='utf-8',
@@ -408,7 +408,7 @@ def wake(agent_id: str) -> str:
     goal_output = ""
     try:
         result = subprocess.run(
-            ['python', 'recall.py', agent_id, '--theme', 'quick-current-goal'],
+            [sys.executable, 'recall.py', agent_id, '--theme', 'quick-current-goal'],
             capture_output=True,
             text=True,
             encoding='utf-8',
