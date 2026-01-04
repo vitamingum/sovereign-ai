@@ -44,7 +44,6 @@ py mirror.py <agent>                    # Bulk state analysis via LLM
 py shallow_understand.py                # Instant codebase map (no LLM)
 py shallow_deps.py [-r] <file>          # Import deps; -r = reverse deps
 py query_mem.py <agent> <query>         # Semantic search across memories
-py recollect_topic.py <agent> <topic>   # LLM picks relevant files for topic
 ```
 
 ## Research Tools (in research/)

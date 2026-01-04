@@ -217,10 +217,13 @@ Output ONLY a number 1-5:"""
 {findings}
 
 After reading above, create synthesis SIF and run:
-echo "@G {topic}-synthesis {agent_id} 2026-01-03
+py remember.py {agent_id} --theme "{topic}" "@G {topic}-synthesis {agent_id} 2026-01-03
 N n1 I 'your insight here'
 N n2 D 'design decision'
-E n1 enables n2" | py synth.py {agent_id} {topic} -"""
+N n3 G 'gotcha'
+N n4 C 'component'
+E n1 enables n2
+E n3 warns_about n4"""
         else:
             return f"""❌ FAIL: No relevant understanding
 
@@ -245,7 +248,7 @@ def run_command(cmd: dict, agent_id: str, sm: SemanticMemory = None, question: s
             return "Error: no topic specified"
         
         result = subprocess.run(
-            ["py", "recollect_topic.py", agent_id, topic],
+            ["py", "recollect.py", agent_id, "--theme", topic],
             capture_output=True, text=True, timeout=30
         )
         return result.stdout or result.stderr
