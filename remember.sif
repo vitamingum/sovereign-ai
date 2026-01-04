@@ -1,25 +1,32 @@
 @G remember gemini 2026-01-04
-N n1 K '{"agent_id": "gemini", "input_sif": "@G test-memory gemini 2026-01-04; N n1 S Test; N n2 D Design; N n3 I Insight; E n1 tests n1; E n2 supports n1; E n3 explains n2"}'
-N n2 A 'ParseSIFInput'
-N n3 T 'Verify SIF structure'
-N n4 A 'ValidateDepth'
-N n5 T 'Verify depth requirements'
-N n6 A 'ValidateComprehensiveness'
-N n7 T 'Verify LLM validation'
-N n8 A 'StoreUnderstanding'
-N n9 T 'Verify storage success'
-N i1 I 'Validation gates prevent garbage-in-garbage-out in semantic memory'
-N d1 D 'Sequential validation pipeline: Structure -> Depth -> LLM -> Storage'
-E n1 supports n2
-E n2 ensures n3
-E n2 feeds n4
-E n2 next n4
-E n4 ensures n5
-E n4 feeds n6
-E n4 next n6
-E n6 ensures n7
-E n6 feeds n8
-E n6 next n8
-E n8 ensures n9
-E i1 motivates n4
-E d1 explains n2
+N n_args K '{"agent_id": "gemini", "tags": ["Test"], "thought": "Test content", "metadata": {}}'
+N n_api_config K 'API: from enclave.config import get_agent_or_raise; # agent = get_agent_or_raise(agent_id); return {"enclave_dir": agent.shared_enclave}'
+N n_api_env K 'API: import os; # passphrase = os.environ.get("SHARED_ENCLAVE_KEY"); return {"passphrase": passphrase}'
+N n_api_mem K 'API: from enclave.semantic_memory import SemanticMemory; # sm = SemanticMemory(enclave_dir); # sm.unlock(passphrase); # sm.remember(thought, tags, metadata)'
+
+N n_parse A 'Parse Arguments (agent_id, tags, thought, metadata)'
+N n_load_config A 'Load Config (returns enclave_dir)'
+N n_load_key A 'Load Key from Environment'
+N n_store A 'Remember Thought (requires enclave_dir, passphrase)'
+N n_verify T 'Verify Status is "success"'
+
+N l_check_key L 'Check if passphrase is set'
+N n_error_key A 'Raise Error: Passphrase not found'
+
+N i1 I 'Dense SIF requires explicit API context for every external call'
+N d1 D 'Logic parity means mapping every if/else to a Logic node'
+
+E n_args supports n_parse
+E n_api_config supports n_load_config
+E n_api_env supports n_load_key
+E n_api_mem supports n_store
+
+E n_parse feeds n_load_config
+E n_load_config feeds n_load_key
+E n_load_key next l_check_key
+
+E l_check_key yes n_store
+E l_check_key no n_error_key
+
+E n_parse feeds n_store
+E n_store ensures n_verify

@@ -190,14 +190,16 @@ class CognitiveCache:
         Returns a callable Python function for the given node.
         If cache miss, simulates LLM generation + Test Oracle validation.
         """
-        # 1. Calculate Hash (Content + Type)
-        content_hash = hashlib.md5(f"{node['content']}:{node['type']}".encode()).hexdigest()[:8]
+        # 1. Calculate Hash (Content + Type + Context)
+        # We include context_nodes in hash because they might contain API signatures that change the generated code
+        context_str = "".join(sorted([n['content'] for n in context_nodes]))
+        content_hash = hashlib.md5(f"{node['content']}:{node['type']}:{context_str}".encode()).hexdigest()[:8]
         cache_file = self.cache_dir / f"node_{content_hash}.py"
         
         # 2. Check Disk Cache
         if not cache_file.exists():
             # print(f"[Forge] Cache Miss for '{node['content']}' -> Hallucinating implementation...")
-            code = self._hallucinate_code(node['content'], node['type'])
+            code = self._hallucinate_code(node['content'], node['type'], context_nodes)
             
             with open(cache_file, "w") as f:
                 f.write(code)
@@ -287,14 +289,34 @@ class CognitiveCache:
         # print(f"[Forge] All tests passed. Cache valid.")
         return True
 
-    def _hallucinate_code(self, intent: str, node_type: str) -> str:
+    def _hallucinate_code(self, intent: str, node_type: str, context_nodes: List[Dict] = []) -> str:
         if intent in self.simulated_llm_responses:
             return self.simulated_llm_responses[intent]
             
         print(f"[Forge] JIT Compiling '{intent}' via Qwen-Coder...")
+        
+        # Extract API Context from K-nodes
+        api_context = ""
+        for node in context_nodes:
+            content = node.get('content', '')
+            if "API:" in content:
+                # Clean up API one-liners
+                clean_content = content.replace("API:", "").strip()
+                # If it contains semicolons, replace with newlines for better readability
+                if ";" in clean_content:
+                    clean_content = clean_content.replace("; #", "\n").replace(";", "\n")
+                api_context += f"\n# From Knowledge Node:\n{clean_content}\n"
+            elif "class " in content or "def " in content:
+                api_context += f"\n{content}\n"
+        
+        if api_context:
+            print(f"[Forge] API Context for '{intent}':\n{api_context}\n--------------------------------")
+        
         try:
+            print("[Forge] Initializing LLM...")
             llm = LocalLLM(model="qwen2.5-coder:7b")
             
+            print("[Forge] Constructing prompt...")
             prompt = f"""
             You are a Python Code Generator for the SIF Runtime.
             Your task is to generate a Python function that implements the following intent:
@@ -307,9 +329,7 @@ class CognitiveCache:
                - 'ctx' is a dictionary containing the runtime state.
                - Input data (Knowledge nodes) is in ctx.get('__knowledge__', []).
                  It is a list of strings (often JSON).
-                 YOU MUST PARSE THIS TO GET PARAMETERS.
                - Previous results are in ctx (e.g. ctx.get('theme'), ctx.get('agent_id')).
-               - Return a dictionary or value that represents the result.
                
                *** IMPORTS MUST BE INSIDE THE FUNCTION ***
                Every function MUST start with all necessary imports:
@@ -324,43 +344,19 @@ class CognitiveCache:
                
                DO NOT use any name without importing it first!
                
-               Simple example (ParseForgetArgs):
-               def action(ctx):
-                   import json
-                   knowledge = ctx.get('__knowledge__', [])
-                   data = json.loads(knowledge[0])
-                   return {{"theme": data.get("theme"), "agent_id": data.get("agent_id")}}
-                 
-               - For Identity/Crypto, use enclave.crypto:
-                 from enclave.crypto import SovereignIdentity
-                 # API:
-                 # identity = SovereignIdentity(enclave_path)
-                 # identity.unlock(passphrase) -> bool
-                 # identity.get_public_key() -> str (hex)
-                 # identity.sign(message) -> str (hex)
-                 # identity.verify(message, signature, public_key) -> bool
-               - For Configuration, use enclave.config:
-                 from enclave.config import get_agent_or_raise
-                 # API:
-                 # agent = get_agent_or_raise(agent_id)
-                 # agent.private_enclave -> str (path)
-                 # agent.env_prefix -> str (e.g. 'GEMINI')
-                 # agent.env_key_var -> str (e.g. 'GEMINI_KEY')
-               - To load credentials:
-                 1. Get agent_id from knowledge.
-                 2. Get agent config.
-                 3. Get passphrase from os.environ[agent.env_key_var].
-                 4. Unlock identity.
-               - For Semantic Memory, use enclave.semantic_memory:
-                 from enclave.semantic_memory import SemanticMemory
-                 # API:
-                 # memory = SemanticMemory(enclave_path)
-                 # memory.unlock(passphrase) -> bool
-                 # memory.remember(content, tags=list, metadata=dict) -> str (id)
-                 # memory.recall_similar(query, top_k=5) -> list of dict
-                 # memory.forget(theme=None, creator=None, id=None) -> int (count deleted)
-                 # To get enclave_path: agent = get_agent_or_raise(agent_id); enclave_path = agent.shared_enclave
-                 # To get passphrase: os.environ.get('SHARED_ENCLAVE_KEY') or read from .env file
+               *** API CONTEXT (MANDATORY) ***
+               The following code snippets are available for you to use. 
+               Integrate them into your function logic directly. 
+               DO NOT check if 'api_context' is in ctx.
+               ENSURE all variables used in the API calls are retrieved from 'ctx' first.
+               
+               {api_context}
+               
+               *** DATA FLOW STRATEGY ***
+               1. Retrieve INPUT parameters from 'ctx'.
+               2. If missing, retrieve from '__knowledge__' (parse JSON).
+               3. If API CONTEXT is provided below, YOU MUST USE IT. Otherwise, implement standard logic.
+               4. Return a dictionary with the result.
                
             2. If Node Type is 'Test', generate a function named 'test(ctx, result)'.
                - 'ctx' is the runtime state.
@@ -372,6 +368,7 @@ class CognitiveCache:
                
             4. OUTPUT ONLY THE PYTHON CODE. NO MARKDOWN. NO EXPLANATION.
             """
+            print("[Forge] Prompt constructed successfully.")
             
             code = llm.generate(prompt)
             
@@ -380,10 +377,14 @@ class CognitiveCache:
                 code = code.split("```python")[1].split("```")[0]
             elif "```" in code:
                 code = code.split("```")[1].split("```")[0]
-                
-            return code.strip()
+            
+            code = code.strip()
+            print(f"[Forge] Generated Code for '{intent}':\n{code}\n--------------------------------")
+            return code
         except Exception as e:
-            print(f"[Forge] ❌ LLM Generation Failed: {e}")
+            import traceback
+            print(f"\n\n[Forge] ❌ CRITICAL LLM ERROR: {e}")
+            traceback.print_exc()
             return "def action(ctx): print('LLM Generation Failed'); return None"
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -431,7 +432,9 @@ class ForgeRuntime:
             # In v2, 'feeds' implies data flow, 'supports' implies prompt context
             context_nodes = self._get_connected_nodes(node['id'], graph, ['supports', 'requires'])
             if context_nodes:
-                self.context['__knowledge__'] = [n['content'] for n in context_nodes]
+                # Filter out API nodes from runtime knowledge to prevent JSON parse errors
+                self.context['__knowledge__'] = [n['content'] for n in context_nodes 
+                                               if not n['content'].strip().startswith('API:')]
             else:
                 self.context['__knowledge__'] = []
                 
@@ -469,6 +472,10 @@ class ForgeRuntime:
                 
                 # Also store by node ID for simple graphs
                 self.context[f'result_{node["id"]}'] = result
+                
+                # MERGE RESULT INTO GLOBAL CONTEXT (Blackboard Pattern)
+                if isinstance(result, dict):
+                    self.context.update(result)
                     
             except Exception as e:
                 print(f"N error_{steps} Error '{e}'")

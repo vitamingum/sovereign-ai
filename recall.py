@@ -67,6 +67,7 @@ def load_passphrase(agent_id: str) -> tuple[str, str]:
 
 def recall_theme(agent_id: str, theme: str):
     """Recall ALL agents' theme syntheses. Shows cross-agent visibility."""
+    from datetime import datetime
     try:
         enclave_dir, passphrase = load_passphrase(agent_id)
         memory = SemanticMemory(enclave_dir)
@@ -80,15 +81,32 @@ def recall_theme(agent_id: str, theme: str):
             tags = s.get('tags', [])
             content = s.get('content', '')
             creator = s.get('metadata', {}).get('creator', 'unknown')
+            timestamp = s.get('timestamp', '')
             
             # Match by topic tag or graph ID
             if f'topic:{theme_slug}' in tags or f'@g {theme_slug}' in content.lower():
-                found.append((creator, content))
+                found.append({'creator': creator, 'content': content, 'timestamp': timestamp})
         
         if found:
+            # Sort by timestamp (chronological - read debates in order)
+            found.sort(key=lambda x: x['timestamp'])
+            
+            # Find newest timestamp for staleness detection (last in chronological order)
+            newest_ts = found[-1]['timestamp'] if found else ''
+            
             print(f"# {theme}")
-            for creator, content in found:
-                print(f"\n## [by {creator}]")
+            for entry in found:
+                creator = entry['creator']
+                content = entry['content']
+                ts = entry['timestamp']
+                
+                # Format timestamp for display
+                ts_display = ts[:19].replace('T', ' ') if ts else 'unknown'
+                
+                # Mark as stale if not the newest
+                stale_marker = " ⚠️ STALE" if ts != newest_ts else ""
+                
+                print(f"\n## [by {creator}] @ {ts_display}{stale_marker}")
                 print(SIFParser.to_autocount(content))
             return
         
