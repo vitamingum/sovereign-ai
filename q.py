@@ -246,7 +246,7 @@ def run_command(cmd: dict, agent_id: str, sm: SemanticMemory = None, question: s
         
         result = subprocess.run(
             ["py", "recall.py", agent_id, "--theme", theme],
-            capture_output=True, text=True, timeout=30
+            capture_output=True, text=True, timeout=30, encoding='utf-8'
         )
         return result.stdout or result.stderr
     
@@ -258,14 +258,14 @@ def run_command(cmd: dict, agent_id: str, sm: SemanticMemory = None, question: s
         files_arg = ",".join(files)
         result = subprocess.run(
             ["py", "recall.py", agent_id, files_arg],
-            capture_output=True, text=True, timeout=120
+            capture_output=True, text=True, timeout=120, encoding='utf-8'
         )
         return result.stdout or result.stderr
     
     elif cmd_type == "memory_debt":
         result = subprocess.run(
             ["py", "memory_debt.py", agent_id],
-            capture_output=True, text=True, timeout=60
+            capture_output=True, text=True, timeout=60, encoding='utf-8'
         )
         return result.stdout or result.stderr
     
@@ -348,7 +348,7 @@ def main():
             print(f"High confidence match: {best_theme} ({ranked[0][1]:.3f})", file=sys.stderr)
         result = subprocess.run(
             ["py", "recall.py", agent_id, "--theme", best_theme],
-            capture_output=True, text=True, timeout=30
+            capture_output=True, text=True, timeout=30, encoding='utf-8'
         )
         if result.returncode == 0 and result.stdout.strip():
             print(result.stdout)

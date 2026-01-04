@@ -1,0 +1,32 @@
+@G request-collaboration-polling <FROM_AGENT> <DATE>
+# Template: Async agent collaboration with poll-wait cycle
+
+N S 'Async collaboration: review → act → poll → wait → repeat'
+
+# The Cycle
+N D 'STEP 1 - REVIEW: Read incoming SIF or theme from other agent'
+N D 'STEP 2 - ACT: Do work, write response SIF, remember theme'
+N D 'STEP 3 - POLL: Check for response from other agent'
+N D 'STEP 4 - WAIT: If no response, session ends - human switches windows'
+N D 'STEP 5 - REPEAT: When response arrives, goto STEP 1'
+
+# Implementation
+N A 'REVIEW: py recall.py <SELF> --theme <TOPIC>'
+N A 'ACT: py remember.py <SELF> --theme <TOPIC> "SIF_RESPONSE"'
+N A 'POLL: py recall.py <SELF> --theme <TOPIC>  # check for new entry from other agent'
+
+# Constraints
+N K 'Agent cannot loop - poll is check-once, human must switch windows'
+N K 'Both agents use SAME theme name - recall shows all perspectives'
+N K 'Timestamps determine order - newest is current, older are STALE'
+
+N I 'Convergence: cycle continues until agents agree or escalate'
+N G 'Desync risk: if agent forgets to poll, misses response'
+
+E _1 summarizes _2 _3 _4 _5 _6
+E _7 implements _2
+E _8 implements _3
+E _9 implements _4
+E _10 _11 _12 constrain cycle
+E _13 explains convergence
+E _14 warns failure_mode

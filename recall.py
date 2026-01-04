@@ -65,8 +65,91 @@ def load_passphrase(agent_id: str) -> tuple[str, str]:
 # Theme Retrieval
 # ─────────────────────────────────────────────────────────────────────────────
 
+def fuzzy_match_themes(query: str, candidates: list[dict], max_results: int = 3) -> list[dict]:
+    """
+    Find most relevant themes using single LLM call.
+    candidates: list of {'id': str, 'topic': str, 'graph_id': str, ...}
+    Returns top matches sorted by relevance.
+    """
+    # Fast path: exact/substring matches
+    exact = []
+    partial = []  # Word overlap but not substring
+    fuzzy_candidates = []
+    
+    query_words = set(query.replace('-', ' ').split())
+    
+    for c in candidates:
+        topic = c.get('topic') or ''
+        graph_id = c.get('graph_id') or ''
+        
+        # Check substring match (handle empty strings)
+        topic_match = topic and (query in topic or topic in query)
+        graph_match = graph_id and (query in graph_id or graph_id in query)
+        
+        if topic_match or graph_match:
+            c['match_type'] = 'exact'
+            exact.append(c)
+        else:
+            # Check word overlap (e.g., "pure-sif" matches "forge-pure-sif")
+            topic_words = set(topic.replace('-', ' ').split()) if topic else set()
+            graph_words = set(graph_id.replace('-', ' ').split()) if graph_id else set()
+            all_words = topic_words | graph_words
+            
+            overlap = query_words & all_words
+            if overlap:
+                c['match_type'] = 'partial'
+                c['overlap'] = len(overlap)
+                partial.append(c)
+            else:
+                fuzzy_candidates.append(c)
+    
+    # Sort partial by overlap count (most overlap first)
+    partial.sort(key=lambda x: -x.get('overlap', 0))
+    
+    # Combine: exact first, then partial, then fuzzy
+    results = exact + partial
+    
+    # If we have enough, skip LLM
+    if len(results) >= max_results:
+        return results[:max_results]
+    
+    # Need fuzzy matches - one LLM call for all candidates
+    if fuzzy_candidates and len(results) < max_results:
+        needed = max_results - len(results)
+        try:
+            from enclave.llm import LocalLLM
+            llm = LocalLLM(model="qwen2.5-coder:7b")
+            
+            # Build candidate list for prompt
+            candidate_list = "\n".join([
+                f"  {i+1}. {c.get('topic') or c.get('graph_id', 'unknown')}"
+                for i, c in enumerate(fuzzy_candidates[:20])  # Cap at 20
+            ])
+            
+            prompt = f"""Which of these topics are most related to "{query}"?
+{candidate_list}
+
+Return ONLY the numbers of the top {needed} most related (comma-separated), or "none" if none are related."""
+            
+            response = llm.generate(prompt).strip().lower()
+            
+            if response != 'none':
+                # Parse numbers from response
+                import re
+                numbers = re.findall(r'\d+', response)
+                for num_str in numbers[:needed]:
+                    idx = int(num_str) - 1
+                    if 0 <= idx < len(fuzzy_candidates):
+                        fuzzy_candidates[idx]['match_type'] = 'fuzzy'
+                        results.append(fuzzy_candidates[idx])
+        except Exception:
+            pass  # Skip fuzzy if LLM fails
+    
+    return results
+
+
 def recall_theme(agent_id: str, theme: str):
-    """Recall ALL agents' theme syntheses. Shows cross-agent visibility."""
+    """Recall ALL agents' theme syntheses. Shows cross-agent visibility. Max 1 per agent."""
     from datetime import datetime
     try:
         enclave_dir, passphrase = load_passphrase(agent_id)
@@ -76,37 +159,90 @@ def recall_theme(agent_id: str, theme: str):
         theme_slug = theme.lower().replace(' ', '-').replace('_', '-')
         all_syntheses = memory.list_by_tag('synthesis', limit=50)
         
-        found = []
+        # Build candidate list with metadata
+        candidates = []
+        exact_matches = []  # Track exact matches separately
+        
         for s in all_syntheses:
             tags = s.get('tags', [])
             content = s.get('content', '')
             creator = s.get('metadata', {}).get('creator', 'unknown')
             timestamp = s.get('timestamp', '')
             
-            # Match by topic tag or graph ID
-            if f'topic:{theme_slug}' in tags or f'@g {theme_slug}' in content.lower():
-                found.append({'creator': creator, 'content': content, 'timestamp': timestamp})
+            # Extract topic from tags
+            topic = None
+            for tag in tags:
+                if tag.startswith('topic:'):
+                    topic = tag[6:]
+                    break
+            
+            # Extract graph ID from @G line
+            graph_id = None
+            content_lower = content.lower()
+            if '@g ' in content_lower:
+                for line in content_lower.split('\n'):
+                    if line.strip().startswith('@g '):
+                        parts = line.strip().split()
+                        if len(parts) > 1:
+                            graph_id = parts[1]
+                            break
+            
+            entry = {
+                'topic': topic,
+                'graph_id': graph_id,
+                'creator': creator,
+                'content': content,
+                'timestamp': timestamp,
+                'match_type': 'exact'
+            }
+            
+            # Check for exact topic match FIRST
+            if topic and topic == theme_slug:
+                exact_matches.append(entry)
+            else:
+                candidates.append(entry)
+        
+        # ONLY use fuzzy matching if NO exact matches exist
+        if exact_matches:
+            found = exact_matches
+        else:
+            # No exact matches - try fuzzy
+            found = fuzzy_match_themes(theme_slug, candidates, max_results=50)
         
         if found:
-            # Sort by timestamp (chronological - read debates in order)
+            # Group by agent, keep only newest per agent
+            by_agent = {}
+            for entry in found:
+                creator = entry['creator']
+                if creator not in by_agent or entry['timestamp'] > by_agent[creator]['timestamp']:
+                    by_agent[creator] = entry
+            
+            # Convert back to list and sort by timestamp (oldest first)
+            found = list(by_agent.values())
             found.sort(key=lambda x: x['timestamp'])
             
-            # Find newest timestamp for staleness detection (last in chronological order)
+            # Find newest timestamp for staleness detection
             newest_ts = found[-1]['timestamp'] if found else ''
             
-            print(f"# {theme}")
+            # Show actual theme ID found, not search term
+            display_id = found[-1].get('topic') or found[-1].get('graph_id') or theme
+            print(f"# {display_id}")
+            
             for entry in found:
                 creator = entry['creator']
                 content = entry['content']
                 ts = entry['timestamp']
+                match_type = entry.get('match_type', '')
+                actual_id = entry.get('topic') or entry.get('graph_id') or '?'
                 
                 # Format timestamp for display
                 ts_display = ts[:19].replace('T', ' ') if ts else 'unknown'
                 
                 # Mark as stale if not the newest
                 stale_marker = " ⚠️ STALE" if ts != newest_ts else ""
+                fuzzy_marker = " 🔍" if match_type == 'fuzzy' else ""
                 
-                print(f"\n## [by {creator}] @ {ts_display}{stale_marker}")
+                print(f"\n## [{actual_id}] by {creator} @ {ts_display}{stale_marker}{fuzzy_marker}")
                 print(SIFParser.to_autocount(content))
             return
         

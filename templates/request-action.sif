@@ -1,0 +1,19 @@
+@G request-action <FROM_AGENT> <DATE>
+# Template: Request another agent to execute specific commands
+
+N R '<TO_AGENT>: Execute these commands and report results'
+N C '<WHY_ACTION_NEEDED>'
+
+N A '<COMMAND_1>'
+N A '<COMMAND_2>'
+N A '<COMMAND_3>'
+
+N T 'Verify: <EXPECTED_OUTCOME>'
+
+N K '<PREREQUISITE_1>'
+N K '<PREREQUISITE_2>'
+
+E R motivates A
+E C supports R
+E K enables A
+E A ensures T

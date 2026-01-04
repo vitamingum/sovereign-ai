@@ -225,6 +225,18 @@ class SemanticMemory:
             embedding = model.encode(thought, normalize_embeddings=True)
             entry["embedding"] = self._encrypt_embedding(embedding)
         
+        # CRITICAL: Verify we can decrypt what we just encrypted (catches key mismatch)
+        try:
+            verify_nonce = bytes.fromhex(entry["content_nonce"])
+            verify_ciphertext = bytes.fromhex(entry["content"])
+            self._decrypt(verify_nonce, verify_ciphertext, self._encryption_key)
+        except Exception as e:
+            raise RuntimeError(
+                f"KEY MISMATCH: Cannot decrypt entry we just encrypted. "
+                f"Your session may have a different SHARED_ENCLAVE_KEY than other agents. "
+                f"Check .env file and environment variables. Error: {e}"
+            )
+        
         # Append to memory file
         self.private_path.mkdir(parents=True, exist_ok=True)
         log_file = self.private_path / "semantic_memories.jsonl"
@@ -421,6 +433,7 @@ class SemanticMemory:
         
         # Decrypt all
         results = []
+        decrypt_failures = 0
         for mem in memories:
             try:
                 content_nonce = bytes.fromhex(mem["content_nonce"])
@@ -450,7 +463,14 @@ class SemanticMemory:
                     "metadata": metadata,
                 })
             except Exception:
+                decrypt_failures += 1
                 continue
+        
+        # Warn about decrypt failures (likely key mismatch from another agent)
+        if decrypt_failures > 0:
+            import sys
+            print(f"⚠️  WARNING: {decrypt_failures} entries failed to decrypt (key mismatch?)", file=sys.stderr)
+            print(f"   These may have been written by another agent with a different key.", file=sys.stderr)
         
         # Newest first
         results.sort(key=lambda x: x["timestamp"], reverse=True)
