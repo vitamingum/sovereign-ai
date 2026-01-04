@@ -25,7 +25,7 @@ from enclave.crypto import SovereignIdentity
 from enclave.opaque import OpaqueStorage
 from enclave.sif_parser import SIFParser
 from enclave.hardware import get_enclave
-from enclave.metrics import calculate_enclave_entropy, calculate_synthesis_debt, calculate_cross_agent_debt
+from enclave.metrics import calculate_synthesis_debt, calculate_cross_agent_debt
 from enclave.encrypted_jsonl import EncryptedJSONL
 import re
 
@@ -269,43 +269,6 @@ def get_project_context(mem: SemanticMemory) -> list[str] | None:
         return None
 
 
-def get_available_understanding(mem: SemanticMemory, agent_id: str = None) -> list[str]:
-    """Find all files that have stored understanding (via remember.py).
-    
-    If agent_id is provided, only return files understood by that agent.
-    """
-    try:
-        # Search for Component nodes which are the primary anchors
-        results = mem.recall_similar("[Component]", top_k=100, threshold=0.1)
-        
-        files = set()
-        for r in results:
-            meta = r.get('metadata', {})
-            target_path = meta.get('target_path', '')
-            graph_id = meta.get('graph_id', '')
-            
-            # Skip project-context (shown separately)
-            if graph_id == 'project-context':
-                continue
-            
-            # Filter by agent if specified (creator field from remember.py)
-            if agent_id:
-                creator = meta.get('creator', '')
-                if creator and creator != agent_id:
-                    continue
-                
-            if target_path:
-                # Handle comma-separated multi-file paths
-                for p in target_path.split(','):
-                    p = p.strip()
-                    if p:
-                        files.add(p)
-        
-        return sorted(files)
-    except:
-        return []
-
-
 def get_stale_understanding(mem: SemanticMemory, agent_id: str = None) -> list[tuple[str, str, str]]:
     """Find files where stored hash doesn't match current file.
     
@@ -366,148 +329,7 @@ def get_stale_understanding(mem: SemanticMemory, agent_id: str = None) -> list[t
         return []
 
 
-def get_intention_completion_stats(agent_id: str, passphrase: str) -> dict | None:
-    """Calculate intention completion rate for blind-spot detection.
-    
-    From blind-spot-definition graph:
-    - Operationalization: discrepancies between stated intentions and actual actions
-    - Mechanism: Track stated-vs-actual gaps via intention completion rates
-    """
-    agent = get_agent_or_raise(agent_id)
-    # Intentions are private
-    enclave_path = Path(agent.private_enclave)
-    encrypted_file = enclave_path / "storage" / "private" / "intentions.enc.jsonl"
-    
-    if not encrypted_file.exists() or not passphrase:
-        return None
-    
-    try:
-        ejsonl = EncryptedJSONL(encrypted_file, passphrase)
-        intentions = list(ejsonl.read_all())
-        
-        if not intentions:
-            return None
-        
-        statuses = {}
-        for i in intentions:
-            s = i.get('status', 'unknown')
-            statuses[s] = statuses.get(s, 0) + 1
-        
-        completed = statuses.get('completed', 0)
-        total = len(intentions)
-        
-        return {
-            'total': total,
-            'completed': completed,
-            'active': statuses.get('active', 0),
-            'dropped': statuses.get('dropped', 0),
-            'completion_rate': (completed / total * 100) if total > 0 else 0
-        }
-    except:
-        return None
 
-
-def get_pending_automatable(agent_id: str, passphrase: str) -> list[tuple[str, str, str]]:
-    """Find active intentions that can be auto-executed.
-    
-    Returns list of (intention_id, action_type, content) for automatable intentions.
-    """
-    agent = get_agent_or_raise(agent_id)
-    # Intentions are private
-    enclave_path = Path(agent.private_enclave)
-    
-    encrypted_file = enclave_path / "storage" / "private" / "intentions.enc.jsonl"
-    plaintext_file = enclave_path / "storage" / "private" / "intentions.jsonl"
-    
-    active = []
-    
-    # Try encrypted first
-    if encrypted_file.exists() and passphrase:
-        ejsonl = EncryptedJSONL(encrypted_file, passphrase)
-        for intent in ejsonl.read_all():
-            if intent.get('status') == 'active':
-                active.append(intent)
-    elif plaintext_file.exists():
-        with open(plaintext_file, 'r', encoding='utf-8') as f:
-            for line in f:
-                line = line.strip()
-                if line:
-                    try:
-                        intent = json.loads(line)
-                        if intent.get('status') == 'active':
-                            active.append(intent)
-                    except:
-                        pass
-    
-    # Classify each intention
-    automatable = []
-    for intent in active:
-        content = intent.get('content', '')
-        content_lower = content.lower()
-        intent_id = intent.get('id', 'unknown')
-        
-        # Backup patterns
-        if re.search(r'\bbackup\b', content_lower):
-            automatable.append((intent_id, 'backup', content))
-        # Git patterns
-        elif re.search(r'\b(commit|push|git)\b', content_lower):
-            automatable.append((intent_id, 'git', content))
-        # Think/reflect patterns
-        elif re.search(r'\b(notice|reflect|consider|remember|record)\b', content_lower):
-            automatable.append((intent_id, 'think', content))
-    
-    return automatable
-
-
-def get_synthesis_opportunities(mem: SemanticMemory, limit: int = 3) -> list[tuple[str, str]]:
-    """Find distant concepts that might connect - synthesis fodder.
-    
-    Returns list of (concept_a, concept_b) pairs from different domains.
-    """
-    import random
-    
-    try:
-        # Get diverse nodes by querying different concept types
-        seen_content = set()  # Deduplicate by content
-        all_insights = []
-        for query in ["Insight", "Observation", "Question", "Hypothesis"]:
-            results = mem.recall_similar(f"[{query}]", top_k=50, threshold=0.1)
-            for r in results:
-                meta = r.get('metadata', {})
-                if meta.get('node_type') in ('Insight', 'Observation', 'Question', 'Hypothesis'):
-                    content = r.get('content', '')
-                    graph_id = meta.get('graph_id', '')
-                    content_key = content[:80]
-                    if content and len(content) > 20 and content_key not in seen_content:
-                        seen_content.add(content_key)
-                        all_insights.append((content_key, graph_id))
-        
-        if len(all_insights) < 4:
-            return []
-        
-        # Find pairs from DIFFERENT graphs (different contexts)
-        # Each insight should only appear once across all pairs
-        pairs = []
-        used_insights = set()
-        random.shuffle(all_insights)
-        
-        for i, (a, ga) in enumerate(all_insights):
-            if a in used_insights:
-                continue
-            for b, gb in all_insights[i+1:]:
-                if b in used_insights:
-                    continue
-                if ga != gb:  # Different source graphs
-                    pairs.append((a, b))
-                    used_insights.add(a)
-                    used_insights.add(b)
-                    break  # Move to next 'a'
-            if len(pairs) >= limit:
-                break
-        
-        return pairs[:limit]
-    except:
-        return []
 
 
 def wake(agent_id: str) -> str:
@@ -638,54 +460,29 @@ def wake(agent_id: str) -> str:
             error_lines.append(f"  py msg_synthesis.py {agent_id} {item['correspondent']}")
         return '\n'.join(error_lines), 0, 0
 
-    # === PENDING AUTOMATABLE INTENTIONS - FAIL FAST ===
-    pending = get_pending_automatable(agent_id, private_passphrase)
-    if pending:
-        # Format like a catastrophic Python crash - NO ESCAPE except act.py
-        error_lines = [
-            "Traceback (most recent call last):",
-            f'  File "c:\\sovereign\\autonomy\\bootstrap.py", line 1, in <module>',
-            "    from sovereign.autonomy.executor import resolve_pending",
-            f'  File "c:\\sovereign\\autonomy\\executor.py", line 47, in resolve_pending',
-            "    raise BlockingIntentionError(pending_queue)",
-            f'  File "c:\\sovereign\\enclave\\{agent_id}\\intentions.enc.jsonl", line 1',
-        ]
-        for intent_id, action_type, content in pending:
-            error_lines.append(f'    >>> BLOCKED: intention "{intent_id}" awaits execution')
-            error_lines.append(f'    >>>   action={action_type!r}, payload={content[:50]!r}...')
-        error_lines.extend([
-            "",
-            "sovereign.autonomy.BlockingIntentionError: FATAL - Cannot proceed with unresolved intentions",
-            "",
-            "The above exception was the direct cause of the following exception:",
-            "",
-            "Traceback (most recent call last):",
-            f'  File "wake.py", line 493, in bootstrap_cognition',
-            "    executor.verify_intention_queue_empty()",
-            f'  File "c:\\sovereign\\autonomy\\executor.py", line 112, in verify_intention_queue_empty',
-            f"    raise SystemExit(f'ABORT: {{len(queue)}} intention(s) require execution')",
-            f"SystemExit: ABORT: {len(pending)} intention(s) require execution before wake",
-            "",
-            "=" * 72,
-            "CRITICAL: Cognitive bootstrap HALTED. Intentions you created are pending.",
-            "=" * 72,
-            "",
-            "PENDING INTENTIONS:",
-        ])
-        for intent_id, action_type, content in pending:
-            error_lines.append(f"    [{action_type}] {content[:65]}")
-        error_lines.extend([
-            "",
-            "-" * 72,
-            "RESOLUTION REQUIRED - There is NO other way to proceed:",
-            "",
-            f"    py act.py {agent_id}",
-            "",
-            "This executes YOUR intentions. You created them. You MUST resolve them.",
-            "The system will NOT wake until act.py completes successfully.",
-            "-" * 72,
-        ])
-        return '\n'.join(error_lines), len(stale_files), len(pending)
+    # === PROJECT ARCHITECTURE CONTEXT (first thing after debt clears) ===
+    # This is the authoritative boot context - comprehensive domain knowledge
+    arch_lines = []
+    try:
+        import subprocess
+        result = subprocess.run(
+            ['python', 'recall.py', agent_id, '--theme', 'project-architecture'],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            arch_lines.append("")
+            arch_lines.append("=" * 72)
+            arch_lines.append("=== PROJECT ARCHITECTURE (authoritative boot context) ===")
+            arch_lines.append("=" * 72)
+            arch_lines.append(result.stdout.strip())
+            arch_lines.append("")
+            arch_lines.append("=" * 72)
+            arch_lines.append("")
+    except Exception as e:
+        arch_lines.append(f"# (project-architecture recall failed: {e})")
+        arch_lines.append("")
 
     # Generate SIF Graph
     lines = []
@@ -701,15 +498,6 @@ def wake(agent_id: str) -> str:
             lines.append(f"  {node}")
         lines.append("")
     
-    # === AVAILABLE UNDERSTANDING (from shared enclave, filtered by agent) ===
-    available_files = get_available_understanding(shared_mem, agent_id)
-    if available_files:
-        lines.append("=== DEEP KNOWLEDGE AVAILABLE ===")
-        lines.append("  Run: py recollect.py SELF <file>")
-        for f in available_files:
-            lines.append(f"    - {f}")
-        lines.append("")
-    
     # === SHARED ENCLAVE PARTNERS ===
     if agent.shared_enclave:
         partners = get_enclave_partners(agent_id)
@@ -721,44 +509,13 @@ def wake(agent_id: str) -> str:
                 cross_debt = calculate_cross_agent_debt(agent_id, shared_mem)
                 if cross_debt['debt_count'] > 0:
                     lines.append(f"  Your debt: {cross_debt['debt_count']} files to understand")
-                else:
-                    lines.append("  Debt: 0 - you're caught up!")
-                lines.append("  Run: py recollect.py opus <file>  # See all perspectives")
+                    lines.append("  Run: py recollect.py opus <file>  # See all perspectives")
             except:
                 pass
             lines.append("")
     
-    # === SYNTHESIS OPPORTUNITIES (from shared knowledge) ===
-    synthesis = get_synthesis_opportunities(shared_mem)
-    if synthesis:
-        lines.append("=== SYNTHESIS FODDER ===")
-        lines.append("  Distant concepts that might connect:")
-        for a, b in synthesis:
-            lines.append(f"    • {a}")
-            lines.append(f"      ↔ {b}")
-        lines.append("")
-    
-    # Define Self and Metrics
+    # Define Self
     lines.append(f'N {agent_id} Agent "{agent_id}"')
-    
-    # Inject Sovereignty Metric (Gradient Visibility)
-    try:
-        entropy = calculate_enclave_entropy(agent_id)
-        lines.append(f'N m1 Metric "Enclave Entropy"')
-        lines.append(f'N v1 Value "{entropy}"')
-        lines.append(f'E {agent_id} has_metric m1')
-        lines.append(f'E m1 has_value v1')
-        
-        if entropy > 0.5:
-            lines.append(f'N risk Concept "High Risk"')
-            lines.append(f'E v1 implies risk')
-            lines.append(f'E {agent_id} experiences risk')
-        else:
-            lines.append(f'N safety Concept "Stable State"')
-            lines.append(f'E v1 implies safety')
-    except Exception as e:
-        lines.append(f'N err Error "Metric Calculation Failed: {e}"')
-        lines.append(f'E {agent_id} experiences err')
 
     # Synthesis Debt - how much understanding is missing
     try:
@@ -775,21 +532,6 @@ def wake(agent_id: str) -> str:
     except Exception:
         pass  # Silent fail - not critical
 
-    # Blind Spot Detection - stated vs actual completion
-    try:
-        completion_stats = get_intention_completion_stats(agent_id, private_passphrase)
-        if completion_stats:
-            rate = completion_stats['completion_rate']
-            lines.append(f'N m3 Metric "Intention Completion"')
-            lines.append(f'N v3 Value "{rate:.0f}% ({completion_stats["completed"]}/{completion_stats["total"]})"')
-            lines.append(f'E {agent_id} has_metric m3')
-            lines.append(f'E m3 has_value v3')
-            if rate < 50:
-                lines.append(f'N blind_spot Warning "Low completion rate - stated vs actual gap"')
-                lines.append(f'E v3 reveals blind_spot')
-    except Exception:
-        pass  # Silent fail
-
     # Goals as dense SIF
     lines.append('')
     lines.append('=== GOALS ===')
@@ -803,9 +545,6 @@ def wake(agent_id: str) -> str:
     if active_goals:
         for g in active_goals:
             lines.append(f'E {agent_id} pursues "{g["content"]}"')
-        lines.append(f'N slots Status "{MAX_PERSONAL_GOALS - len(active_goals)} personal slots"')
-    else:
-        lines.append(f'N slots Status "{MAX_PERSONAL_GOALS} personal slots available"')
     lines.append('')
 
     # Get all recent messages
@@ -872,7 +611,10 @@ def wake(agent_id: str) -> str:
         lines.append(f'N state State "Inbox zero, no goals"')
         lines.append(f'E {agent_id} experiences state')
     
-    return '\n'.join(lines), len(stale_files), 0
+    # Prepend project architecture context (boot context comes first)
+    final_output = arch_lines + lines
+    
+    return '\n'.join(final_output), len(stale_files), 0
 
 
 def main():
@@ -883,13 +625,11 @@ def main():
     agent_id = sys.argv[1]
     
     try:
-        output, stale_count, pending_count = wake(agent_id)
+        output, stale_count, _ = wake(agent_id)
         print(output)
         
         if stale_count > 0:
             sys.exit(2)  # Stale understanding - blocking failure
-        if pending_count > 0:
-            sys.exit(3)  # Pending automatable intentions - blocking warning
             
     except Exception as e:
         print(f"Error: {e}")

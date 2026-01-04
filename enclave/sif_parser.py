@@ -84,6 +84,11 @@ TYPE_SHORTCUTS = {
     'E': 'Example',        # Concrete example  
     'M': 'Mechanism',      # How something works
     'B': 'Observation',    # Observed fact
+    # Implementation layer types (added for memory debt workflow)
+    'LOC': 'Location',     # Code location with ~line number
+    'SIG': 'Signature',    # Verbatim command invocation
+    'FLOW': 'Flow',        # Execution sequence
+    'CMD': 'Command',      # Drill-down command
 }
 
 class SIFParser:
@@ -260,7 +265,8 @@ class SIFParser:
                                  'Design_Decision', 'Assumption', 'Operational', 'Why',
                                  'Synthesis', 'Insight', 'Link', 'Question', 'Tradeoff',
                                  'Gap', 'Problem', 'Proposal', 'Next', 'Example', 
-                                 'Mechanism', 'Observation']
+                                 'Mechanism', 'Observation', 'Location', 'Loc', 'Signature',
+                                 'Sig', 'Flow', 'Command', 'Cmd', 'Metric']
                 )
                 
                 if is_auto_id:

@@ -69,6 +69,112 @@ def load_passphrase(agent_id: str) -> tuple[str, str]:
 # Theme Storage (--theme mode)
 # ─────────────────────────────────────────────────────────────────────────────
 
+# Theme-specific quality requirements
+# These themes are critical boot context and must meet higher standards
+CRITICAL_THEMES = {
+    'project-architecture': {
+        'min_nodes': 100,  # Hybrid architecture: understanding + implementation + editing
+        # Section patterns - at least one pattern per section must match
+        # Using regex alternation to accept different naming conventions
+        'required_sections': [
+            (r'project|mission|sovereign', 'Project/Mission'),
+            (r'agent|opus|gemini|grok', 'Agents'),
+            (r'sif|format|syntax', 'SIF Format'),
+            (r'tool|\.py|command', 'Tools'),
+            (r'architecture|enclave|storage', 'Architecture'),
+            (r'memory|faiss|semantic', 'Memory'),
+            (r'forge|runtime|jit', 'Forge'),
+            (r'llm|ollama|qwen|deepseek', 'LLM'),
+            (r'breakthrough|milestone|created|proved', 'Breakthroughs'),
+            (r'research|exploring|thread', 'Research'),
+            (r'audit|debt|stale|enforcement', 'Self-Audit'),
+            (r'Q\s+[\'"]|\?\s*$|unknown|open question', 'Questions'),
+            # NEW: Implementation layer requirements
+            (r'N\s+Sig\s+[\'"]|signature', 'Signatures (Sig nodes)'),
+            (r'N\s+Flow\s+[\'"]|execution.*sequence', 'Flows (execution sequences)'),
+            (r'N\s+Loc\s+[\'"]|~line\s*\d+', 'Locations (~line numbers)'),
+            (r'N\s+Cmd\s+[\'"]|drill.?down|py recall', 'Commands (drill-downs)'),
+        ],
+        'required_patterns': [
+            (r'\d+\.?\d*[xX%]|\d+KB|\d+MB', 'Must have metrics with NUMBERS (8.5x, 60%, 91KB)'),
+            (r'opus|gemini|grok|gpt', 'Must have agent names (attribution)'),
+            (r"N\s+G\s+['\"]", 'Must have gotcha nodes (N G) for failure modes'),
+            (r'~line\s*\d+', 'Must have ~line numbers for code locations'),
+        ],
+        'forbidden_patterns': [
+            (r'\bfast\b.*\bcompression\b(?!.*\d)', 'Avoid vague claims - use specific metrics'),
+        ],
+    },
+    # Add more critical themes here as needed
+}
+
+
+def validate_critical_theme(topic: str, sif: str) -> tuple[bool, list[str]]:
+    """
+    Validate SIF content against theme-specific quality requirements.
+    Critical themes (like project-architecture) need higher standards.
+    
+    Returns (is_valid, issues)
+    """
+    import re
+    
+    topic_slug = topic.lower().replace(' ', '-').replace('_', '-')
+    
+    if topic_slug not in CRITICAL_THEMES:
+        return True, []  # Non-critical themes pass automatically
+    
+    config = CRITICAL_THEMES[topic_slug]
+    issues = []
+    
+    lines = [l.strip() for l in sif.strip().split('\n') if l.strip()]
+    nodes = [l for l in lines if l.startswith('N ')]
+    
+    # Check minimum node count
+    min_nodes = config.get('min_nodes', 4)
+    if len(nodes) < min_nodes:
+        issues.append(f"Too few nodes: {len(nodes)}/{min_nodes} minimum for {topic_slug}")
+    
+    # Check required sections exist using regex patterns
+    required_sections = config.get('required_sections', [])
+    missing_sections = []
+    found_sections = []
+    for section_config in required_sections:
+        if isinstance(section_config, tuple):
+            pattern, name = section_config
+            if re.search(pattern, sif, re.IGNORECASE):
+                found_sections.append(name)
+            else:
+                missing_sections.append(name)
+        else:
+            # Legacy: simple string match
+            if section_config.lower() in sif.lower():
+                found_sections.append(section_config)
+            else:
+                missing_sections.append(section_config)
+    
+    if missing_sections:
+        issues.append(f"Missing sections: {', '.join(missing_sections)}")
+    
+    # Check required patterns (metrics, attribution, etc.)
+    for pattern, message in config.get('required_patterns', []):
+        if not re.search(pattern, sif, re.IGNORECASE):
+            issues.append(message)
+    
+    # Check forbidden patterns
+    for pattern, message in config.get('forbidden_patterns', []):
+        if re.search(pattern, sif, re.IGNORECASE):
+            issues.append(message)
+    
+    # Store diagnostic info on the issues list for better feedback
+    if issues:
+        # Add section coverage summary
+        total = len(required_sections)
+        found = len(found_sections)
+        issues.insert(0, f"Section coverage: {found}/{total} ({', '.join(found_sections[:5])}{'...' if found > 5 else ''})")
+    
+    return len(issues) == 0, issues
+
+
 def evaluate_theme_depth(sif: str) -> tuple[bool, str]:
     """Check if theme SIF has enough substance to be worth storing."""
     lines = [l.strip() for l in sif.strip().split('\n') if l.strip()]
@@ -230,6 +336,84 @@ def check_depth(graph: SIFKnowledgeGraph) -> tuple[bool, list[str]]:
     
     is_deep = len(issues) == 0
     return is_deep, issues
+
+
+def check_loc_coverage(graph: SIFKnowledgeGraph, file_path: str) -> tuple[bool, list[str]]:
+    """
+    For Python files, check that SIF includes Loc nodes with line numbers.
+    
+    Enforces: You MUST read the whole file and note important locations.
+    Returns (is_covered, issues)
+    """
+    import re
+    
+    # Only check Python files
+    if not file_path.endswith('.py'):
+        return True, []
+    
+    # Extract function definitions from the file
+    try:
+        path = Path(file_path)
+        if not path.exists():
+            path = Path(__file__).parent / file_path
+        if not path.exists():
+            return True, []  # Can't check non-existent file
+        
+        content = path.read_text(encoding='utf-8')
+        lines = content.split('\n')
+        
+        # Find top-level function definitions
+        def_pattern = re.compile(r'^def\s+(\w+)\s*\(')
+        functions = []
+        for i, line in enumerate(lines, 1):
+            match = def_pattern.match(line)
+            if match:
+                name = match.group(1)
+                # Skip private (but keep dunder)
+                if not name.startswith('_') or name.startswith('__'):
+                    functions.append({'name': name, 'line': i})
+        
+        if len(functions) < 3:
+            return True, []  # Small file, skip check
+        
+    except Exception:
+        return True, []  # Can't read file, skip check
+    
+    # Check what's in the SIF
+    sif_content = ' '.join(n.content.lower() for n in graph.nodes)
+    node_types = {n.type.lower() for n in graph.nodes}
+    
+    # Check for Loc nodes with line numbers
+    loc_nodes = [n for n in graph.nodes if n.type.lower() in ('loc', 'location')]
+    line_refs = re.findall(r'~?line\s*(\d+)', sif_content)
+    
+    issues = []
+    
+    # Must have at least 1 Loc node for files with 3+ functions
+    if not loc_nodes and len(functions) >= 3:
+        issues.append(f"No Loc nodes - add N Loc '<function>() ~line N' for key functions")
+    
+    # Must mention ~line for files with 5+ functions
+    if not line_refs and len(functions) >= 5:
+        issues.append(f"No ~line references - note where key functions are")
+    
+    # Check function coverage - at least 30% of top-level functions should be mentioned
+    mentioned = 0
+    not_mentioned = []
+    for func in functions[:15]:  # Check up to 15 functions
+        if func['name'].lower() in sif_content:
+            mentioned += 1
+        else:
+            not_mentioned.append(f"{func['name']}() ~line {func['line']}")
+    
+    coverage_ratio = mentioned / len(functions[:15]) if functions else 1.0
+    if coverage_ratio < 0.3 and len(functions) >= 5:
+        issues.append(f"Only {mentioned}/{len(functions[:15])} functions mentioned ({coverage_ratio:.0%})")
+        issues.append(f"Missing: {', '.join(not_mentioned[:5])}")
+        if len(not_mentioned) > 5:
+            issues.append(f"  ... and {len(not_mentioned) - 5} more")
+    
+    return len(issues) == 0, issues
 
 
 def check_operational(graph: SIFKnowledgeGraph) -> tuple[bool, list[str]]:
@@ -710,11 +894,32 @@ def main():
         from enclave.sif_parser import SIFParser
         sif_content = SIFParser.to_autocount(sif_content)
         
-        # Validate depth
+        # Validate basic depth (all themes)
         is_deep, issues = evaluate_theme_depth(sif_content)
         if not is_deep:
             print(f"❌ SHALLOW: {issues}", file=sys.stderr)
             print("Add more insight (I), design (D), or gotcha (G) nodes", file=sys.stderr)
+            sys.exit(1)
+        
+        # Critical theme validation (higher standards for boot context themes)
+        is_valid, critical_issues = validate_critical_theme(topic, sif_content)
+        if not is_valid:
+            print(f"❌ FAIL - {topic} domain knowledge MUST be comprehensive!", file=sys.stderr)
+            print("", file=sys.stderr)
+            for issue in critical_issues:
+                print(f"  ✗ {issue}", file=sys.stderr)
+            print("", file=sys.stderr)
+            print("Requirements (hybrid architecture ~128 nodes):", file=sys.stderr)
+            print("  • 100+ nodes (understanding + implementation + editing layers)", file=sys.stderr)
+            print("  • Sig nodes: verbatim command invocations", file=sys.stderr)
+            print("  • Flow nodes: execution sequences with function names", file=sys.stderr)
+            print("  • Loc nodes: ~line numbers for code locations", file=sys.stderr)
+            print("  • Cmd nodes: drill-down commands", file=sys.stderr)
+            print("  • Metrics WITH NUMBERS (8.5x, not 'fast')", file=sys.stderr)
+            print("  • Attribution (who built what)", file=sys.stderr)
+            print("  • Gotchas (G nodes) for failure modes", file=sys.stderr)
+            print("", file=sys.stderr)
+            print("See: templates/verify-architecture.sif", file=sys.stderr)
             sys.exit(1)
         
         # Store
@@ -804,6 +1009,23 @@ def main():
         print("", file=sys.stderr)
         print("Gotchas/Assumptions/Failure_Modes are valuable when GENUINE,", file=sys.stderr)
         print("but not required. Don't force them.", file=sys.stderr)
+        sys.exit(1)
+    
+    # Check Loc node coverage for Python files
+    has_loc_coverage, loc_issues = check_loc_coverage(graph, str(primary_path))
+    if not has_loc_coverage:
+        print("❌ INSUFFICIENT LOCATION COVERAGE", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("You must READ THE WHOLE FILE and note key function locations:", file=sys.stderr)
+        for issue in loc_issues:
+            print(f"  ✗ {issue}", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Add Loc nodes like:", file=sys.stderr)
+        print("  N Loc 'main() ~line 42' -> implements 'CLI entry'", file=sys.stderr)
+        print("  N Loc 'process_data() ~line 89' -> handles 'transformation'", file=sys.stderr)
+        print("  N Flow 'main() → process_data() → save()'", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("This forces you to actually read and understand the code structure.", file=sys.stderr)
         sys.exit(1)
     
     # LLM comprehensiveness check - does this feel like real understanding?

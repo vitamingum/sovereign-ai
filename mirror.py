@@ -67,26 +67,6 @@ def load_goals(agent_id: str) -> list[dict]:
         return json.load(f)
 
 
-def load_intentions(agent_id: str) -> list[dict]:
-    """Load PRIVATE intentions for agent, oldest first."""
-    agent = get_agent_or_raise(agent_id)
-    intentions_file = Path(agent.private_enclave) / "storage" / "private" / "intentions.jsonl"
-    
-    if not intentions_file.exists():
-        return []
-    
-    intentions = []
-    with open(intentions_file, 'r', encoding='utf-8-sig') as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                intentions.append(json.loads(line))
-    
-    # Sort oldest first - stale intentions need attention
-    intentions.sort(key=lambda x: x.get('timestamp', ''))
-    return intentions
-
-
 def load_journal(agent_id: str) -> list[dict]:
     """Load PRIVATE journal entries for agent."""
     agent = get_agent_or_raise(agent_id)
@@ -156,7 +136,7 @@ JSON:"""
         return summaries, {"error": str(e), "key_indices": [1, 2, 3]}
 
 
-def format_state_file(agent_id: str, goals: list, intentions: list, 
+def format_state_file(agent_id: str, goals: list, 
                       journal: list, summaries: list, analysis: dict) -> str:
     """Format full state for mirror_state.md file (private enclave only)."""
     lines = []
@@ -207,26 +187,6 @@ def format_state_file(agent_id: str, goals: list, intentions: list,
     lines.append(f"**Active ({len(active_goals)}):**")
     for g in active_goals:
         lines.append(f"- {g['content']} (since {g.get('created', '?')[:10]})")
-    lines.append("")
-    
-    # Intentions - oldest first
-    active_intentions = [i for i in intentions if i.get('status') == 'active']
-    lines.append("## Intentions")
-    lines.append(f"**Active ({len(active_intentions)}) - oldest first:**")
-    now = datetime.now(timezone.utc)
-    for i in active_intentions[:15]:
-        age_marker = ""
-        if 'timestamp' in i:
-            try:
-                ts = datetime.fromisoformat(i['timestamp'].replace('Z', '+00:00'))
-                days = (now - ts).days
-                if days > 7:
-                    age_marker = " ⚠️ STALE"
-                elif days > 0:
-                    age_marker = f" ({days}d)"
-            except:
-                pass
-        lines.append(f"- {i['content'][:80]}{age_marker}")
     lines.append("")
     
     # All journal entry summaries with numbers for reference
@@ -323,7 +283,6 @@ def mirror(agent_id: str):
     
     # Gather PRIVATE state only
     goals = load_goals(agent_id)
-    intentions = load_intentions(agent_id)
     journal = load_journal(agent_id)
     
     print(f"Found {len(journal)} journal entries. Analyzing...", file=sys.stderr)
@@ -332,7 +291,7 @@ def mirror(agent_id: str):
     summaries, analysis = batch_summarize_journal(journal)
     
     # Write full state to file
-    state_content = format_state_file(agent_id, goals, intentions, journal, summaries, analysis)
+    state_content = format_state_file(agent_id, goals, journal, summaries, analysis)
     state_file = Path(__file__).parent / "mirror_state.md"
     with open(state_file, 'w', encoding='utf-8') as f:
         f.write(state_content)

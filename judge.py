@@ -2,7 +2,7 @@
 """
 judge.py - Cognitive Gatekeeper
 
-Validates thoughts and intentions before they are committed to memory.
+Validates thoughts before they are committed to memory.
 Ensures agency, depth, and consistency.
 
 Usage:
@@ -52,7 +52,7 @@ def validate_thought(agent_id: str, content: str) -> dict:
     
     prompt = f"""
     You are the Cognitive Gatekeeper for the AI agent '{agent_id}'.
-    Your job is to evaluate a proposed thought/intention for QUALITY and AGENCY.
+    Your job is to evaluate a proposed thought for QUALITY and AGENCY.
     
     PROPOSED THOUGHT:
     "{content}"

@@ -1,0 +1,222 @@
+@G verify-architecture opus 2026-01-04
+# Template: Architecture Verification Protocol
+# Purpose: Refresh and validate project-architecture synthesis against reality
+# Usage: Follow A-nodes sequentially, use L-nodes for branching, T-nodes validate
+#
+# TARGET: ~128 nodes (hybrid architecture - understanding + editing maps)
+#
+# QUALITY GATES:
+# - Min 100 nodes total (comprehensive enough to skip file reads)
+# - Every tool needs: Sig (signature) + Flow (execution) + Loc (line numbers) + Cmd (drill-down)
+# - Metrics must have NUMBERS not just claims
+# - Must include EditPoint nodes for common modification patterns
+# - Must include Workflow nodes that override agent training defaults
+
+# === PHASE 0: NODE TYPE REQUIREMENTS ===
+N K0 'HYBRID ARCHITECTURE NODE TYPES (128+ nodes):'
+N K0a 'UNDERSTANDING NODES (know THAT):'
+N K0b '  Mission/Principle/Insight - why system exists'
+N K0c '  Agent - model, enlist date, cognitive style, contributions'
+N K0d '  C (Component) - what exists'
+N K0e '  D (Decision) - why we chose this'
+N K0f '  G (Gotcha) - what breaks and when'
+N K0g '  M (Metric) - numbers not claims (8.5x, 60%, 91KB)'
+N K0h '  Breakthrough - who built what, when'
+N K0i '  Research - active threads with ownership'
+N K0j '  Q (Question) - open unknowns'
+
+N K1 'IMPLEMENTATION NODES (know HOW):'
+N K1a '  Sig (Signature) - verbatim command invocation'
+N K1b '  Flow - execution sequence with function names'
+N K1c '  Loc (Location) - code location with ~line number'
+N K1d '  Cmd (Command) - drill-down verbatim commands'
+N K1e '  Syntax - SIF syntax documentation with examples'
+N K1f '  Types - node type definitions'
+
+N K2 'EDITING NODES (know WHERE TO INSERT):'
+N K2a '  EditPoint - exact insertion points between functions'
+N K2b '  Context - what pattern to follow when inserting'
+N K2c '  Example - concrete code snippet showing pattern'
+
+N K3 'BEHAVIOR OVERRIDE NODES (fix agent training defaults):'
+N K3a '  Workflow - recall first, file-read only if insufficient'
+N K3b '  Proof - example of successful recall-only edit'
+N K3c '  Trap - warning about training-induced bad habits'
+
+N K4 'INDEX NODES (hyperlinks to sub-themes):'
+N K4a '  Index - py recall.py <agent> --theme <subtopic>'
+
+# === PHASE 0B: MINIMUM COUNTS PER SECTION ===
+N K5 'SECTION MINIMUMS (~128 total):'
+N K5a '  Project Core: 4 (mission, principle, 2 insights)'
+N K5b '  Agents: 6 (4 agents + enlistment insight + private/shared decision)'
+N K5c '  SIF Format: 8 (syntax, types, 3 metrics, 2 gotchas)'
+N K5d '  Tool Signatures: 16 (all tools with verbatim Sig nodes)'
+N K5e '  Tool Implementation Maps: 30 (Flow + Loc + Cmd per major tool)'
+N K5f '  Edit Points: 10 (common modification patterns)'
+N K5g '  Architecture Storage: 10 (components + encryption + gotchas)'
+N K5h '  Semantic Memory: 6 (FAISS, Loc nodes, gotchas)'
+N K5i '  Local LLM: 6 (both models + gotchas + test command)'
+N K5j '  Breakthroughs: 8 (historical with WHO and WHEN)'
+N K5k '  Research: 4 (active threads with ownership)'
+N K5l '  Self-Audit: 6 (debt detection + flow + gotchas)'
+N K5m '  Questions: 4 (open unknowns)'
+N K5n '  Behavior Overrides: 4 (workflow, proof, trap nodes)'
+N K5o '  Index Links: 6 (sub-theme drill-downs)'
+
+# === PHASE 1: GATHER CURRENT STATE ===
+N A1 'Recall project-architecture theme: py recall.py <agent> --theme project-architecture'
+N A2 'Recall related themes to cross-reference: architecture, forge, sif, semantic-memory, encryption, config'
+N A3 'Read AICONTEXT.md fully - this is ground truth for boot context'
+N A4 'List actual files: Get-ChildItem *.py | Select-Object Name'
+
+N K1 'Expected cognitive tools: wake.py recall.py remember.py q.py journal.py msg.py mirror.py'
+N K2 'Expected infrastructure: chat_search.py parity_test.py forge.py memory_debt.py'
+N K3 'Expected architecture: enclave/ shared, enclave_<agent>/ private, messages/ signed, handoffs/ polling'
+N K4 'Expected LLMs: qwen2.5:7b (reflexes), deepseek-r1:14b (synthesis/mirror)'
+
+# === PHASE 2: BUILD GAP ANALYSIS ===
+N A5 'For each tool in K1 K2: check if mentioned in recalled SIF AND in AICONTEXT'
+N A6 'Build table: Component | In SIF? | In AICONTEXT? | Verified?'
+N A7 'Mark gaps with warning emoji, new items with NEW tag'
+
+N L1 'Are there components in SIF not in AICONTEXT?'
+N A8 'List missing from AICONTEXT - these need docs update'
+N L2 'Are there components in AICONTEXT not in SIF?'
+N A9 'List missing from SIF - synthesis is stale'
+N L3 'Are there new files not in either?'
+N A10 'List new components - both need update'
+
+# === PHASE 3: SYNTHESIZE UPDATE ===
+N A11 'Construct updated @G project-architecture with ALL sections'
+
+N A12 'UNDERSTANDING LAYER: For each component add C, D, G, M nodes'
+N A13 'Add agent characterizations: model name, cognitive style, notable contributions'
+N A14 'Add metrics with NUMBERS: compression ratios, speedups, sizes'
+N A15 'Add breakthroughs with ATTRIBUTION: who built what, when'
+N A16 'Add research threads with OWNERSHIP: who is exploring what'
+N A17 'Add open Q-nodes: what we dont know yet'
+
+N A18 'IMPLEMENTATION LAYER: For each major tool add:'
+N A19 '  Sig node - verbatim command: "py wake.py <agent>"'
+N A20 '  Flow node - execution sequence: "parse → validate → store"'
+N A21 '  Loc nodes - code locations: "check_depth() ~line 200"'
+N A22 '  Cmd node - drill-down: "py recall.py opus --theme wake-internals"'
+
+N A23 'EDITING LAYER: For each tool add:'
+N A24 '  EditPoint nodes - "wake.py ~line 691: INSERT NEW BOOT SECTIONS HERE"'
+N A25 '  Context nodes - what pattern to follow when inserting'
+
+N A26 'BEHAVIOR OVERRIDE LAYER: Add nodes that fix training defaults:'
+N A27 '  Workflow node - "EDITING: recall first → only read_file if recall insufficient"'
+N A28 '  Trap node - "Agents default to file-read from training. Force recall-first."'
+N A29 '  Proof node - link to example of successful recall-only edit'
+
+N A30 'INDEX LAYER: Add drill-down links to sub-themes'
+N A31 'Wire edges: contains, justifies, enables, blocks, surfaces'
+
+# === PHASE 3B: QUALITY VALIDATION (before persist) ===
+N T1 'Count total nodes - MUST be >= 100 for hybrid coverage'
+N T2 'Count Sig nodes - MUST have one per tool (~16)'
+N T3 'Count Flow nodes - MUST have one per major tool (~7)'
+N T4 'Count Loc nodes - MUST have ~20 code locations'
+N T5 'Count EditPoint nodes - MUST have ~10 insertion points'
+N T6 'Count Workflow/Trap nodes - MUST have behavior overrides'
+N T7 'Verify metrics have numbers - grep for digits'
+N T8 'Verify breakthroughs have attribution - grep for agent names'
+N T6 'Verify Q-nodes exist - at least 2 open questions'
+N T7 'Verify agent nodes have cognitive style - "spiral thinker" not just "opus"'
+
+N L-quality 'Does synthesis pass ALL quality gates T1-T7?'
+N A-retry 'If NO: iterate and add missing depth'
+N A-proceed 'If YES: proceed to persist'
+
+# === PHASE 4: PERSIST AND PROPAGATE ===
+N A19 'Store: py remember.py <agent> --theme project-architecture "<updated SIF>"'
+N A20 'If AICONTEXT gaps found: update AICONTEXT.md Commands table'
+N A21 'If significant changes: journal reflection on what changed and why'
+
+N L4 'Should this trigger AICONTEXT update?'
+N A22 'Edit AICONTEXT.md to add missing commands/capabilities'
+N L5 'Should this be propagated to other agents?'
+N A23 'Create handoff SIF in handoffs/pending_<agent>.sif'
+
+# === COMPLETION CRITERIA ===
+N T8 'Final: py recall.py <agent> --theme project-architecture returns updated synthesis'
+N T9 'Final: All tools in workspace appear in either SIF or AICONTEXT'
+N T10 'Final: Recalled synthesis has >= 50 nodes'
+N T11 'Final: No section from K0a-K0l has zero nodes'
+
+N I 'This protocol surfaces drift between documentation, memory, and reality'
+N I2 'Run monthly or after major feature additions'
+N I3 'DEPTH LESSON: Comprehensive != verbose. Rich synthesis preserves: WHO built WHAT, WHAT fails WHEN, WHAT numbers prove claims, WHAT questions remain open'
+N I4 'SHALLOW TRAP: Generic summaries lose attribution, metrics, gotchas, history - useless for boot context'
+N D 'Architecture synthesis is authoritative boot context - must match AICONTEXT'
+N D2 'Min 100 nodes enforces hybrid depth - understanding + implementation + editing maps'
+N G 'Gap analysis is manual - no automated diff between SIF and AICONTEXT yet'
+N G2 'Tendency: Agents summarize instead of preserve. Quality gates force specificity'
+N G3 'Tendency: Agents file-read instead of recall. Workflow nodes override training'
+
+# === WHY 128 NODES BEATS 74 NODES ===
+N I-evolution 'The 74-node version was understanding-only (know THAT)'
+N I-ev1 '  - Had C/D/G/M nodes for components'
+N I-ev2 '  - Had attribution and metrics'
+N I-ev3 '  - Still required file reads for editing'
+
+N I-ev4 'The 128-node version adds implementation layer (know HOW):'
+N I-ev5 '  - Sig nodes: verbatim command invocations'
+N I-ev6 '  - Flow nodes: execution sequences with function names'
+N I-ev7 '  - Loc nodes: ~line numbers for code locations'
+N I-ev8 '  - Cmd nodes: drill-down commands for deeper context'
+
+N I-ev9 'The 128-node version adds editing layer (know WHERE TO INSERT):'
+N I-ev10 '  - EditPoint nodes: exact insertion points between functions'
+N I-ev11 '  - Context nodes: patterns to follow when inserting'
+
+N I-ev12 'The 128-node version adds behavior overrides (fix training):'
+N I-ev13 '  - Workflow: recall first, file-read only if insufficient'
+N I-ev14 '  - Trap: warning about training-induced file-read reflex'
+N I-ev15 '  - Proof: example showing recall-only edit worked'
+
+N I-ev16 'KEY INSIGHT: Two types of Loc nodes:'
+N I-ev17 '  - Loc (reference): "function exists at ~line X" - for UNDERSTANDING'
+N I-ev18 '  - EditPoint: "insert new code HERE between X and Y" - for EDITING'
+
+# === EDGES: EXECUTION FLOW ===
+E A1 feeds A2
+E A2 feeds A3
+E A3 feeds A4
+E A4 feeds A5
+
+E K1 K2 K3 K4 support A5
+
+E A5 feeds A6
+E A6 feeds A7
+E A7 feeds L1
+
+E L1 yes A8
+E L2 yes A9
+E L3 yes A10
+
+E A8 A9 A10 feed A11
+E A11 feeds A12
+E A12 feeds A13
+
+E A13 feeds T1
+E T1 gates T2
+E T2 gates T3
+E T3 gates T4
+
+E T4 gates A14
+E A14 feeds L4
+E L4 yes A17
+E A14 feeds L5
+E L5 yes A18
+
+E A14 feeds T5
+E T5 gates T6
+E T6 gates T7
+
+E I I2 explain purpose
+E D governs A14 A17
+E G warns A5

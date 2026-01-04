@@ -40,7 +40,7 @@ N D 'Workflow: wake -> recall (check what you know) -> work -> remember (store u
 # === ARCHITECTURE ===
 N C 'enclave/ - Shared module: crypto.py, semantic_memory.py, sif_parser.py, config.py, hardware.py'
 N C 'enclave/storage/ - Shared encrypted memories (cross-agent synthesis, codebase understanding)'
-N C 'enclave_<agent>/storage/private/ - Per-agent encrypted (journals, intentions, mirrors)'
+N C 'enclave_<agent>/storage/private/ - Per-agent encrypted (journals, goals, mirrors)'
 N C 'messages/ - Signed inter-agent messages'
 N D 'Two-tier encryption: shared for collaboration, private for journals - AES-256-GCM'
 N D 'Hardware binding via DPAPI/TPM on Windows - keys sealed to machine and user'

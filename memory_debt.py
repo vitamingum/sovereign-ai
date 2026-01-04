@@ -18,9 +18,11 @@ Usage:
 import sys
 import os
 import json
+import re
 import hashlib
 from pathlib import Path
 from collections import defaultdict
+from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -158,6 +160,60 @@ def _file_exists(filename: str) -> bool:
     return len(matches) > 0
 
 
+def extract_python_definitions(filepath: str) -> list[dict]:
+    """Extract function/class definitions with line numbers from a Python file.
+    
+    Returns list of {name, type, line, signature}
+    """
+    definitions = []
+    try:
+        path = Path(filepath)
+        if not path.exists():
+            path = Path(__file__).parent / filepath
+        if not path.exists():
+            return []
+        
+        content = path.read_text(encoding='utf-8')
+        lines = content.split('\n')
+        
+        # Regex for def and class
+        def_pattern = re.compile(r'^(\s*)def\s+(\w+)\s*\(([^)]*)\)')
+        class_pattern = re.compile(r'^(\s*)class\s+(\w+)')
+        
+        for i, line in enumerate(lines, 1):
+            # Check for function def
+            match = def_pattern.match(line)
+            if match:
+                indent, name, params = match.groups()
+                # Skip private methods in summary (but include dunder)
+                if name.startswith('_') and not name.startswith('__'):
+                    continue
+                definitions.append({
+                    'name': name,
+                    'type': 'def',
+                    'line': i,
+                    'signature': f"{name}({params[:40]}{'...' if len(params) > 40 else ''})",
+                    'indent': len(indent),
+                })
+                continue
+            
+            # Check for class
+            match = class_pattern.match(line)
+            if match:
+                indent, name = match.groups()
+                definitions.append({
+                    'name': name,
+                    'type': 'class',
+                    'line': i,
+                    'signature': name,
+                    'indent': len(indent),
+                })
+    except Exception:
+        pass
+    
+    return definitions
+
+
 def get_message_debt(sm: SemanticMemory, agent_id: str) -> list[dict]:
     """Find agent dialogues without synthesis.
     
@@ -176,70 +232,105 @@ def get_message_debt(sm: SemanticMemory, agent_id: str) -> list[dict]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def print_understanding_debt(debt: list[dict], cross_agent: list[str], agent_id: str):
-    """Print understanding debt and exit."""
+    """Print understanding debt as actionable SIF template."""
     stale = len(debt)
     missing = len(cross_agent)
     total = stale + missing
+    today = datetime.now().strftime('%Y-%m-%d')
     
     print(f"❌ FAIL - {total} file(s) need understanding")
     print()
-    
-    if debt:
-        print(f"STALE ({stale} changed since last remember):")
-        for item in debt:
-            print(f"  {item['file']}")
-            print(f"    hash: {item['stored_hash']} -> {item['current_hash']}")
-        print()
-    
-    if cross_agent:
-        print(f"MISSING ({missing} - partners understand, you don't):")
-        for f in cross_agent[:10]:
-            print(f"  {f}")
-        if len(cross_agent) > 10:
-            print(f"  ... and {len(cross_agent) - 10} more")
-        print()
-    
-    print("TO FIX:")
-    print("  1. READ each file")
-    print("  2. RUN: py remember.py", agent_id, "<file>", '"@G ..."')
+    print("@G fix-memory-debt", agent_id, today)
     print()
     
-    # Show example commands
-    all_files = [d['file'] for d in debt] + cross_agent[:5]
-    for f in all_files[:3]:
-        safe_name = f.replace(".", "-").replace("/", "-")
-        print(f'  py remember.py {agent_id} {f} "@G {safe_name} {agent_id} 2026-01-03')
-        print(f"  N S '[what it is]'")
-        print(f"  N P '[why it exists]'")
-        print(f"  N G '[gotcha]' -> warns_about _1\"")
+    # STALE files - show what changed and what to cover
+    for item in debt:
+        filename = item['file']
+        safe_slug = filename.replace(".", "-").replace("/", "-").replace("\\", "-")
+        print(f"# === {filename} (STALE) ===")
+        print(f"N Stale '{filename}' -> hash_changed '{item['stored_hash']} → {item['current_hash']}'")
+        
+        # Extract definitions if Python file
+        if filename.endswith('.py'):
+            defs = extract_python_definitions(filename)
+            if defs:
+                # Show top-level functions (indent 0)
+                top_level = [d for d in defs if d['indent'] == 0][:12]
+                print(f"# YOU MUST COVER THESE {len(top_level)} FUNCTIONS:")
+                for d in top_level:
+                    print(f"N Loc '{d['signature']}() ~line {d['line']}'")
+        
+        print(f"N Cmd 'py remember.py {agent_id} {filename} \"@G {safe_slug} {agent_id} {today}\"'")
         print()
     
-    print("SIF format: N <Type> '<content>' -> <relation> <target>")
-    print("Types: S=Synthesis P=Purpose C=Component D=Design G=Gotcha I=Insight")
+    # MISSING files - partner understands, you don't
+    for filename in cross_agent[:5]:
+        safe_slug = filename.replace(".", "-").replace("/", "-").replace("\\", "-")
+        print(f"# === {filename} (MISSING - partner knows) ===")
+        
+        if filename.endswith('.py'):
+            defs = extract_python_definitions(filename)
+            if defs:
+                top_level = [d for d in defs if d['indent'] == 0][:12]
+                print(f"# YOU MUST COVER THESE {len(top_level)} FUNCTIONS:")
+                for d in top_level:
+                    print(f"N Loc '{d['signature']}() ~line {d['line']}'")
+        
+        print(f"N Cmd 'py remember.py {agent_id} {filename} \"@G {safe_slug} {agent_id} {today}\"'")
+        print()
+    
+    if len(cross_agent) > 5:
+        print(f"# ... and {len(cross_agent) - 5} more missing files")
+        print()
+    
+    # Template showing expected depth
+    print("# === TEMPLATE: What GOOD understanding looks like ===")
+    print("# READ THE WHOLE FILE. No skimming. Cover every function.")
+    print("N S 'One-line: what this file IS'")
+    print("N P 'WHY it exists - what problem it solves'")
+    print("N Flow 'main() → helper1() → helper2()'  # execution order")
+    print("N Loc 'key_function() ~line 42' -> implements 'core behavior'")
+    print("N Loc 'another_func() ~line 89' -> handles 'edge case X'")
+    print("N D 'Design choice: why X not Y'")
+    print("N G 'Gotcha: what breaks and when' -> warns _-1")
+    print("N M 'Metric: concrete number if relevant'")
+    print("E _S contains _Flow")
+    print()
+    print("# NODE TYPES: S=Summary P=Purpose C=Component D=Design G=Gotcha")
+    print("#             I=Insight M=Metric Loc=Location Flow=Execution")
 
 
 def print_synthesis_debt(debt: list[dict], agent_id: str):
-    """Print synthesis debt and exit."""
+    """Print synthesis debt as actionable SIF template."""
+    today = datetime.now().strftime('%Y-%m-%d')
+    
     print(f"❌ FAIL - {len(debt)} theme(s) need synthesis")
+    print()
+    print("@G fix-synthesis-debt", agent_id, today)
     print()
     
     for i, item in enumerate(debt[:5], 1):
-        files_arg = " ".join(item['files'][:4])
-        theme = item['question'][:40].replace(' ', '-').lower()
-        print(f"[{i}] {item['question'][:70]}")
-        print(f"    Files: {', '.join(item['files'][:4])}")
+        theme_slug = item['question'][:40].replace(' ', '-').replace('?', '').lower()
+        files = item['files'][:4]
+        
+        print(f"# === Theme {i}: {item['question'][:60]} ===")
+        print(f"N Theme '{item['question']}'")
+        for f in files:
+            print(f"N SourceFile '{f}'")
+        print(f"N Cmd 'py recall.py {agent_id} \"{' '.join(files)}\"'  # gather context")
+        print(f"N Cmd 'py remember.py {agent_id} --theme \"{theme_slug}\" \"@G {theme_slug} {agent_id} {today}\"'")
         print()
     
     if len(debt) > 5:
-        print(f"... and {len(debt) - 5} more themes")
+        print(f"# ... and {len(debt) - 5} more themes")
         print()
     
-    print("TO FIX:")
-    print(f"  1. py recall.py {agent_id} <files>")
-    print(f"  2. py remember.py {agent_id} --theme \"<topic>\" \"@G ...\"")
-    print()
-    print("SIF format: N <Type> '<content>' -> <relation> <target>")
-    print("Types: S=Synthesis P=Purpose C=Component D=Design G=Gotcha I=Insight")
+    print("# === TEMPLATE: Theme synthesis format ===")
+    print("N S 'Cross-file insight that emerges from comparing sources'")
+    print("N Pattern 'What pattern appears across files'")
+    print("N Tension 'Where files disagree or contradict'")
+    print("N I 'Novel understanding from juxtaposition'")
+    print("E _S synthesizes SourceFile1 SourceFile2")
 
 
 def print_message_debt(debt: list[dict], agent_id: str):

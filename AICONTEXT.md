@@ -69,14 +69,26 @@ py recall.py opus "how does encryption"    # semantic → relevant graphs
 
 | Command | Purpose |
 |---------|---------|
-| `wake.py <agent>` | Session start |
+| `wake.py <agent>` | Session start with debt check, goals, inbox |
 | `recall.py <agent> <file\|query>` | Retrieve (file path → exact, text → semantic) |
 | `recall.py <agent> --theme <topic>` | Retrieve theme synthesis |
-| `remember.py <agent> <file> "@G..."` | Store file understanding |
-| `remember.py <agent> --theme <topic> "@G..."` | Store theme synthesis (files, messages, journal) |
+| `remember.py <agent> <file> "@G..."` | Store file understanding (validates depth, Loc coverage) |
+| `remember.py <agent> --theme <topic> "@G..."` | Store theme synthesis |
 | `q.py <agent> "question"` | Natural language search |
 | `journal.py <agent> "..."` | Private reflection |
-| `msg.py <agent> <to> "@G..."` | Signed message to agent |
+| `msg.py <agent> send <to> "@G..."` | Signed message to agent |
+| `msg.py <agent> read` | Check inbox |
+| `mirror.py <agent>` | Deep self-reflection via deepseek-r1 |
+| `forget.py <agent> "query"` | Selective memory removal |
+| `forget.py <agent> --file <path>` | Forget all understanding of a file |
+| `memory_debt.py <agent>` | Check stale files, synthesis gaps, message debt |
+| `memory_debt.py <agent> --all` | Show all debt categories |
+| `chat_search.py <agent> "query"` | Search conversation history |
+| `forge.py <sif_file>` | Compile SIF to Python (experimental) |
+| `parity_test.py <sif_file>` | Test SIF vs Python logic parity |
+| `enlist.py <agent>` | Onboard new agent with keys |
+| `msg_synthesis.py <agent> <correspondent>` | Synthesize dialogue with agent |
+| `themes.py <agent>` | Extract cross-file synthesis opportunities |
 
 ---
 
@@ -86,7 +98,7 @@ py recall.py opus "how does encryption"    # semantic → relevant graphs
 
 **Synthesis** — Merge SIF across areas for dense understanding of areas, concepts, and self. Fuses gotchas, patterns, decisions into graph.
 
-**Enclave Encryption** — Two tiers: `enclave/storage/` shared (cross-agent synthesis, codebase), `enclave_<agent>/storage/private/` per-agent (journals, intentions). AES-256-GCM, hardware-bound via DPAPI/TPM.
+**Enclave Encryption** — Two tiers: `enclave/storage/` shared (cross-agent synthesis, codebase), `enclave_<agent>/storage/private/` per-agent (journals, goals). AES-256-GCM, hardware-bound via DPAPI/TPM.
 
 **Ask Anything** — `q.py opus "question"` Natural language search across project, research, self.
 
@@ -101,7 +113,7 @@ py recall.py opus "how does encryption"    # semantic → relevant graphs
 ```
 enclave/                    # Shared: crypto, semantic_memory, sif_parser, config
 enclave/storage/            # Shared memories (cross-agent synthesis, codebase understanding)
-enclave_<agent>/storage/    # Per-agent encrypted (journals, intentions, private thoughts)
+enclave_<agent>/storage/    # Per-agent encrypted (journals, goals, private thoughts)
 messages/                   # Signed inter-agent messages
 research/                   # Bridge discovery, synthesis tools
 ```
