@@ -92,12 +92,12 @@ def evaluate_theme_depth(sif: str) -> tuple[bool, str]:
     edges = [l for l in lines if l.startswith('E ')]
     
     issues = []
-    if len(nodes) < 2:
-        issues.append(f"Too few nodes ({len(nodes)}/2 minimum)")
-    if len(edges) < 1:
-        issues.append(f"No edges connecting ideas (1 minimum)")
+    if len(nodes) < 4:
+        issues.append(f"Too few nodes ({len(nodes)}/4 minimum)")
+    if len(edges) < 2:
+        issues.append(f"Too few edges ({len(edges)}/2 minimum)")
     
-    # Check for actual insight content
+    # Check for insight content
     has_insight = any('I ' in n or 'D ' in n or 'G ' in n for n in nodes)
     if not has_insight:
         issues.append("Missing insight nodes (I/D/G types)")
