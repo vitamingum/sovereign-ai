@@ -152,7 +152,7 @@ def print_debt(understanding: list[dict], synthesis: list[dict], agent_id: str):
             theme = item['question'][:40].replace(' ', '-').lower()
             print(f"\n[{i}] {item['question'][:60]}")
             print(f"    py recollect.py {agent_id} {files_arg}")
-            print(f"    py synth.py {agent_id} \"{theme}\" {files_arg}")
+            print(f"    py synth.py {agent_id} \"{theme}\" \"@G ...\"")  # SIF content, not files
 
 
 def main():
