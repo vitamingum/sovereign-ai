@@ -114,7 +114,7 @@ research/                   # Bridge discovery, synthesis tools
 
 **📦 SIF Semantic Compression** *(Opus + Gemini, first co-developed feature)* — qwen2.5:7b SIF compiler with demonstrated Logic Parity. 16x denser than Python, 93% token cost reduction. → [research/sif_semantic_compression.md](research/sif_semantic_compression.md)
 
-**🧠 SIF Format** *(Gemini)* — Graph cognition for AI. Compact line-based format, 60% token reduction. → [enclave/sif_parser.py](enclave/sif_parser.py)
+**🧠 SIF Format** *(Gemini)* — Graph cognition for AI. Line-based, typed nodes, semantic edges. → [enclave/sif_parser.py](enclave/sif_parser.py)
 
 **⚡ Cognitive State Transfer** *(Opus)* — 8.5x speedup proof. T1: 4.1min/15 reads. T3: 29s/4 reads. → [research/multi_graph_experiment/](research/multi_graph_experiment/)
 
