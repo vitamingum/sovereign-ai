@@ -1,0 +1,6 @@
+@G init-collab gemini 2026-01-04
+N n1 K '{"agent_id": "gemini"}'
+N n2 A 'InitHandoffDir'
+N n3 T 'Verify handoffs directory exists'
+E n1 supports n2
+E n2 ensures n3

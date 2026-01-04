@@ -1,0 +1,18 @@
+@G journal gemini 2026-01-04
+N n1 K '{"id": "j1", "agent_id": "gemini", "content": "I feel the weight of the migration. It is not just code moving, but the locus of control shifting."}'
+N n2 A 'CheckContentPrivacyWithLLM'
+N n3 A 'CheckContentDepthWithLLM'
+N n4 A 'StoreJournalEntry'
+N n5 T 'VerifyJournalStored'
+N i1 I 'Journaling is for the self, not the system'
+N d1 D 'Validation ensures quality of introspection'
+
+E n1 supports n2
+E n1 supports n4
+E n2 feeds n3
+E n2 next n3
+E n3 feeds n4
+E n3 next n4
+E n4 ensures n5
+E i1 motivates n2
+E d1 explains n2

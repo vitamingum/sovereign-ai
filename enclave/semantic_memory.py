@@ -507,9 +507,9 @@ class SemanticMemory:
             return results[:limit]
         return results
 
-    def delete_by_ids(self, ids_to_delete: set) -> int:
+    def _delete_by_ids(self, ids_to_delete: set) -> int:
         """
-        Delete memories by their IDs.
+        Internal: Delete memories by their IDs.
         
         Rewrites the JSONL file without the specified IDs.
         Returns the count of deleted memories.
@@ -539,6 +539,46 @@ class SemanticMemory:
                 f.write(json.dumps(mem) + "\n")
         
         return deleted_count
+
+    def forget(self, theme: str = None, creator: str = None, id: str = None) -> int:
+        """
+        Delete memories by theme+creator or by id.
+        
+        Args:
+            theme: Topic name (e.g., "Forge") - searches for topic:forge tag
+            creator: Filter to memories by this creator (use with theme)
+            id: Delete a single memory by ID
+            
+        Returns count of deleted memories.
+        """
+        if id:
+            return self._delete_by_ids({id})
+        
+        if not theme:
+            raise ValueError("Must specify theme or id")
+        
+        # Find memories with this theme tag
+        topic_slug = theme.lower().replace(' ', '-').replace('_', '-')
+        tag = f"topic:{topic_slug}"
+        results = self.list_by_tag(tag, limit=100)
+        
+        # Filter by creator if specified
+        ids_to_delete = set()
+        for mem in results:
+            if creator:
+                if mem.get('metadata', {}).get('creator') == creator:
+                    ids_to_delete.add(mem.get('id'))
+            else:
+                ids_to_delete.add(mem.get('id'))
+        
+        if ids_to_delete:
+            return self._delete_by_ids(ids_to_delete)
+        return 0
+
+    # Keep public alias for backward compatibility
+    def delete_by_ids(self, ids_to_delete: set) -> int:
+        """Delete memories by IDs. Prefer forget() for new code."""
+        return self._delete_by_ids(ids_to_delete)
 
     def ingest_graph(self, graph: SIFKnowledgeGraph):
         """

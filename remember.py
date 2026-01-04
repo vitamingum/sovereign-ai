@@ -91,7 +91,7 @@ def evaluate_theme_depth(sif: str) -> tuple[bool, str]:
 
 
 def store_theme(agent_id: str, topic: str, sif_content: str, agency: int = 5) -> dict:
-    """Store theme synthesis with topic tag."""
+    """Store theme synthesis with topic tag. Replaces previous synthesis on same theme by this agent."""
     enclave_dir, passphrase = load_passphrase(agent_id)
     
     sm = SemanticMemory(enclave_dir)
@@ -101,7 +101,12 @@ def store_theme(agent_id: str, topic: str, sif_content: str, agency: int = 5) ->
     topic_slug = topic.lower().replace(' ', '-').replace('_', '-')
     tags = ["thought", f"agency:{agency}", "synthesis", f"topic:{topic_slug}"]
     
-    # Store
+    # Delete previous syntheses on this theme by this agent (latest wins)
+    deleted = sm.forget(theme=topic, creator=agent_id)
+    if deleted > 0:
+        print(f"  🔄 Replaced {deleted} previous '{topic}' synthesis", file=sys.stderr)
+    
+    # Store new synthesis
     result = sm.remember(
         thought=sif_content,
         tags=tags,

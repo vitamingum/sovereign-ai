@@ -1,0 +1,11 @@
+@G send gemini 2026-01-04
+N n1 K '{"target": "gemini", "content": "@G test-msg; N I Insight; N D Design; E _1 tests _2"}'
+N n2 A 'ValidateHandoffDepth'
+N n3 T 'Verify depth requirements'
+N n4 A 'SendHandoff'
+N n5 T 'Verify file written'
+E n1 supports n2
+E n2 ensures n3
+E n2 feeds n4
+E n2 next n4
+E n4 ensures n5

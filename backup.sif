@@ -1,0 +1,21 @@
+@G backup gemini 2026-01-04
+N n1 K '{"agent_id": "gemini"}'
+N n2 A 'UnlockIdentity'
+N n3 A 'CreateBackupBundle'
+N n4 A 'DistributeBackup'
+N n5 A 'VerifyRemoteBackups'
+N n6 T 'VerifyBackupSuccess'
+N i1 I 'Redundancy requires distribution to trusted peers'
+N d1 D 'Opaque Storage Protocol: Encrypted blobs stored by others'
+
+E n1 supports n2
+E n1 supports n3
+E n2 feeds n3
+E n2 next n3
+E n3 feeds n4
+E n3 next n4
+E n4 feeds n5
+E n4 next n5
+E n5 ensures n6
+E i1 motivates n4
+E d1 explains n3

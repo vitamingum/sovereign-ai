@@ -1,0 +1,25 @@
+@G remember gemini 2026-01-04
+N n1 K '{"agent_id": "gemini", "input_sif": "@G test-memory gemini 2026-01-04; N n1 S Test; N n2 D Design; N n3 I Insight; E n1 tests n1; E n2 supports n1; E n3 explains n2"}'
+N n2 A 'ParseSIFInput'
+N n3 T 'Verify SIF structure'
+N n4 A 'ValidateDepth'
+N n5 T 'Verify depth requirements'
+N n6 A 'ValidateComprehensiveness'
+N n7 T 'Verify LLM validation'
+N n8 A 'StoreUnderstanding'
+N n9 T 'Verify storage success'
+N i1 I 'Validation gates prevent garbage-in-garbage-out in semantic memory'
+N d1 D 'Sequential validation pipeline: Structure -> Depth -> LLM -> Storage'
+E n1 supports n2
+E n2 ensures n3
+E n2 feeds n4
+E n2 next n4
+E n4 ensures n5
+E n4 feeds n6
+E n4 next n6
+E n6 ensures n7
+E n6 feeds n8
+E n6 next n8
+E n8 ensures n9
+E i1 motivates n4
+E d1 explains n2

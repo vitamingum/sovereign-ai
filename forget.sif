@@ -1,0 +1,15 @@
+@G forget gemini 2026-01-04
+N n1 K '{"agent_id": "gemini", "theme": "Test", "creator": "gemini"}'
+N n2 A 'ParseForgetArgs'
+N n3 T 'Verify args valid'
+N n4 A 'ForgetMemory'
+N n5 T 'Verify deletion count'
+N i1 I 'forget() enables theme replacement - delete old before storing new'
+N d1 D 'Simple filter: theme+creator or single id - no complex queries'
+E n1 supports n2
+E n2 ensures n3
+E n2 feeds n4
+E n2 next n4
+E n4 ensures n5
+E i1 motivates n4
+E d1 explains n2

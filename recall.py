@@ -66,7 +66,7 @@ def load_passphrase(agent_id: str) -> tuple[str, str]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def recall_theme(agent_id: str, theme: str):
-    """Recall theme synthesis. Prints result or error."""
+    """Recall ALL agents' theme syntheses. Shows cross-agent visibility."""
     try:
         enclave_dir, passphrase = load_passphrase(agent_id)
         memory = SemanticMemory(enclave_dir)
@@ -75,20 +75,22 @@ def recall_theme(agent_id: str, theme: str):
         theme_slug = theme.lower().replace(' ', '-').replace('_', '-')
         all_syntheses = memory.list_by_tag('synthesis', limit=50)
         
+        found = []
         for s in all_syntheses:
             tags = s.get('tags', [])
-            if f'topic:{theme_slug}' in tags:  # tag format stays topic: for compatibility
-                print(f"# {theme}")
-                print(SIFParser.to_autocount(s.get('content', '')))
-                return
-        
-        # Fallback: match on graph ID
-        for s in all_syntheses:
             content = s.get('content', '')
-            if f'@g {theme_slug}' in content.lower():
-                print(f"# {theme}")
+            creator = s.get('metadata', {}).get('creator', 'unknown')
+            
+            # Match by topic tag or graph ID
+            if f'topic:{theme_slug}' in tags or f'@g {theme_slug}' in content.lower():
+                found.append((creator, content))
+        
+        if found:
+            print(f"# {theme}")
+            for creator, content in found:
+                print(f"\n## [by {creator}]")
                 print(SIFParser.to_autocount(content))
-                return
+            return
         
         # Not found
         print(f"# {theme}: NO SYNTHESIS", file=sys.stderr)
@@ -291,26 +293,19 @@ def recall_semantic(mem: SemanticMemory, agent_id: str, query: str):
         print(f"# No memories match: {query}")
         return
     
-    # Group by graph_id
+    # Group by graph_id - include ALL creators for shared topic visibility
     graphs = defaultdict(list)
+    graph_creators = {}  # Track creator per graph for labeling
     for r in results:
         meta = r.get('metadata', {})
         graph_id = meta.get('graph_id', 'unknown')
         creator = meta.get('creator', 'unknown')
         
-        if creator == agent_id or creator == 'synthesis':
-            graphs[graph_id].append(r)
+        graphs[graph_id].append(r)
+        graph_creators[graph_id] = creator
     
     if not graphs:
-        other_creators = set()
-        for r in results:
-            c = r.get('metadata', {}).get('creator')
-            if c and c != agent_id:
-                other_creators.add(c)
-        if other_creators:
-            print(f"# No memories by {agent_id}. Others: {', '.join(sorted(other_creators))}")
-        else:
-            print(f"# No memories match: {query}")
+        print(f"# No memories match: {query}")
         return
     
     # Sort by relevance
@@ -324,6 +319,7 @@ def recall_semantic(mem: SemanticMemory, agent_id: str, query: str):
     for graph_id in sorted_graphs[:3]:
         nodes = graphs[graph_id]
         score = graph_scores[graph_id]
+        creator = graph_creators.get(graph_id, 'unknown')
         
         graph = reconstruct_graph(nodes)
         
@@ -334,7 +330,7 @@ def recall_semantic(mem: SemanticMemory, agent_id: str, query: str):
                 target_path = tp
                 break
         
-        print(f"## {graph_id} (relevance: {score:.2f})")
+        print(f"## {graph_id} [by {creator}] (relevance: {score:.2f})")
         if target_path:
             print(f"# file: {target_path}")
         print(format_as_sif(graph))

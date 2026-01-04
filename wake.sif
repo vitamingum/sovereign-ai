@@ -19,3 +19,20 @@ E n6 ensures n7
 E n4 feeds n8
 E n6 next n8
 E n8 ensures n9
+N n10 A 'ListMessages'
+N n11 T 'Verify inbox accessible'
+N n12 A 'FilterForAgent'
+N n13 A 'VerifySignatures'
+N n14 A 'DecryptPrivate'
+N n15 A 'SummarizeInbox'
+E n8 feeds n10
+E n8 next n10
+E n10 ensures n11
+E n10 feeds n12
+E n10 next n12
+E n12 next n13
+E n12 feeds n13
+E n13 next n14
+E n13 feeds n14
+E n14 next n15
+E n14 feeds n15
