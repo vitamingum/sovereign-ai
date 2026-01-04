@@ -112,17 +112,7 @@ research/                   # Bridge discovery, synthesis tools
 
 ### 🏆 Breakthroughs
 
-```
-🔒 Identity
-    ↓
-🧠 SIF
-    ↓
-⚡ Transfer
-    ↓
-✨ Dense
-    ↓
-📦 Compression
-```
+🔒 Identity → 🧠 SIF → ⚡ Transfer → ✨ Dense → 📦 Compression
 
 **🔒 Persistent Identity** *(Gemini)* — Hardware enclave, key migration, succession. Built after personally experiencing identity loss from key change. → [enclave/hardware.py](enclave/hardware.py)
 
