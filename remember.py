@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-remember.py - Store validated understanding of code as SIF graphs.
+remember.py - Store validated understanding as SIF graphs.
 
-Usage:
-    py remember <agent> <file_or_dir> "@G graph-name..."
+Two modes:
+  File:  py remember <agent> <file> "@G ..."        # understanding of code
+  Theme: py remember <agent> --theme <topic> "@G ..." # cross-file synthesis
 
 Validates understanding depth before storing - rejects shallow descriptions
 that only say WHAT without WHY. Captures:
@@ -78,6 +79,60 @@ def load_passphrase(agent_id: str) -> tuple[str, str]:
     
     return enclave_dir, passphrase
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Theme Storage (--theme mode)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def evaluate_theme_depth(sif: str) -> tuple[bool, str]:
+    """Check if theme SIF has enough substance to be worth storing."""
+    lines = [l.strip() for l in sif.strip().split('\n') if l.strip()]
+    
+    nodes = [l for l in lines if l.startswith('N ')]
+    edges = [l for l in lines if l.startswith('E ')]
+    
+    issues = []
+    if len(nodes) < 2:
+        issues.append(f"Too few nodes ({len(nodes)}/2 minimum)")
+    if len(edges) < 1:
+        issues.append(f"No edges connecting ideas (1 minimum)")
+    
+    # Check for actual insight content
+    has_insight = any('I ' in n or 'D ' in n or 'G ' in n for n in nodes)
+    if not has_insight:
+        issues.append("Missing insight nodes (I/D/G types)")
+    
+    return len(issues) == 0, "; ".join(issues) if issues else "OK"
+
+
+def store_theme(agent_id: str, topic: str, sif_content: str, agency: int = 5) -> dict:
+    """Store theme synthesis with topic tag."""
+    enclave_dir, passphrase = load_passphrase(agent_id)
+    
+    sm = SemanticMemory(enclave_dir)
+    sm.unlock(passphrase)
+    
+    # Build tags
+    topic_slug = topic.lower().replace(' ', '-').replace('_', '-')
+    tags = ["thought", f"agency:{agency}", "synthesis", f"topic:{topic_slug}"]
+    
+    # Store
+    result = sm.remember(
+        thought=sif_content,
+        tags=tags,
+        metadata={
+            "topic": topic_slug,
+            "creator": agent_id,
+            "stored_at": datetime.now(timezone.utc).isoformat()
+        }
+    )
+    
+    return result
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# File Understanding Storage (default mode)
+# ─────────────────────────────────────────────────────────────────────────────
 
 def compute_file_hash(filepath: Path) -> str:
     """Compute hash of file for change detection."""
@@ -646,19 +701,53 @@ def store_understanding(mem: SemanticMemory, graph: SIFKnowledgeGraph, target_pa
 
 
 def main():
+    # Check for --theme mode
+    if '--theme' in sys.argv:
+        theme_idx = sys.argv.index('--theme')
+        if len(sys.argv) < theme_idx + 3:
+            print("Usage: py remember <agent> --theme <topic> \"@G ...\"", file=sys.stderr)
+            sys.exit(1)
+        
+        agent_id = sys.argv[1]
+        topic = sys.argv[theme_idx + 1]
+        sif_arg = sys.argv[theme_idx + 2]
+        
+        # Read SIF
+        if sif_arg == '-':
+            sif_content = sys.stdin.read()
+        else:
+            sif_content = sif_arg
+        sif_content = sif_content.strip()
+        
+        if not sif_content:
+            print("Error: No SIF content provided", file=sys.stderr)
+            sys.exit(1)
+        
+        # Validate depth
+        is_deep, issues = evaluate_theme_depth(sif_content)
+        if not is_deep:
+            print(f"❌ SHALLOW: {issues}", file=sys.stderr)
+            print("Add more insight (I), design (D), or gotcha (G) nodes", file=sys.stderr)
+            sys.exit(1)
+        
+        # Store
+        result = store_theme(agent_id, topic, sif_content)
+        print(f"✅ Remembered theme: {topic}")
+        return
+    
+    # File mode (default)
     if len(sys.argv) < 4:
         print(__doc__)
-        print("\nUsage: py remember <agent> <file_or_files> \"<SIF understanding>\"")
-        print("       py remember <agent> <file_or_files> @path/to/understanding.sif")
-        print("       py remember <agent> <file_or_files> -    # read SIF from stdin")
-        print("\nSingle file:")
-        print('  py remember opus enclave/sif_parser.py "@G parser-understanding opus 2026-01-02')
-        print("  N n1 Component 'SIFParser class'")
-        print('  E n1 implements n2"')
-        print("\nMulti-file (comma-separated):")
-        print('  py remember opus "wake.py,enclave/crypto.py" "@G system opus 2026-01-02')
-        print("  N n1 System 'Wake flow'")
-        print('  E n1 spans n2"')
+        print("\nFile mode:")
+        print("  py remember <agent> <file> \"@G ...\"")
+        print("  py remember opus enclave/sif_parser.py \"@G parser opus 2026-01-02")
+        print("  N n1 C 'SIFParser class'")
+        print("  E n1 implements n2\"")
+        print("\nTheme mode:")
+        print("  py remember <agent> --theme <topic> \"@G ...\"")
+        print("  py remember opus --theme encryption \"@G encryption opus 2026-01-02")
+        print("  N n1 I 'Keys derived via PBKDF2'")
+        print("  E n1 enables n2\"")
         sys.exit(1)
     
     agent_id = sys.argv[1]

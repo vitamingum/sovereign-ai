@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-recollect.py - Retrieve understanding of code/system from SIF memory.
+recollect.py - Retrieve understanding from SIF memory.
 
-Usage:
-    py recollect <agent> <file_or_dir>
+Two modes:
+  File:  py recollect <agent> <file>         # understanding of code
+  Theme: py recollect <agent> --theme <topic> # cross-file synthesis
 
 This retrieves the full cognitive context stored by remember.py:
 - What the code does and WHY
@@ -18,6 +19,8 @@ import sys
 import os
 import json
 import hashlib
+import subprocess
+import requests
 from pathlib import Path
 from datetime import datetime, timezone
 from collections import defaultdict
@@ -60,6 +63,65 @@ def load_passphrase(agent_id: str) -> tuple[str, str]:
     
     return enclave_dir, passphrase
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Theme Retrieval (--theme mode)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def get_theme_synthesis(agent_id: str, topic: str) -> str | None:
+    """Get stored synthesis on a topic if one exists.
+    
+    Returns raw SIF content or None.
+    """
+    try:
+        enclave_dir, passphrase = load_passphrase(agent_id)
+        memory = SemanticMemory(enclave_dir)
+        memory.unlock(passphrase)
+        
+        # Build topic slug for tag matching
+        topic_slug = topic.lower().replace(' ', '-').replace('_', '-')
+        
+        # Try exact tag match: topic:semantic-memory
+        all_syntheses = memory.list_by_tag('synthesis', limit=50)
+        
+        for s in all_syntheses:
+            tags = s.get('tags', [])
+            if f'topic:{topic_slug}' in tags:
+                return s.get('content', '')
+        
+        # Fallback: match on graph ID in content
+        for s in all_syntheses:
+            content = s.get('content', '')
+            content_lower = content.lower()
+            if f'@g {topic_slug}-synthesis' in content_lower or f'@g {topic_slug} ' in content_lower:
+                return content
+        
+        return None
+    except Exception:
+        return None
+
+
+def recollect_theme(agent_id: str, topic: str):
+    """Recollect theme synthesis. Prints result or error."""
+    synthesis = get_theme_synthesis(agent_id, topic)
+    
+    if synthesis:
+        print(f"# {topic}")
+        print(synthesis)
+    else:
+        topic_slug = topic.lower().replace(' ', '-').replace('_', '-')
+        print(f"# {topic}: NO SYNTHESIS", file=sys.stderr)
+        print(f"", file=sys.stderr)
+        print(f"Store one with:", file=sys.stderr)
+        print(f"  py remember {agent_id} --theme \"{topic}\" \"@G {topic_slug} {agent_id} 2026-01-03", file=sys.stderr)
+        print(f"  N n1 I 'key insight'", file=sys.stderr)
+        print(f"  E n1 enables n2\"", file=sys.stderr)
+        sys.exit(1)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# File Retrieval (default mode)
+# ─────────────────────────────────────────────────────────────────────────────
 
 def compute_file_hash(filepath: Path) -> str:
     """Compute hash of file for change detection."""
@@ -364,15 +426,27 @@ def format_understanding(graph: dict, target_path: str, hash_status: dict, sif_o
 
 
 def main():
+    # Check for --theme mode
+    if '--theme' in sys.argv:
+        theme_idx = sys.argv.index('--theme')
+        if len(sys.argv) < theme_idx + 2:
+            print("Usage: py recollect <agent> --theme <topic>", file=sys.stderr)
+            sys.exit(1)
+        
+        agent_id = sys.argv[1]
+        topic = sys.argv[theme_idx + 1]
+        recollect_theme(agent_id, topic)
+        return
+    
+    # File mode (default)
     if len(sys.argv) < 3:
         print(__doc__)
-        print("\nUsage: py recollect <agent> <file_or_files>")
-        print("\nSingle file:")
+        print("\nFile mode:")
+        print("  py recollect <agent> <file>")
         print("  py recollect opus enclave/sif_parser.py")
-        print("\nMultiple files (comma-separated):")
-        print("  py recollect opus \"remember.py,recollect.py,wake.py\"")
-        print("\nGlob pattern:")
-        print("  py recollect opus \"enclave/*.py\"")
+        print("\nTheme mode:")
+        print("  py recollect <agent> --theme <topic>")
+        print("  py recollect opus --theme encryption")
         sys.exit(1)
     
     agent_id = sys.argv[1]
