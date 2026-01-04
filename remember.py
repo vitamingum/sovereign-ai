@@ -326,32 +326,21 @@ def validate_comprehensiveness(graph: SIFKnowledgeGraph, file_content: str) -> t
     if len(file_content) > 6000:
         file_content = file_content[:6000] + "\n... (truncated)"
     
-    prompt = f"""You are validating whether someone truly understood a file or just skimmed it.
+    prompt = f"""Judge this understanding. Output ONLY "PASS" or "FAIL" on first line.
 
-FILE CONTENT:
+FILE:
 {file_content}
 
-THEIR UNDERSTANDING:
+UNDERSTANDING:
 {sif_text}
 
-Judge this understanding. A GOOD understanding:
-1. Captures the core PURPOSE (why this exists)
-2. Notes key DESIGN DECISIONS (why built this way, not another)
-3. Shows specific knowledge from reading the ACTUAL code
-4. Connects ideas with meaningful relationships
+PASS if: captures WHY (purpose/design decisions), shows code-specific knowledge
+FAIL if: generic, surface-level, could apply to any file
 
-A BAD understanding:
-1. Just restates the filename or obvious surface info
-2. Generic descriptions that could apply to any file
-3. Missing the WHY - only describes WHAT
-4. Orphan facts with no connections
-
-Note: Gotchas/assumptions/failure modes are VALUABLE when genuine, but don't require them.
-Forced gotchas like "could fail if disk full" add noise.
-
-Respond with EXACTLY one of:
-PASS: [one sentence why this shows real understanding]
-FAIL: [one sentence what's missing or superficial]"""
+Output format (exactly):
+PASS: [reason]
+or
+FAIL: [reason]"""
 
     try:
         response = requests.post(

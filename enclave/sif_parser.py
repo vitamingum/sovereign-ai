@@ -113,7 +113,8 @@ class SIFParser:
     @staticmethod
     def parse(content: str) -> SIFKnowledgeGraph:
         """Parse SIF content (JSON or Compact) into SIFKnowledgeGraph object."""
-        content = content.strip()
+        # Strip BOM if present (UTF-8 BOM from Windows tools)
+        content = content.lstrip('\ufeff').strip()
         if content.startswith('{'):
             return SIFParser.parse_json(content)
         elif content.startswith('@G'):
