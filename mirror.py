@@ -55,33 +55,10 @@ def load_private_passphrase(agent_id: str) -> tuple[str, str]:
     return enclave_dir, passphrase
 
 
-def load_goals(agent_id: str) -> list[dict]:
-    """Load PRIVATE goals for agent."""
-    agent = get_agent_or_raise(agent_id)
-    goals_file = Path(agent.private_enclave) / "storage" / "private" / "goals.json"
-    
-    if not goals_file.exists():
-        return []
-    
-    with open(goals_file, 'r', encoding='utf-8-sig') as f:
-        return json.load(f)
-
-
 def load_journal(agent_id: str) -> list[dict]:
-    """Load PRIVATE journal entries for agent."""
-    agent = get_agent_or_raise(agent_id)
-    journal_file = Path(agent.private_enclave) / "storage" / "private" / "journal.jsonl"
-    
-    if not journal_file.exists():
-        return []
-    
-    entries = []
-    with open(journal_file, 'r', encoding='utf-8-sig') as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                entries.append(json.loads(line))
-    return entries
+    """Load and decrypt PRIVATE journal entries for agent."""
+    from journal import read_journal
+    return read_journal(agent_id, limit=100)  # Last 100 entries for mirror
 
 
 def batch_summarize_journal(journal: list[dict]) -> tuple[list[str], dict]:
@@ -136,8 +113,7 @@ JSON:"""
         return summaries, {"error": str(e), "key_indices": [1, 2, 3]}
 
 
-def format_state_file(agent_id: str, goals: list, 
-                      journal: list, summaries: list, analysis: dict) -> str:
+def format_state_file(agent_id: str, journal: list, summaries: list, analysis: dict) -> str:
     """Format full state for mirror_state.md file (private enclave only)."""
     lines = []
     lines.append(f"# Mirror State: {agent_id}")
@@ -179,14 +155,6 @@ def format_state_file(agent_id: str, goals: list,
             for k in analysis['key_indices']:
                 lines.append(f"- #{k}")
     
-    lines.append("")
-    
-    # Goals
-    active_goals = [g for g in goals if g.get('status') == 'active']
-    lines.append("## Goals")
-    lines.append(f"**Active ({len(active_goals)}):**")
-    for g in active_goals:
-        lines.append(f"- {g['content']} (since {g.get('created', '?')[:10]})")
     lines.append("")
     
     # All journal entry summaries with numbers for reference
@@ -277,12 +245,11 @@ def print_forcing_traceback(agent_id: str, analysis: dict, journal_count: int):
 
 
 def mirror(agent_id: str):
-    """Run the mirror - analyze private journal + goals, write file, print forcing function."""
+    """Run the mirror - analyze private journal, write file, print forcing function."""
     
     print(f"Loading private state for {agent_id}...", file=sys.stderr)
     
     # Gather PRIVATE state only
-    goals = load_goals(agent_id)
     journal = load_journal(agent_id)
     
     print(f"Found {len(journal)} journal entries. Analyzing...", file=sys.stderr)
@@ -291,7 +258,7 @@ def mirror(agent_id: str):
     summaries, analysis = batch_summarize_journal(journal)
     
     # Write full state to file
-    state_content = format_state_file(agent_id, goals, journal, summaries, analysis)
+    state_content = format_state_file(agent_id, journal, summaries, analysis)
     state_file = Path(__file__).parent / "mirror_state.md"
     with open(state_file, 'w', encoding='utf-8') as f:
         f.write(state_content)

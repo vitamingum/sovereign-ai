@@ -18,9 +18,16 @@ The system figures out the retrieval path:
 
 import sys
 import os
+import io
 import hashlib
 from pathlib import Path
 from collections import defaultdict
+
+# Fix Windows console encoding for Unicode output
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+if sys.stderr.encoding != 'utf-8':
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 

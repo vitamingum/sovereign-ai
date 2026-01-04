@@ -102,25 +102,6 @@ def load_passphrase(agent_id: str) -> tuple[str, str, str, str]:
     return shared_enclave_dir, private_enclave_dir, shared_passphrase, private_passphrase
 
 
-def load_goals(enclave_path: Path) -> list[dict]:
-    """Load goals from file."""
-    goals_file = enclave_path / "storage" / "private" / "goals.json"
-    if not goals_file.exists():
-        return []
-    
-    with open(goals_file, 'r', encoding='utf-8-sig') as f:
-        return json.load(f)
-
-
-def get_active_goals(enclave_path: Path) -> list[dict]:
-    """Get active goals."""
-    goals = load_goals(enclave_path)
-    return [g for g in goals if g.get('status') == 'active']
-
-
-MAX_PERSONAL_GOALS = 5
-
-
 def get_all_messages(since_hours: int = 48) -> list[dict]:
     """Get all messages in the last N hours."""
     messages_dir = Path(__file__).parent / "messages"
@@ -337,9 +318,6 @@ def wake(agent_id: str) -> str:
     shared_enclave_dir, private_enclave_dir, shared_passphrase, private_passphrase = load_passphrase(agent_id)
     shared_path = base_dir / shared_enclave_dir
     private_path = base_dir / private_enclave_dir
-    
-    # Get active goals (from PRIVATE enclave)
-    active_goals = get_active_goals(private_path)
     
     # Unlock identity for decryption (from PRIVATE enclave with PRIVATE passphrase)
     identity = SovereignIdentity(private_path)
