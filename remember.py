@@ -792,41 +792,33 @@ def main():
     
     count = store_understanding(mem, graph, target_path)
     
-    # Show file hashes tracked
-    file_hashes = compute_multi_file_hashes(paths)
+    # Minimal output - agent already knows what they wrote
+    print(f"✅ Remembered {count} nodes about {target_path}")
     
-    # Dense output: just the SIF that was stored
-    print(f"✓ Remembered {count} nodes about {target_path}")
-    
-    # Output the full SIF (no truncation)
-    from enclave.sif_parser import TYPE_SHORTCUTS
-    type_to_short = {v: k for k, v in TYPE_SHORTCUTS.items()}
-    
-    print(f"@G {graph.id}")
-    for node in graph.nodes:
-        if node.type.lower() != 'anchor':
-            short_type = type_to_short.get(node.type, node.type)
-            content = node.content.replace("'", "\\'")
-            print(f"N {node.id.split(':')[-1]} {short_type} '{content}'")
-    for edge in graph.edges:
-        if not edge.target.startswith('anchor_'):
-            src = edge.source.split(':')[-1]
-            tgt = edge.target.split(':')[-1]
-            print(f"E {src} {edge.relation} {tgt}")
-    
-    # Show other agents' understanding for comparison (conflict detection via cognition)
+    # Show other agents' FRESH perspectives for conflict detection
     show_other_perspectives(mem, target_path, agent_id)
 
 
 def show_other_perspectives(mem: SemanticMemory, target_path: str, current_agent: str):
-    """Show other agents' understanding so current agent can spot conflicts."""
+    """Show other agents' CURRENT understanding so current agent can spot conflicts.
+    
+    Only shows perspectives where the stored hash matches the current file hash.
+    Stale perspectives (file changed since they wrote) are hidden.
+    """
     filename = Path(target_path).name
+    
+    # Get current file hash
+    current_hash = None
+    if Path(target_path).is_file():
+        current_hash = compute_file_hash(Path(target_path))
     
     # Get all understanding of this file
     results = mem.list_by_tag(filename, limit=100)
     
     # Group by creator, excluding current agent and synthesis
+    # Only include if their stored hash matches current
     other_perspectives = {}  # agent -> [nodes]
+    fresh_agents = set()  # agents whose understanding is current
     
     for result in results:
         meta = result.get('metadata', {})
@@ -834,6 +826,18 @@ def show_other_perspectives(mem: SemanticMemory, target_path: str, current_agent
         
         if not creator or creator == current_agent or creator == 'synthesis':
             continue
+        
+        # Check hash freshness from file_hashes in metadata
+        file_hashes = meta.get('file_hashes', {})
+        stored_hash = file_hashes.get(filename)
+        
+        # Also check legacy single-file hash format
+        if not stored_hash and meta.get('node_type', '').lower() == 'anchor':
+            stored_hash = meta.get('file_hash')
+        
+        # Skip if we have a current hash and it doesn't match
+        if current_hash and stored_hash and stored_hash != current_hash:
+            continue  # Stale perspective - file changed since they wrote
         
         node_type = meta.get('node_type', 'Unknown')
         if node_type.lower() == 'anchor':
@@ -849,6 +853,7 @@ def show_other_perspectives(mem: SemanticMemory, target_path: str, current_agent
             'type': node_type,
             'content': content
         })
+        fresh_agents.add(creator)
     
     if not other_perspectives:
         return
