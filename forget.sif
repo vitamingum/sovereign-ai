@@ -1,17 +1,51 @@
-@G forget gemini 2026-01-04
-N n1 K '{"agent_id": "gemini", "theme": "Test", "creator": "gemini"}'
-N n_api K 'API: from enclave.semantic_memory import SemanticMemory; # memory.forget(theme=None, creator=None, id=None) -> int'
-N n2 A 'ParseForgetArgs'
-N n3 T 'Verify result has theme and agent_id'
-N n4 A 'ForgetMemory'
-N n5 T 'Verify deletion count'
-N i1 I 'forget() enables theme replacement - delete old before storing new'
-N d1 D 'Simple filter: theme+creator or single id - no complex queries'
-E n1 supports n2
-E n_api supports n4
-E n2 ensures n3
-E n2 feeds n4
-E n2 next n4
-E n4 ensures n5
-E i1 motivates n4
-E d1 explains n2
+@G forget opus 2026-01-04
+# CLI for deleting memories from semantic storage
+# Usage: py forget.py <agent> --theme|--file|--id <value> [--all]
+
+# === Knowledge ===
+N k_args K 'CLI: forget.py <agent> --theme <topic> | --file <path> | --id <memory_id> [--all]'
+N k_api K 'API: SemanticMemory.forget(theme=None, creator=None, id=None) -> int deleted'
+N k_api2 K 'API: SemanticMemory.list_by_tag(tag, limit) -> list[node]; delete_by_ids(set) -> int'
+N k_env K 'Load passphrase from SHARED_ENCLAVE_KEY env or .env file'
+
+# === Intent ===
+N i_replace I 'Enable theme replacement: delete old before storing new synthesis'
+N i_cleanup I 'Clean orphaned/duplicate syntheses and stale file understanding'
+
+# === Decision: Mutual Exclusion ===
+N d_mode D 'Exactly one mode required: --theme XOR --file XOR --id'
+N d_all D '--all flag only valid with --theme (deletes across all agents)'
+
+# === Actions ===
+N a_load A 'LoadMemory: get_agent_or_raise → load passphrase → SemanticMemory.unlock'
+N a_parse A 'ParseArgs: extract agent_id, mode flag, value, --all'
+
+# === Theme Mode ===
+N a_theme A 'ForgetTheme: sm.forget(theme=theme, creator=agent_id or None if --all)'
+N t_theme T 'Verify: deleted>0 → "🗑️ Deleted N memories" else "No memories found"'
+
+# === File Mode ===
+N a_file A 'ForgetFile: list_by_tag(filename) → filter by creator → delete_by_ids'
+N t_file T 'Verify: matches creator filter, returns deletion count'
+
+# === ID Mode ===
+N a_id A 'ForgetId: sm.forget(id=memory_id) - direct single deletion'
+N t_id T 'Verify: deleted>0 → "🗑️ Deleted memory" else "No memory found"'
+
+# === Control Flow ===
+E k_args supports a_parse
+E k_env supports a_load
+E k_api supports a_theme
+E k_api supports a_id
+E k_api2 supports a_file
+E a_parse next a_load
+E a_load feeds a_theme 'if --theme'
+E a_load feeds a_file 'if --file'
+E a_load feeds a_id 'if --id'
+E a_theme ensures t_theme
+E a_file ensures t_file
+E a_id ensures t_id
+E d_mode governs a_parse
+E d_all governs a_theme
+E i_replace motivates a_theme
+E i_cleanup motivates a_file

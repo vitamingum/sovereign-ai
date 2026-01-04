@@ -1,0 +1,26 @@
+@G msg_logic
+N P 'Secure Messaging'
+N L 'Parse Arguments'
+N L 'Load Credentials'
+N L 'Resolve Recipient'
+N L 'Detect Content Type'
+N L 'Encrypt Content'
+N L 'Sign Message'
+N L 'Save Message'
+N G 'Error'
+
+E 'Parse Arguments' -> 'Load Credentials'
+E 'Parse Arguments' --file-> 'Parse Arguments'
+E 'Load Credentials' -> 'Resolve Recipient'
+E 'Load Credentials' !> 'Error'
+
+E 'Resolve Recipient' -> 'Detect Content Type'
+E 'Resolve Recipient' !> 'Error'
+
+E 'Detect Content Type' --private-> 'Encrypt Content'
+E 'Detect Content Type' --public-> 'Sign Message'
+
+E 'Encrypt Content' -> 'Sign Message'
+
+E 'Sign Message' -> 'Save Message'
+E 'Sign Message' !> 'Error'

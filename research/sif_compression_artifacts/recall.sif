@@ -1,0 +1,34 @@
+@G recall_logic
+N P 'Unified Memory Retrieval'
+N L 'Parse Arguments'
+N L 'Load Passphrase'
+N L 'Unlock Memory'
+N L 'Determine Mode'
+N L 'Theme Retrieval'
+N L 'File Retrieval'
+N L 'Semantic Retrieval'
+N L 'Reconstruct Graph'
+N L 'Format SIF'
+N L 'Check Blind Spots'
+N G 'No Synthesis Found'
+N G 'No Passphrase'
+
+E 'Parse Arguments' -> 'Load Passphrase'
+E 'Load Passphrase' -> 'Unlock Memory'
+E 'Load Passphrase' !> 'No Passphrase'
+E 'Unlock Memory' -> 'Determine Mode'
+
+E 'Determine Mode' --theme-> 'Theme Retrieval'
+E 'Determine Mode' --file-> 'File Retrieval'
+E 'Determine Mode' --semantic-> 'Semantic Retrieval'
+
+E 'Theme Retrieval' -> 'Format SIF'
+E 'Theme Retrieval' !> 'No Synthesis Found'
+
+E 'File Retrieval' -> 'Check Blind Spots'
+E 'Check Blind Spots' --found-> 'Reconstruct Graph'
+E 'Check Blind Spots' --blind-> 'No Synthesis Found'
+E 'Reconstruct Graph' -> 'Format SIF'
+
+E 'Semantic Retrieval' -> 'Reconstruct Graph'
+E 'Semantic Retrieval' !> 'No Synthesis Found'

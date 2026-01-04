@@ -1,0 +1,92 @@
+@G remember_logic gemini 2026-01-04
+
+# ─── Knowledge Nodes (Inputs & API) ───
+N n_args K '{"args": sys.argv}'
+N n_api_sys K 'API: import sys; import os; from pathlib import Path; # args = sys.argv; # exists = Path(path).exists()'
+N n_api_config K 'API: from enclave.config import get_agent_or_raise; import os; # agent = get_agent_or_raise(agent_id); # key = os.environ.get("SHARED_ENCLAVE_KEY")'
+N n_api_mem K 'API: from enclave.semantic_memory import SemanticMemory; # sm = SemanticMemory(enclave_dir); # sm.remember(...); # sm.forget(...)'
+N n_api_sif K 'API: from enclave.sif_parser import SIFParser; # graph = SIFParser.parse(text); # count = SIFParser.to_autocount(text)'
+N n_api_llm K 'API: import requests; # resp = requests.post("http://localhost:11434/api/generate", ...)'
+
+# ─── Action Nodes (Steps) ───
+N n_parse_args A 'Parse Arguments (detect mode)'
+N n_load_config A 'Load Configuration (Enclave & Key)'
+N n_parse_sif A 'Parse & Normalize SIF'
+
+# Theme Mode Actions
+N n_eval_theme A 'Evaluate Theme Depth'
+N n_store_theme A 'Store Theme Synthesis'
+
+# File Mode Actions
+N n_check_file A 'Verify File Exists'
+N n_eval_depth A 'Evaluate Graph Depth (Nodes/Edges/Types)'
+N n_eval_llm A 'LLM Comprehensiveness Check'
+N n_eval_coverage A 'Specific Detail Coverage Check'
+N n_check_ops A 'Check Operational Knowledge'
+N n_prompt_ops A 'Interactive Operational Prompt'
+N n_store_file A 'Store File Understanding'
+N n_show_others A 'Show Other Perspectives'
+
+# Error Actions
+N n_err_usage A 'Error: Invalid Usage'
+N n_err_shallow A 'Error: Shallow Understanding'
+N n_err_llm A 'Error: LLM Rejected'
+N n_err_coverage A 'Error: Missing Specific Details'
+N n_err_file A 'Error: File Not Found'
+
+# ─── Logic Nodes (Decisions) ───
+N l_mode L 'Is Theme Mode?'
+N l_theme_valid L 'Is Theme Depth Valid?'
+N l_file_found L 'Does Target File Exist?'
+N l_depth_valid L 'Is Graph Structure Valid?'
+N l_llm_valid L 'Did LLM Pass?'
+N l_cov_valid L 'Did Coverage Pass?'
+N l_has_ops L 'Has Operational Knowledge?'
+
+# ─── Edges (Flow) ───
+
+# Initialization
+E n_args supports n_parse_args
+E n_parse_args next l_mode
+
+# Branch: Theme Mode
+E l_mode yes n_parse_sif
+E n_parse_sif feeds n_eval_theme
+E n_eval_theme next l_theme_valid
+
+E l_theme_valid yes n_load_config
+E l_theme_valid no n_err_shallow
+
+E n_load_config feeds n_store_theme
+E n_api_mem supports n_store_theme
+
+# Branch: File Mode
+E l_mode no n_check_file
+E n_check_file next l_file_found
+
+E l_file_found no n_err_file
+E l_file_found yes n_load_config
+
+E n_load_config feeds n_parse_sif
+E n_parse_sif feeds n_eval_depth
+E n_eval_depth next l_depth_valid
+
+E l_depth_valid no n_err_shallow
+E l_depth_valid yes n_eval_llm
+
+E n_api_llm supports n_eval_llm
+E n_eval_llm next l_llm_valid
+
+E l_llm_valid no n_err_llm
+E l_llm_valid yes n_eval_coverage
+
+E n_eval_coverage next l_cov_valid
+E l_cov_valid no n_err_coverage
+E l_cov_valid yes n_check_ops
+
+E n_check_ops next l_has_ops
+E l_has_ops no n_prompt_ops
+E l_has_ops yes n_store_file
+E n_prompt_ops feeds n_store_file
+
+E n_store_file feeds n_show_others
