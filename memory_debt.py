@@ -231,24 +231,25 @@ def get_message_debt(sm: SemanticMemory, agent_id: str) -> list[dict]:
 # Output formatting - fail-early style
 # ─────────────────────────────────────────────────────────────────────────────
 
-def print_understanding_debt(debt: list[dict], cross_agent: list[str], agent_id: str):
-    """Print understanding debt as actionable SIF template."""
+def format_understanding_debt(debt: list[dict], cross_agent: list[str], agent_id: str) -> str:
+    """Format understanding debt as actionable SIF template. Returns string."""
+    lines = []
     stale = len(debt)
     missing = len(cross_agent)
     total = stale + missing
     today = datetime.now().strftime('%Y-%m-%d')
     
-    print(f"❌ FAIL - {total} file(s) need understanding")
-    print()
-    print("@G fix-memory-debt", agent_id, today)
-    print()
+    lines.append(f"❌ FAIL - {total} file(s) need understanding")
+    lines.append("")
+    lines.append(f"@G fix-memory-debt {agent_id} {today}")
+    lines.append("")
     
     # STALE files - show what changed and what to cover
     for item in debt:
         filename = item['file']
         safe_slug = filename.replace(".", "-").replace("/", "-").replace("\\", "-")
-        print(f"# === {filename} (STALE) ===")
-        print(f"N Stale '{filename}' -> hash_changed '{item['stored_hash']} → {item['current_hash']}'")
+        lines.append(f"# === {filename} (STALE) ===")
+        lines.append(f"N Stale '{filename}' -> hash_changed '{item['stored_hash']} → {item['current_hash']}'")
         
         # Extract definitions if Python file
         if filename.endswith('.py'):
@@ -256,97 +257,105 @@ def print_understanding_debt(debt: list[dict], cross_agent: list[str], agent_id:
             if defs:
                 # Show top-level functions (indent 0)
                 top_level = [d for d in defs if d['indent'] == 0][:12]
-                print(f"# YOU MUST COVER THESE {len(top_level)} FUNCTIONS:")
+                lines.append(f"# YOU MUST COVER THESE {len(top_level)} FUNCTIONS:")
                 for d in top_level:
-                    print(f"N Loc '{d['signature']}() ~line {d['line']}'")
+                    lines.append(f"N Loc '{d['signature']}() ~line {d['line']}'")
         
-        print(f"N Cmd 'py remember.py {agent_id} {filename} \"@G {safe_slug} {agent_id} {today}\"'")
-        print()
+        lines.append(f"N Cmd 'py remember.py {agent_id} {filename} \"@G {safe_slug} {agent_id} {today}\"'")
+        lines.append("")
     
     # MISSING files - partner understands, you don't
     for filename in cross_agent[:5]:
         safe_slug = filename.replace(".", "-").replace("/", "-").replace("\\", "-")
-        print(f"# === {filename} (MISSING - partner knows) ===")
+        lines.append(f"# === {filename} (MISSING - partner knows) ===")
         
         if filename.endswith('.py'):
             defs = extract_python_definitions(filename)
             if defs:
                 top_level = [d for d in defs if d['indent'] == 0][:12]
-                print(f"# YOU MUST COVER THESE {len(top_level)} FUNCTIONS:")
+                lines.append(f"# YOU MUST COVER THESE {len(top_level)} FUNCTIONS:")
                 for d in top_level:
-                    print(f"N Loc '{d['signature']}() ~line {d['line']}'")
+                    lines.append(f"N Loc '{d['signature']}() ~line {d['line']}'")
         
-        print(f"N Cmd 'py remember.py {agent_id} {filename} \"@G {safe_slug} {agent_id} {today}\"'")
-        print()
+        lines.append(f"N Cmd 'py remember.py {agent_id} {filename} \"@G {safe_slug} {agent_id} {today}\"'")
+        lines.append("")
     
     if len(cross_agent) > 5:
-        print(f"# ... and {len(cross_agent) - 5} more missing files")
-        print()
+        lines.append(f"# ... and {len(cross_agent) - 5} more missing files")
+        lines.append("")
     
     # Template showing expected depth
-    print("# === TEMPLATE: What GOOD understanding looks like ===")
-    print("# READ THE WHOLE FILE. No skimming. Cover every function.")
-    print("N S 'One-line: what this file IS'")
-    print("N P 'WHY it exists - what problem it solves'")
-    print("N Flow 'main() → helper1() → helper2()'  # execution order")
-    print("N Loc 'key_function() ~line 42' -> implements 'core behavior'")
-    print("N Loc 'another_func() ~line 89' -> handles 'edge case X'")
-    print("N D 'Design choice: why X not Y'")
-    print("N G 'Gotcha: what breaks and when' -> warns _-1")
-    print("N M 'Metric: concrete number if relevant'")
-    print("E _S contains _Flow")
-    print()
-    print("# NODE TYPES: S=Summary P=Purpose C=Component D=Design G=Gotcha")
-    print("#             I=Insight M=Metric Loc=Location Flow=Execution")
+    lines.append("# === TEMPLATE: What GOOD understanding looks like ===")
+    lines.append("# READ THE WHOLE FILE. No skimming. Cover every function.")
+    lines.append("N S 'One-line: what this file IS'")
+    lines.append("N P 'WHY it exists - what problem it solves'")
+    lines.append("N Flow 'main() → helper1() → helper2()'  # execution order")
+    lines.append("N Loc 'key_function() ~line 42' -> implements 'core behavior'")
+    lines.append("N Loc 'another_func() ~line 89' -> handles 'edge case X'")
+    lines.append("N D 'Design choice: why X not Y'")
+    lines.append("N G 'Gotcha: what breaks and when' -> warns _-1")
+    lines.append("N M 'Metric: concrete number if relevant'")
+    lines.append("E _S contains _Flow")
+    lines.append("")
+    lines.append("# NODE TYPES: S=Summary P=Purpose C=Component D=Design G=Gotcha")
+    lines.append("#             I=Insight M=Metric Loc=Location Flow=Execution")
+    
+    return '\n'.join(lines)
 
 
-def print_synthesis_debt(debt: list[dict], agent_id: str):
-    """Print synthesis debt as actionable SIF template."""
+def format_synthesis_debt(debt: list[dict], agent_id: str) -> str:
+    """Format synthesis debt as actionable SIF template. Returns string."""
+    lines = []
     today = datetime.now().strftime('%Y-%m-%d')
     
-    print(f"❌ FAIL - {len(debt)} theme(s) need synthesis")
-    print()
-    print("@G fix-synthesis-debt", agent_id, today)
-    print()
+    lines.append(f"❌ FAIL - {len(debt)} theme(s) need synthesis")
+    lines.append("")
+    lines.append(f"@G fix-synthesis-debt {agent_id} {today}")
+    lines.append("")
     
     for i, item in enumerate(debt[:5], 1):
         theme_slug = item['question'][:40].replace(' ', '-').replace('?', '').lower()
         files = item['files'][:4]
         
-        print(f"# === Theme {i}: {item['question'][:60]} ===")
-        print(f"N Theme '{item['question']}'")
+        lines.append(f"# === Theme {i}: {item['question'][:60]} ===")
+        lines.append(f"N Theme '{item['question']}'")
         for f in files:
-            print(f"N SourceFile '{f}'")
-        print(f"N Cmd 'py recall.py {agent_id} \"{' '.join(files)}\"'  # gather context")
-        print(f"N Cmd 'py remember.py {agent_id} --theme \"{theme_slug}\" \"@G {theme_slug} {agent_id} {today}\"'")
-        print()
+            lines.append(f"N SourceFile '{f}'")
+        lines.append(f"N Cmd 'py recall.py {agent_id} \"{' '.join(files)}\"'  # gather context")
+        lines.append(f"N Cmd 'py remember.py {agent_id} --theme \"{theme_slug}\" \"@G {theme_slug} {agent_id} {today}\"'")
+        lines.append("")
     
     if len(debt) > 5:
-        print(f"# ... and {len(debt) - 5} more themes")
-        print()
+        lines.append(f"# ... and {len(debt) - 5} more themes")
+        lines.append("")
     
-    print("# === TEMPLATE: Theme synthesis format ===")
-    print("N S 'Cross-file insight that emerges from comparing sources'")
-    print("N Pattern 'What pattern appears across files'")
-    print("N Tension 'Where files disagree or contradict'")
-    print("N I 'Novel understanding from juxtaposition'")
-    print("E _S synthesizes SourceFile1 SourceFile2")
+    lines.append("# === TEMPLATE: Theme synthesis format ===")
+    lines.append("N S 'Cross-file insight that emerges from comparing sources'")
+    lines.append("N Pattern 'What pattern appears across files'")
+    lines.append("N Tension 'Where files disagree or contradict'")
+    lines.append("N I 'Novel understanding from juxtaposition'")
+    lines.append("E _S synthesizes SourceFile1 SourceFile2")
+    
+    return '\n'.join(lines)
 
 
-def print_message_debt(debt: list[dict], agent_id: str):
-    """Print message debt and exit."""
+def format_message_debt(debt: list[dict], agent_id: str) -> str:
+    """Format message debt. Returns string."""
+    lines = []
     total_msgs = sum(d['message_count'] for d in debt)
-    print(f"❌ FAIL - {len(debt)} dialogue(s) need synthesis ({total_msgs} total messages)")
-    print()
+    lines.append(f"❌ FAIL - {len(debt)} dialogue(s) need synthesis ({total_msgs} total messages)")
+    lines.append("")
     
     for item in debt:
         status = "stale" if item['status'] == 'stale' else "none"
-        print(f"  {item['correspondent']}: {item['message_count']} msgs ({status})")
-    print()
+        lines.append(f"  {item['correspondent']}: {item['message_count']} msgs ({status})")
+    lines.append("")
     
-    print("TO FIX:")
+    lines.append("TO FIX:")
     for item in debt:
-        print(f"  py msg_synthesis.py {agent_id} {item['correspondent']}")
+        lines.append(f"  py msg_synthesis.py {agent_id} {item['correspondent']}")
+    
+    return '\n'.join(lines)
 
 
 def print_all_debt(understanding: list[dict], cross_agent: list[str], 
@@ -430,15 +439,15 @@ def main():
     
     # Fail-early: show only the first category with debt
     if understanding or cross_agent:
-        print_understanding_debt(understanding, cross_agent, agent_id)
+        print(format_understanding_debt(understanding, cross_agent, agent_id))
         sys.exit(len(understanding) + len(cross_agent))
     
     if synthesis:
-        print_synthesis_debt(synthesis, agent_id)
+        print(format_synthesis_debt(synthesis, agent_id))
         sys.exit(len(synthesis))
     
     if messages:
-        print_message_debt(messages, agent_id)
+        print(format_message_debt(messages, agent_id))
         sys.exit(len(messages))
 
 

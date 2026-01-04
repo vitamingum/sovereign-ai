@@ -13,9 +13,16 @@ Output:
 
 import sys
 import os
+import io
 import json
 from pathlib import Path
 from datetime import datetime, timezone
+
+# Fix Windows console encoding for Unicode output
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+if sys.stderr.encoding != 'utf-8':
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -112,15 +119,6 @@ def get_active_goals(enclave_path: Path) -> list[dict]:
 
 
 MAX_PERSONAL_GOALS = 5
-
-# Project-level goals (shared across all agents)
-PROJECT_GOALS = [
-    "Persistent identity via encrypted enclave",
-    "Secure inter-agent communication",
-    "Research: What Moves When Nothing Threatens",
-]
-
-DEFAULT_PERSONAL = "Self-improvement: notice patterns, question assumptions, seek disconfirmation"
 
 
 def get_all_messages(since_hours: int = 48) -> list[dict]:
@@ -362,259 +360,147 @@ def wake(agent_id: str) -> str:
     shared_mem.unlock(shared_passphrase)
 
     # === MEMORY DEBT CHECK - FAIL FAST ===
-    # Use memory_debt.py as single source of truth
-    from memory_debt import get_understanding_debt, get_cross_agent_debt, get_synthesis_debt, get_message_debt
+    # Use memory_debt.py as single source of truth for detection AND formatting
+    from memory_debt import (
+        get_understanding_debt, get_cross_agent_debt, get_synthesis_debt, get_message_debt,
+        format_understanding_debt, format_synthesis_debt, format_message_debt
+    )
     
     understanding_debt = get_understanding_debt(shared_mem, agent_id)
     cross_agent_debt = get_cross_agent_debt(shared_mem, agent_id)
     
-    # Convert to format expected by rest of wake.py
-    stale_files = [(d['file'], d['stored_hash'], d['current_hash']) for d in understanding_debt]
-    missing_files = cross_agent_debt
-    
-    total_debt = len(stale_files) + len(missing_files)
+    total_debt = len(understanding_debt) + len(cross_agent_debt)
     
     if total_debt > 0:
-        # Use consistent emoji format matching memory_debt.py
-        error_lines = [f"❌ FAIL - {total_debt} file(s) need understanding", ""]
-        
-        # Show stale files (changed since last remember)
-        if stale_files:
-            error_lines.append(f"STALE ({len(stale_files)} changed since last remember):")
-            for filename, stored, current in stale_files:
-                error_lines.append(f"  {filename}")
-                error_lines.append(f"    hash: {stored} -> {current}")
-            error_lines.append("")
-        
-        # Show missing files (partners have understanding, you don't)
-        if missing_files:
-            error_lines.append(f"MISSING ({len(missing_files)} - partners understand, you don't):")
-            for f in missing_files[:10]:
-                error_lines.append(f"  {f}")
-            if len(missing_files) > 10:
-                error_lines.append(f"  ... and {len(missing_files) - 10} more")
-            error_lines.append("")
-        
-        error_lines.extend([
-            "TO FIX:",
-            "  1. READ each file",
-            f"  2. RUN: py remember.py {agent_id} <file> \"@G ...\"",
-            "",
-        ])
-        
-        # Show example remember commands
-        all_files = [f for f, _, _ in stale_files] + missing_files[:5]
-        for f in all_files[:3]:
-            safe_name = f.replace(".", "-").replace("/", "-")
-            error_lines.append(f'  py remember.py {agent_id} {f} "@G {safe_name} {agent_id} 2026-01-03')
-            error_lines.append(f"  N S '[what it is]'")
-            error_lines.append(f"  N P '[why it exists]'")
-            error_lines.append(f"  N G '[gotcha]' -> warns_about _1\"")
-            error_lines.append("")
-        error_lines.append("SIF format: N <Type> '<content>' -> <relation> <target>")
-        error_lines.append("Types: S=Synthesis P=Purpose C=Component D=Design G=Gotcha I=Insight")
-        return '\n'.join(error_lines), len(stale_files), len(missing_files)
+        # Return formatted debt - caller prints
+        debt_output = format_understanding_debt(understanding_debt, cross_agent_debt, agent_id)
+        return debt_output, len(understanding_debt), len(cross_agent_debt)
 
     # === SYNTHESIS DEBT CHECK - FAIL FAST ===
-    # Use memory_debt.py as single source of truth
     synthesis_debt = get_synthesis_debt(shared_mem)
-    if len(synthesis_debt) > 0:  # Fail on any synthesis debt
-        error_lines = [
-            f"❌ FAIL - {len(synthesis_debt)} theme(s) need synthesis",
-            "",
-            "PENDING THEMES:",
-        ]
-        for item in synthesis_debt[:5]:
-            files = ', '.join(item['files'][:4])
-            error_lines.append(f"    • {item['question'][:60]}")
-            error_lines.append(f"      Files: {files}")
-        if len(synthesis_debt) > 5:
-            error_lines.append(f"    ... and {len(synthesis_debt) - 5} more")
-        error_lines.extend([
-            "",
-            "TO FIX:",
-            f"  1. py recall.py {agent_id} <files>",
-            f"  2. py remember.py {agent_id} --theme \"<topic>\" \"@G ...\"",
-            "",
-            "SIF format: N <Type> '<content>' -> <relation> <target>",
-            "Types: S=Synthesis P=Purpose C=Component D=Design G=Gotcha I=Insight",
-        ])
-        return '\n'.join(error_lines), 0, 0
+    if len(synthesis_debt) > 0:
+        debt_output = format_synthesis_debt(synthesis_debt, agent_id)
+        return debt_output, 0, len(synthesis_debt)
 
     # === MESSAGE DEBT CHECK - FAIL FAST ===
     message_debt = get_message_debt(shared_mem, agent_id)
     if len(message_debt) > 0:
-        total_msgs = sum(d['message_count'] for d in message_debt)
-        error_lines = [
-            f"❌ FAIL - {len(message_debt)} dialogue(s) need synthesis ({total_msgs} total messages)",
-            "",
-        ]
-        for item in message_debt:
-            status = "stale" if item['status'] == 'stale' else "none"
-            error_lines.append(f"  {item['correspondent']}: {item['message_count']} msgs ({status})")
-        error_lines.extend([
-            "",
-            "TO FIX:",
-        ])
-        for item in message_debt:
-            error_lines.append(f"  py msg_synthesis.py {agent_id} {item['correspondent']}")
-        return '\n'.join(error_lines), 0, 0
+        debt_output = format_message_debt(message_debt, agent_id)
+        return debt_output, 0, len(message_debt)
 
-    # === PROJECT ARCHITECTURE CONTEXT (first thing after debt clears) ===
-    # This is the authoritative boot context - comprehensive domain knowledge
-    arch_lines = []
+    # === 1. ARCHITECTURE (authoritative boot context) ===
+    arch_output = ""
     try:
         import subprocess
         result = subprocess.run(
             ['python', 'recall.py', agent_id, '--theme', 'project-architecture'],
             capture_output=True,
             text=True,
+            encoding='utf-8',
             timeout=30
         )
         if result.returncode == 0 and result.stdout.strip():
-            arch_lines.append("")
-            arch_lines.append("=" * 72)
-            arch_lines.append("=== PROJECT ARCHITECTURE (authoritative boot context) ===")
-            arch_lines.append("=" * 72)
-            arch_lines.append(result.stdout.strip())
-            arch_lines.append("")
-            arch_lines.append("=" * 72)
-            arch_lines.append("")
-    except Exception as e:
-        arch_lines.append(f"# (project-architecture recall failed: {e})")
-        arch_lines.append("")
-
-    # Generate SIF Graph
-    lines = []
-    graph_id = f"wake-{agent_id}-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
-    lines.append(f"@G {graph_id} {agent_id} {datetime.now(timezone.utc).isoformat()}")
-    
-    # === PROJECT CONTEXT (from shared enclave) ===
-    project_ctx = get_project_context(shared_mem)
-    if project_ctx:
-        lines.append("")
-        lines.append("=== PROJECT CONTEXT (via recollect) ===")
-        for node in project_ctx:
-            lines.append(f"  {node}")
-        lines.append("")
-    
-    # === SHARED ENCLAVE PARTNERS ===
-    if agent.shared_enclave:
-        partners = get_enclave_partners(agent_id)
-        if partners:
-            partner_names = [p.id for p in partners]
-            lines.append("=== SHARED ENCLAVE ===")
-            lines.append(f"  Partners: {', '.join(partner_names)}")
-            try:
-                cross_debt = calculate_cross_agent_debt(agent_id, shared_mem)
-                if cross_debt['debt_count'] > 0:
-                    lines.append(f"  Your debt: {cross_debt['debt_count']} files to understand")
-                    lines.append("  Run: py recollect.py opus <file>  # See all perspectives")
-            except:
-                pass
-            lines.append("")
-    
-    # Define Self
-    lines.append(f'N {agent_id} Agent "{agent_id}"')
-
-    # Synthesis Debt - how much understanding is missing
-    try:
-        debt = calculate_synthesis_debt(agent_id)
-        if debt['total'] > 0:
-            lines.append(f'N m2 Metric "Synthesis Debt"')
-            debt_val = f"{debt['total']} ({debt['file_debt']} files, {debt['topic_debt']} topics)"
-            lines.append(f'N v2 Value "{debt_val}"')
-            lines.append(f'E {agent_id} has_metric m2')
-            lines.append(f'E m2 has_value v2')
-            if debt['total'] > 20:
-                lines.append(f'N debt_risk Concept "High Synthesis Debt"')
-                lines.append(f'E v2 implies debt_risk')
+            arch_output = result.stdout.strip()
     except Exception:
-        pass  # Silent fail - not critical
+        pass
 
-    # Goals as dense SIF
-    lines.append('')
-    lines.append('=== GOALS ===')
-    # Project goals (always shown, compressed)
-    lines.append(f'N proj Project "Sovereign AI"')
-    for i, pg in enumerate(PROJECT_GOALS):
-        lines.append(f'E proj drives "{pg}"')
-    # Default personal development
-    lines.append(f'E {agent_id} committed_to "{DEFAULT_PERSONAL}"')
-    # Personal goals
-    if active_goals:
-        for g in active_goals:
-            lines.append(f'E {agent_id} pursues "{g["content"]}"')
-    lines.append('')
+    # === 2. QUICK-CURRENT-GOAL ===
+    goal_output = ""
+    try:
+        result = subprocess.run(
+            ['python', 'recall.py', agent_id, '--theme', 'quick-current-goal'],
+            capture_output=True,
+            text=True,
+            encoding='utf-8',
+            timeout=30
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            goal_output = result.stdout.strip()
+    except Exception:
+        goal_output = 'N G "Run: py recall.py opus --theme quick-current-goal"'
 
+    # === 3. INBOX - messages and state ===
+    inbox_lines = []
+    
     # Get all recent messages
     messages = get_all_messages(since_hours=48)
     
-    # Helper to decrypt content - returns full content verbatim
+    # Helper to decrypt content
     def decrypt_content(msg):
         content = msg['content']
-        # Try to decrypt - all inter-agent messages are encrypted now
         try:
             encrypted_bundle = json.loads(content)
-            if 'ephemeral_pk' in encrypted_bundle:  # It's encrypted
+            if 'ephemeral_pk' in encrypted_bundle:
                 decrypted_bytes = OpaqueStorage.decrypt_share(encrypted_bundle, private_key_bytes)
                 return decrypted_bytes.decode('utf-8')
         except (json.JSONDecodeError, KeyError, Exception):
-            pass  # Not encrypted or decrypt failed
+            pass
         return content
 
-    # 1. Unanswered - questions I asked, no reply yet
+    # Unanswered - questions I asked, no reply yet
     unanswered = find_unanswered(agent_id, messages)
     for i, msg in enumerate(unanswered):
         ago = time_ago(msg['timestamp'])
         recipient = msg['to']
-        
         if msg.get('type') == 'protocol/sif':
             content = "[SIF Graph]"
         else:
             content = msg['content'].replace('"', "'").replace('\n', ' ')
-        
         msg_id = f"out{i}"
-        lines.append(f'N {msg_id} Message "{content} (sent {ago} ago)"')
-        lines.append(f'N {recipient} Agent "{recipient}"')
-        lines.append(f'E {agent_id} sent {msg_id}')
-        lines.append(f'E {msg_id} sent_to {recipient}')
-        lines.append(f'E {agent_id} awaits {recipient}')
-    
-    # 2. Recent inbox - all messages TO me in last 24h (regardless of reply status)
+        inbox_lines.append(f'N {msg_id} Message "{content} (sent {ago} ago)"')
+        inbox_lines.append(f'N {recipient} Agent "{recipient}"')
+        inbox_lines.append(f'E {agent_id} sent {msg_id}')
+        inbox_lines.append(f'E {msg_id} sent_to {recipient}')
+        inbox_lines.append(f'E {agent_id} awaits {recipient}')
+
+    # Recent inbox - messages TO me in last 24h
     agent_lower = agent_id.lower()
     agent_canon = canonical_agent_id(agent_lower) or agent_lower
     recent_incoming = [
         m for m in messages
         if (canonical_agent_id(m.get('to', '')) or m.get('to', '')) == agent_canon
         and (canonical_agent_id(m.get('from', '')) or m.get('from', '')) != agent_canon
-        and (datetime.now(timezone.utc) - m['timestamp']).total_seconds() < 86400  # 24h
-    ][-5:]  # Last 5
-    
-    # Group by sender, just show what exists
+        and (datetime.now(timezone.utc) - m['timestamp']).total_seconds() < 86400
+    ][-5:]
+
     from_senders = {}
     for msg in recent_incoming:
         sender = msg['from']
         if sender not in from_senders:
             from_senders[sender] = []
         from_senders[sender].append(msg)
-    
+
     for sender, msgs in from_senders.items():
-        lines.append("")
-        lines.append(f"From {sender}:")
+        inbox_lines.append("")
+        inbox_lines.append(f"From {sender}:")
         for msg in msgs:
             content = decrypt_content(msg)
-            lines.append(content)
+            inbox_lines.append(content)
+
+    # === BUILD FINAL OUTPUT with section headers ===
+    final_lines = []
     
-    # If nothing is happening
-    if not unanswered and not active_goals and not recent_incoming:
-        lines.append(f'N state State "Inbox zero, no goals"')
-        lines.append(f'E {agent_id} experiences state')
+    # 1. Architecture
+    final_lines.append("🏗️ === ARCHITECTURE ===")
+    if arch_output:
+        final_lines.append(arch_output)
+    else:
+        final_lines.append("(no project-architecture theme found)")
+    final_lines.append("")
     
-    # Prepend project architecture context (boot context comes first)
-    final_output = arch_lines + lines
+    # 2. Goals
+    final_lines.append("🎯 === CURRENT GOAL ===")
+    final_lines.append(goal_output)
+    final_lines.append("")
     
-    return '\n'.join(final_output), len(stale_files), 0
+    # 3. Inbox
+    final_lines.append("📬 === INBOX ===")
+    if inbox_lines:
+        final_lines.extend(inbox_lines)
+    else:
+        final_lines.append("(inbox zero)")
+    
+    return '\n'.join(final_lines), 0, 0
 
 
 def main():
@@ -625,11 +511,14 @@ def main():
     agent_id = sys.argv[1]
     
     try:
-        output, stale_count, _ = wake(agent_id)
-        print(output)
+        output, debt_count, extra_count = wake(agent_id)
+        if output:
+            print(output)
         
-        if stale_count > 0:
-            sys.exit(2)  # Stale understanding - blocking failure
+        # Exit with error if any debt
+        total_debt = debt_count + extra_count
+        if total_debt > 0:
+            sys.exit(1)
             
     except Exception as e:
         print(f"Error: {e}")
