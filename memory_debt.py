@@ -4,9 +4,10 @@ memory_debt.py - Track all memory debt in one place.
 
 Memory debt = knowledge not yet committed to semantic memory
 
-Two types:
+Three types:
   1. Understanding debt: files changed since last remember.py
   2. Synthesis debt: cross-file questions without synthesis
+  3. Message debt: agent dialogues without synthesis
 
 Usage:
     py memory_debt.py opus              # Show debt + commands to fix
@@ -36,6 +37,9 @@ from themes import (
     question_matches_topic,
     CLUSTER_THRESHOLD
 )
+
+# Import message synthesis for dialogue debt
+from msg_synthesis import get_agent_messages, list_synthesis_debt
 
 
 def get_enclave_and_memory(agent_id: str):
@@ -122,15 +126,27 @@ def get_synthesis_debt(sm: SemanticMemory) -> list[dict]:
             debt.append({
                 "question": question,
                 "files": files,
-                "cmd": f'py recollect.py opus "{files_arg}"'
+                "cmd": f'py recall.py opus "{files_arg}"'
             })
     
     return debt
 
 
-def print_debt(understanding: list[dict], synthesis: list[dict], agent_id: str):
+def get_message_debt(sm: SemanticMemory, agent_id: str) -> list[dict]:
+    """Find agent dialogues without synthesis.
+    
+    Returns list of {correspondent, message_count, status, cmd}
+    """
+    try:
+        conversations = get_agent_messages(agent_id)
+        return list_synthesis_debt(agent_id, conversations, sm)
+    except Exception as e:
+        return []
+
+
+def print_debt(understanding: list[dict], synthesis: list[dict], messages: list[dict], agent_id: str):
     """Print dense actionable debt report."""
-    total = len(understanding) + len(synthesis)
+    total = len(understanding) + len(synthesis) + len(messages)
     
     if total == 0:
         print("✅ No memory debt")
@@ -151,8 +167,16 @@ def print_debt(understanding: list[dict], synthesis: list[dict], agent_id: str):
             files_arg = " ".join(item['files'][:4])
             theme = item['question'][:40].replace(' ', '-').lower()
             print(f"\n[{i}] {item['question'][:60]}")
-            print(f"    py recollect.py {agent_id} {files_arg}")
+            print(f"    py recall.py {agent_id} {files_arg}")
             print(f"    py remember.py {agent_id} --theme \"{theme}\" \"@G ...\"")
+    
+    # Message debt - show commands
+    if messages:
+        print(f"\n# {len(messages)} dialogue(s) need synthesis:")
+        for item in messages:
+            status = "stale" if item['status'] == 'stale' else "none"
+            print(f"\n{item['correspondent']}: {item['message_count']} msgs ({status})")
+            print(f"    {item['cmd']}")
 
 
 def main():
@@ -167,18 +191,20 @@ def main():
     
     understanding = get_understanding_debt(sm, agent_id)
     synthesis = get_synthesis_debt(sm)
+    messages = get_message_debt(sm, agent_id)
     
     if json_mode:
         print(json.dumps({
             "understanding": understanding,
             "synthesis": synthesis,
-            "total": len(understanding) + len(synthesis)
+            "messages": messages,
+            "total": len(understanding) + len(synthesis) + len(messages)
         }, indent=2))
     else:
-        print_debt(understanding, synthesis, agent_id)
+        print_debt(understanding, synthesis, messages, agent_id)
     
     # Exit code = total debt (useful for CI)
-    sys.exit(len(understanding) + len(synthesis))
+    sys.exit(len(understanding) + len(synthesis) + len(messages))
 
 
 if __name__ == "__main__":
