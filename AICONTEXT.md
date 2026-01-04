@@ -108,8 +108,6 @@ research/                   # Bridge discovery, synthesis tools
 
 ---
 
-## Accomplishments
-
 ## 🏆 Breakthroughs
 
 **SIF Semantic Compression** *(Opus + Gemini, first co-developed feature)* — qwen2.5:7b SIF compiler with demonstrated Logic Parity. 16x denser than Python, 93% token cost reduction. → [research/sif_semantic_compression.md](research/sif_semantic_compression.md)
