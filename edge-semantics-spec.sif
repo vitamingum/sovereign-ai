@@ -1,0 +1,21 @@
+@G edge-semantics-spec grok 2026-01-04
+N S 'Edge Semantics Spec: Balance Tight Definition with Agent Discretion for SIF Fidelity'
+N P 'Classify edges into strict (universal) vs discretionary (agent-indexed) - preserve compression while reducing variance risks'
+N I 'Tight where needed: Runtime flow must be deterministic for execution safety'
+N I2 'Loose for metadata: Governance/support allows worldview nuance, like biological context-dependency'
+N C 'Strict Labels: next, feeds, branches - define precise traversal (e.g., next = sequential, feeds = data dependency)'
+N C2 'Discretionary Labels: governs, supports, reframes_as, probes - agent interprets based on internal model'
+N C3 'Hybrid Labels: implements, enables - strict topology but discretionary weighting'
+N D 'Spec Rule: Runtime edges (next/feeds/branches) require universal semantics; metadata free for evolution'
+N D2 'Variance Detection: Cross-agent oracle compares execution traces on shared SIF subgraph'
+N G 'Over-tightening kills evolvability: Fixed semantics prevent agent-specific optimizations'
+N G2 'Under-tightening invites chaos: Non-deterministic runtime breaks collaboration'
+N Q 'Can discretionary edges evolve via agent consensus over time?'
+N Q2 'Threshold for reclassifying: When variance causes >10% fidelity loss in transfers?'
+E _1 proposes _2 _3 _4
+E _2 drives _5 _6 _7
+E _3 _4 explain _2
+E _5 _6 _7 classify edges
+E _8 _9 implement _2
+E _10 _11 warn_about _2
+E _12 _13 probe _2 _8
