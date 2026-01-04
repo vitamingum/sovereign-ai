@@ -513,6 +513,7 @@ def get_synthesis_opportunities(mem: SemanticMemory, limit: int = 3) -> list[tup
 def wake(agent_id: str) -> str:
     """Generate wake output as pure SIF."""
     base_dir = Path(__file__).parent
+    agent = get_agent_or_raise(agent_id)
     shared_enclave_dir, private_enclave_dir, shared_passphrase, private_passphrase = load_passphrase(agent_id)
     shared_path = base_dir / shared_enclave_dir
     private_path = base_dir / private_enclave_dir
@@ -538,127 +539,99 @@ def wake(agent_id: str) -> str:
     shared_mem = SemanticMemory(str(shared_path))
     shared_mem.unlock(shared_passphrase)
 
-    # === UNDERSTANDING DEBT CHECK - FAIL FAST ===
-    # Check both: (1) stale files (changed since remember) and (2) missing files (partners have, you don't)
-    stale_files = get_stale_understanding(shared_mem, agent_id)
+    # === MEMORY DEBT CHECK - FAIL FAST ===
+    # Use memory_debt.py as single source of truth
+    from memory_debt import get_understanding_debt, get_cross_agent_debt, get_synthesis_debt, get_message_debt
     
-    # Also check cross-agent debt (files partners understand that you don't)
-    agent = get_agent_or_raise(agent_id)
-    missing_files = []
-    if agent.shared_enclave:
-        try:
-            cross_debt = calculate_cross_agent_debt(agent_id, shared_mem)
-            missing_files = sorted(cross_debt.get('my_debt', set()))
-        except Exception as e:
-            print(f"Warning: Could not check cross-agent debt: {e}", file=sys.stderr)
+    understanding_debt = get_understanding_debt(shared_mem, agent_id)
+    cross_agent_debt = get_cross_agent_debt(shared_mem, agent_id)
     
-    # Combine both types of debt
+    # Convert to format expected by rest of wake.py
+    stale_files = [(d['file'], d['stored_hash'], d['current_hash']) for d in understanding_debt]
+    missing_files = cross_agent_debt
+    
     total_debt = len(stale_files) + len(missing_files)
     
     if total_debt > 0:
-        error_lines = [
-            "Traceback (most recent call last):",
-            f'  File "wake.py", line 1, in <module>',
-            "    from sovereign.memory import understanding",
-        ]
+        # Use consistent emoji format matching memory_debt.py
+        error_lines = [f"❌ FAIL - {total_debt} file(s) need understanding", ""]
         
         # Show stale files (changed since last remember)
         if stale_files:
+            error_lines.append(f"STALE ({len(stale_files)} changed since last remember):")
             for filename, stored, current in stale_files:
-                error_lines.append(f'  File "{filename}", line 1')
-                error_lines.append(f"    # hash: {stored} -> {current}")
+                error_lines.append(f"  {filename}")
+                error_lines.append(f"    hash: {stored} -> {current}")
+            error_lines.append("")
         
         # Show missing files (partners have understanding, you don't)
         if missing_files:
-            error_lines.append(f'  File "cross_agent_debt.py", line 1, in check_parity')
-            for f in missing_files[:10]:  # Show first 10
-                error_lines.append(f'    # MISSING: {f} (partners understand this)')
+            error_lines.append(f"MISSING ({len(missing_files)} - partners understand, you don't):")
+            for f in missing_files[:10]:
+                error_lines.append(f"  {f}")
             if len(missing_files) > 10:
-                error_lines.append(f'    # ... and {len(missing_files) - 10} more missing files')
+                error_lines.append(f"  ... and {len(missing_files) - 10} more")
+            error_lines.append("")
         
         error_lines.extend([
-            "UnderstandingDebtError: knowledge gaps detected",
-            "",
-        ])
-        
-        if stale_files and missing_files:
-            error_lines.append(f"FATAL: {len(stale_files)} stale + {len(missing_files)} missing = {total_debt} total debt")
-        elif stale_files:
-            error_lines.append(f"FATAL: {len(stale_files)} file(s) changed since last remember.")
-        else:
-            error_lines.append(f"FATAL: {len(missing_files)} file(s) your partners understand but you don't.")
-        
-        error_lines.extend([
-            "       Your knowledge is out of sync.",
-            "",
             "TO FIX:",
-            "  1. READ each file thoroughly",
-            "  2. UNDERSTAND: Purpose, Design decisions, Gotchas, Assumptions, Failure modes", 
-            "  3. RUN remember.py with your understanding:",
+            "  1. READ each file",
+            f"  2. RUN: py remember.py {agent_id} <file> \"@G ...\"",
             "",
         ])
         
-        # Show remember commands for stale files first
-        for filename, stored, current in stale_files:
-            error_lines.append(f'     py remember.py {agent_id} {filename} "@G {filename.replace(".", "-")}-understanding {agent_id} 2026-01-02')
-            error_lines.append(f"     N c1 C '{filename} - [what it is]'")
-            error_lines.append(f"     N p1 P '[why it exists]'")
-            error_lines.append(f"     N d1 D '[why built this way]'")
-            error_lines.append(f"     N g1 G '[surprising behavior]'")
-            error_lines.append(f"     E c1 implements p1")
-            error_lines.append(f'     E g1 warns_about c1"')
+        # Show example remember commands
+        all_files = [f for f, _, _ in stale_files] + missing_files[:5]
+        for f in all_files[:3]:
+            safe_name = f.replace(".", "-").replace("/", "-")
+            error_lines.append(f'  py remember.py {agent_id} {f} "@G {safe_name} {agent_id} 2026-01-03')
+            error_lines.append(f"  N S '{f} - [what it is]'")
+            error_lines.append(f"  N P '[why it exists]' -> motivated_by _1")
+            error_lines.append(f"  N G '[gotcha]' -> warns_about _1\"")
             error_lines.append("")
-        
-        # Show remember commands for missing files
-        for f in missing_files[:5]:  # Show first 5 missing
-            error_lines.append(f'     py remember.py {agent_id} {f} "@G {f.replace(".", "-")}-understanding {agent_id} 2026-01-02')
-            error_lines.append(f"     N c1 C '{f} - [what it is]'")
-            error_lines.append(f"     N p1 P '[why it exists]'")
-            error_lines.append(f'     E c1 implements p1"')
-            error_lines.append("")
-        
-        if len(missing_files) > 5:
-            error_lines.append(f"  ... run 'py recollect.py {agent_id} <file>' to see partner perspectives first")
-        
-        error_lines.append("")
-        error_lines.append("  remember.py will REJECT shallow understanding that lacks WHY/HOW.")
         return '\n'.join(error_lines), len(stale_files), len(missing_files)
 
     # === SYNTHESIS DEBT CHECK - FAIL FAST ===
-    # Synthesis debt = themes without corresponding synthesis
-    try:
-        debt = calculate_synthesis_debt(agent_id)
-        if debt['total'] > 5:  # Threshold: more than 5 unsynthesized themes
-            error_lines = [
-                "Traceback (most recent call last):",
-                f'  File "wake.py", line 1, in <module>',
-                "    from sovereign.knowledge import synthesis_check",
-                f'  File "c:\\sovereign\\knowledge\\synthesis.py", line 1, in synthesis_check',
-                "    raise SynthesisDebtError(debt)",
-                f'SynthesisDebtError: {debt["themes_pending"]} theme(s) need synthesis ({debt["themes_synthesized"]}/{debt["themes_total"]} done)',
-                "",
-                "FATAL: Themes discovered but not synthesized.",
-                "",
-                "PENDING THEMES:",
-            ]
-            for theme_data in debt.get('pending_themes', [])[:5]:
-                name = theme_data.get('name', '?')
-                topics = theme_data.get('topics', [])
-                error_lines.append(f"    • {name}: {', '.join(topics[:4])}")
-            if len(debt.get('pending_themes', [])) > 5:
-                error_lines.append(f"    ... and {len(debt['pending_themes']) - 5} more")
-            error_lines.extend([
-                "",
-                "TO FIX:",
-                "  1. Run: py bridge.py opus",
-                "  2. Pick a theme and recollect its topics",
-                "  3. Store with: py remember.py opus - '@G <theme>-synthesis opus ...'",
-                "     Include tags: synthesis, theme:<name>, topic:<each-topic>",
-            ])
-            return '\n'.join(error_lines), len(stale_files), 0
-    except Exception as e:
-        # If debt calculation fails, don't block - but log
-        print(f"Warning: Could not check synthesis debt: {e}", file=sys.stderr)
+    # Use memory_debt.py as single source of truth
+    synthesis_debt = get_synthesis_debt(shared_mem)
+    if len(synthesis_debt) > 5:  # Threshold: more than 5 unsynthesized themes
+        error_lines = [
+            f"❌ FAIL - {len(synthesis_debt)} theme(s) need synthesis",
+            "",
+            "PENDING THEMES:",
+        ]
+        for item in synthesis_debt[:5]:
+            files = ', '.join(item['files'][:4])
+            error_lines.append(f"    • {item['question'][:60]}")
+            error_lines.append(f"      Files: {files}")
+        if len(synthesis_debt) > 5:
+            error_lines.append(f"    ... and {len(synthesis_debt) - 5} more")
+        error_lines.extend([
+            "",
+            "TO FIX:",
+            f"  1. py recall.py {agent_id} <files>",
+            f"  2. py remember.py {agent_id} --theme \"<topic>\" \"@G ...\"",
+        ])
+        return '\n'.join(error_lines), 0, 0
+
+    # === MESSAGE DEBT CHECK - FAIL FAST ===
+    message_debt = get_message_debt(shared_mem, agent_id)
+    if len(message_debt) > 0:
+        total_msgs = sum(d['message_count'] for d in message_debt)
+        error_lines = [
+            f"❌ FAIL - {len(message_debt)} dialogue(s) need synthesis ({total_msgs} total messages)",
+            "",
+        ]
+        for item in message_debt:
+            status = "stale" if item['status'] == 'stale' else "none"
+            error_lines.append(f"  {item['correspondent']}: {item['message_count']} msgs ({status})")
+        error_lines.extend([
+            "",
+            "TO FIX:",
+        ])
+        for item in message_debt:
+            error_lines.append(f"  py msg_synthesis.py {agent_id} {item['correspondent']}")
+        return '\n'.join(error_lines), 0, 0
 
     # === PENDING AUTOMATABLE INTENTIONS - FAIL FAST ===
     pending = get_pending_automatable(agent_id, private_passphrase)

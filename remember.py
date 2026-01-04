@@ -624,7 +624,7 @@ def delete_existing_understanding(mem: SemanticMemory, target_path: str, creator
     
     if ids_to_delete:
         deleted = mem.delete_by_ids(ids_to_delete)
-        print(f"  [REPLACED] Deleted {deleted} old nodes by {creator}")
+        print(f"  🔄 Deleted {deleted} old nodes by {creator}")
     
     return len(ids_to_delete)
 

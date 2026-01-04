@@ -134,11 +134,14 @@ def get_existing_synthesis_timestamp(sm: SemanticMemory, correspondent: str) -> 
     topic_tag = f"topic:{correspondent}"
     
     try:
-        results = sm.recall_similar(f"dialogue synthesis with {correspondent}", top_k=20, threshold=0.3)
+        # Use list_by_tag instead of recall_similar - tags are at top level, not in metadata
+        results = sm.list_by_tag('synthesis', limit=100)
         for r in results:
-            tags = r.get('metadata', {}).get('tags', [])
+            tags = r.get('tags', [])
             if topic_tag in tags:
-                return r.get('metadata', {}).get('timestamp')
+                # Get timestamp from metadata.stored_at
+                meta = r.get('metadata', {})
+                return meta.get('stored_at') or meta.get('timestamp') or r.get('timestamp')
     except:
         pass
     return None

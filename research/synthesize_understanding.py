@@ -562,7 +562,7 @@ def store_synthesis(mem: SemanticMemory, synthesis_sif: str, filepath: str) -> i
     
     if ids_to_delete:
         deleted = mem.delete_by_ids(ids_to_delete)
-        print(f"  [REPLACED] Deleted {deleted} old synthesis nodes")
+        print(f"  🔄 Deleted {deleted} old synthesis nodes")
     
     # Parse the synthesis SIF
     parser = SIFParser()
