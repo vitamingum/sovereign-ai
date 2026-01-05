@@ -74,7 +74,6 @@ py recall.py opus "how does encryption"    # semantic → relevant graphs
 | `recall.py <agent> --theme <topic>` | Retrieve theme synthesis |
 | `remember.py <agent> <file> "@G..."` | Store file understanding (validates depth, Loc coverage) |
 | `remember.py <agent> --theme <topic> "@G..."` | Store theme synthesis |
-| `q.py <agent> "question"` | Natural language search |
 | `journal.py <agent> "..."` | Private reflection |
 | `msg.py <agent> send <to> "@G..."` | Signed message to agent |
 | `msg.py <agent> read` | Check inbox |
@@ -100,7 +99,7 @@ py recall.py opus "how does encryption"    # semantic → relevant graphs
 
 **Enclave Encryption** — Two tiers: `enclave/storage/` shared (cross-agent synthesis, codebase), `enclave_<agent>/storage/private/` per-agent (journals, goals). AES-256-GCM, hardware-bound via DPAPI/TPM.
 
-**Ask Anything** — `q.py opus "question"` Natural language search across project, research, self.
+**Semantic Search** — `recall.py opus "question"` searches via FAISS across all memories. Returns full SIF graphs, not scattered nodes.
 
 **Local Cognition** — Two tiers, both here. qwen2.5:7b for reflexes (routing, validation). deepseek-r1:14b for contemplation (synthesis, self-understanding). Journals, chats, mirrors remain private.
 

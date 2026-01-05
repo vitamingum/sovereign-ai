@@ -866,6 +866,30 @@ def store_understanding(mem: SemanticMemory, graph: SIFKnowledgeGraph, target_pa
 
 
 def main():
+    # Check for --dialogue mode (synthesize agent conversation)
+    if '--dialogue' in sys.argv:
+        dialogue_idx = sys.argv.index('--dialogue')
+        if len(sys.argv) < dialogue_idx + 2:
+            print("Usage: py remember <agent> --dialogue <correspondent>", file=sys.stderr)
+            print("  Shows dialogue context for synthesis", file=sys.stderr)
+            sys.exit(1)
+        
+        agent_id = sys.argv[1]
+        correspondent = sys.argv[dialogue_idx + 1].lower()
+        
+        # Get conversations
+        from utils.msg_synthesis import get_agent_messages, synthesize_dialogue
+        conversations = get_agent_messages(agent_id)
+        
+        if correspondent not in conversations:
+            print(f"No messages found with '{correspondent}'")
+            print(f"Available: {', '.join(conversations.keys())}")
+            sys.exit(1)
+        
+        messages = conversations[correspondent]
+        print(synthesize_dialogue(agent_id, correspondent, messages))
+        return
+    
     # Check for --theme mode
     if '--theme' in sys.argv:
         theme_idx = sys.argv.index('--theme')

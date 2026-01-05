@@ -171,7 +171,7 @@ def list_synthesis_debt(agent_id: str, conversations: dict, sm: SemanticMemory):
                 'message_count': len(messages),
                 'last_message': last_msg,
                 'status': 'none',
-                'cmd': f'py msg_synthesis.py {agent_id} {correspondent}'
+                'cmd': f'py remember.py {agent_id} --dialogue {correspondent}'
             })
         elif last_msg > existing_synthesis:
             debt.append({
@@ -180,7 +180,7 @@ def list_synthesis_debt(agent_id: str, conversations: dict, sm: SemanticMemory):
                 'last_message': last_msg,
                 'synthesis': existing_synthesis,
                 'status': 'stale',
-                'cmd': f'py msg_synthesis.py {agent_id} {correspondent}'
+                'cmd': f'py remember.py {agent_id} --dialogue {correspondent}'
             })
     
     return debt

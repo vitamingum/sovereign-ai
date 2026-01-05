@@ -340,19 +340,20 @@ def wake(agent_id: str) -> str:
     # === MEMORY DEBT CHECK - FAIL FAST ===
     # Use memory_debt.py as single source of truth for detection AND formatting
     from memory_debt import (
-        get_understanding_debt, get_cross_agent_debt, get_synthesis_debt, get_message_debt,
+        get_understanding_debt, get_cross_agent_debt, get_untracked_debt, get_synthesis_debt, get_message_debt,
         format_understanding_debt, format_synthesis_debt, format_message_debt
     )
     
     understanding_debt = get_understanding_debt(shared_mem, agent_id)
     cross_agent_debt = get_cross_agent_debt(shared_mem, agent_id)
+    untracked_debt = get_untracked_debt(shared_mem)
     
-    total_debt = len(understanding_debt) + len(cross_agent_debt)
+    total_debt = len(understanding_debt) + len(cross_agent_debt) + len(untracked_debt)
     
     if total_debt > 0:
         # Return formatted debt - caller prints
-        debt_output = format_understanding_debt(understanding_debt, cross_agent_debt, agent_id)
-        return debt_output, len(understanding_debt), len(cross_agent_debt)
+        debt_output = format_understanding_debt(understanding_debt, cross_agent_debt, untracked_debt, agent_id)
+        return debt_output, len(understanding_debt), len(cross_agent_debt) + len(untracked_debt)
 
     # === SYNTHESIS DEBT CHECK - FAIL FAST ===
     synthesis_debt = get_synthesis_debt(shared_mem)
@@ -454,7 +455,7 @@ def wake(agent_id: str) -> str:
                 or (canonical_agent_id(m.get('to', '')) or m.get('to', '')) == correspondent
             ]
             inbox_lines.append(f"\n💬 {correspondent}: {len(correspondent_msgs)} messages (no synthesis yet)")
-            inbox_lines.append(f"   Run: py msg_synthesis.py {agent_id} {correspondent}")
+            inbox_lines.append(f"   Run: py remember.py {agent_id} --dialogue {correspondent}")
     
     # Also show unanswered outbound (awaiting reply)
     unanswered = find_unanswered(agent_id, messages)

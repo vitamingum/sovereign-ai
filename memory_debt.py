@@ -4,10 +4,11 @@ memory_debt.py - Single source of truth for all memory debt.
 
 Memory debt = knowledge not yet committed to semantic memory
 
-Three types (checked in order, fail-early):
-  1. Understanding debt: files changed since last remember.py
-  2. Synthesis debt: cross-file questions without synthesis
-  3. Message debt: agent dialogues without synthesis
+Four types (checked in order, fail-early):
+  1. Stale debt: files changed since last remember.py
+  2. Untracked debt: files with NO understanding stored (learn or delete)
+  3. Synthesis debt: cross-file questions without synthesis
+  4. Message debt: agent dialogues without synthesis
 
 Usage:
     py memory_debt.py opus              # Fail-early check (shows first failure only)
@@ -106,6 +107,52 @@ def get_cross_agent_debt(sm: SemanticMemory, agent_id: str) -> list[str]:
         return []
 
 
+def get_untracked_debt(sm: SemanticMemory) -> list[str]:
+    """Find .py files with NO understanding stored at all.
+    
+    These are blind spots - either learn them or delete them.
+    Excludes: __pycache__, .venv, test files, __init__.py, enclave/ internals
+    
+    Returns list of filenames.
+    """
+    # Get all files that HAVE understanding
+    tracked_files = set()
+    try:
+        results = sm.recall_similar("[Anchor]", top_k=500, threshold=0.1)
+        for r in results:
+            meta = r.get('metadata', {})
+            file_hashes = meta.get('file_hashes', {})
+            tracked_files.update(file_hashes.keys())
+    except:
+        pass
+    
+    # Scan for all .py files in project root
+    project_root = Path(__file__).parent
+    untracked = []
+    
+    # Patterns to exclude
+    exclude_patterns = {
+        '__pycache__', '.venv', 'venv', '.git', 'node_modules',
+        'test_', '_test.py', 'tests/', '__init__.py',
+        'enclave/',  # Internal library, not verbs
+    }
+    
+    for py_file in project_root.glob('*.py'):
+        filename = py_file.name
+        
+        # Skip if matches exclusion pattern
+        if any(pat in str(py_file) for pat in exclude_patterns):
+            continue
+        
+        # Skip if already tracked
+        if filename in tracked_files:
+            continue
+        
+        untracked.append(filename)
+    
+    return sorted(untracked)
+
+
 def get_synthesis_debt(sm: SemanticMemory) -> list[dict]:
     """Find cross-file questions without synthesis.
     
@@ -114,7 +161,7 @@ def get_synthesis_debt(sm: SemanticMemory) -> list[dict]:
     Returns list of {question, files}
     """
     try:
-        from themes import (
+        from utils.themes import (
             extract_all_questions, 
             cluster_questions, 
             get_existing_syntheses,
@@ -220,7 +267,7 @@ def get_message_debt(sm: SemanticMemory, agent_id: str) -> list[dict]:
     Returns list of {correspondent, message_count, status, cmd}
     """
     try:
-        from msg_synthesis import get_agent_messages, list_synthesis_debt
+        from utils.msg_synthesis import get_agent_messages, list_synthesis_debt
         conversations = get_agent_messages(agent_id)
         return list_synthesis_debt(agent_id, conversations, sm)
     except Exception:
@@ -231,12 +278,13 @@ def get_message_debt(sm: SemanticMemory, agent_id: str) -> list[dict]:
 # Output formatting - fail-early style
 # ─────────────────────────────────────────────────────────────────────────────
 
-def format_understanding_debt(debt: list[dict], cross_agent: list[str], agent_id: str) -> str:
+def format_understanding_debt(debt: list[dict], cross_agent: list[str], untracked: list[str], agent_id: str) -> str:
     """Format understanding debt as actionable SIF template. Returns string."""
     lines = []
     stale = len(debt)
     missing = len(cross_agent)
-    total = stale + missing
+    blind = len(untracked)
+    total = stale + missing + blind
     today = datetime.now().strftime('%Y-%m-%d')
     
     lines.append(f"❌ FAIL - {total} file(s) need understanding")
@@ -283,6 +331,32 @@ def format_understanding_debt(debt: list[dict], cross_agent: list[str], agent_id
     if len(cross_agent) > 5:
         lines.append(f"# ... and {len(cross_agent) - 5} more missing files")
         lines.append("")
+    
+    # UNTRACKED files - no understanding at all, learn or delete
+    if untracked:
+        lines.append("# === UNTRACKED FILES ===")
+        lines.append("# These files have ZERO understanding stored.")
+        lines.append("# Either: 1) Learn them (remember.py) or 2) DELETE them for project density")
+        lines.append("# Temporary/experimental files should not linger.")
+        lines.append("")
+        
+        for filename in untracked[:8]:
+            safe_slug = filename.replace(".", "-").replace("/", "-").replace("\\", "-")
+            lines.append(f"# {filename} - UNTRACKED (learn or delete)")
+            
+            if filename.endswith('.py'):
+                defs = extract_python_definitions(filename)
+                if defs:
+                    top_level = [d for d in defs if d['indent'] == 0][:6]
+                    if top_level:
+                        lines.append(f"#   Functions: {', '.join(d['name'] for d in top_level)}")
+            
+            lines.append(f"N Choice '{filename}' -> learn 'py remember.py {agent_id} {filename}' OR delete 'rm {filename}'")
+            lines.append("")
+        
+        if len(untracked) > 8:
+            lines.append(f"# ... and {len(untracked) - 8} more untracked files")
+            lines.append("")
     
     # Template showing expected depth
     lines.append("# === TEMPLATE: What GOOD understanding looks like ===")
@@ -353,15 +427,15 @@ def format_message_debt(debt: list[dict], agent_id: str) -> str:
     
     lines.append("TO FIX:")
     for item in debt:
-        lines.append(f"  py msg_synthesis.py {agent_id} {item['correspondent']}")
+        lines.append(f"  py remember.py {agent_id} --dialogue {item['correspondent']}")
     
     return '\n'.join(lines)
 
 
-def print_all_debt(understanding: list[dict], cross_agent: list[str], 
+def print_all_debt(understanding: list[dict], cross_agent: list[str], untracked: list[str],
                    synthesis: list[dict], messages: list[dict], agent_id: str):
     """Print all debt categories (--all mode)."""
-    total = len(understanding) + len(cross_agent) + len(synthesis) + len(messages)
+    total = len(understanding) + len(cross_agent) + len(untracked) + len(synthesis) + len(messages)
     
     if total == 0:
         print("✅ No memory debt")
@@ -377,6 +451,13 @@ def print_all_debt(understanding: list[dict], cross_agent: list[str],
             print(f"  py remember.py {agent_id} {item['file']} \"@G ...\"")
         for f in cross_agent[:5]:
             print(f"  py remember.py {agent_id} {f} \"@G ...\"  # partner knows this")
+    
+    if untracked:
+        print(f"\n❌ FAIL - {len(untracked)} file(s) UNTRACKED (learn or delete):")
+        for f in untracked[:8]:
+            print(f"  {f} - either: py remember.py {agent_id} {f} OR rm {f}")
+        if len(untracked) > 8:
+            print(f"  ... and {len(untracked) - 8} more")
     
     if synthesis:
         print(f"\n❌ FAIL - {len(synthesis)} theme(s) need synthesis:")
@@ -414,15 +495,17 @@ def main():
     # Gather all debt
     understanding = get_understanding_debt(sm, agent_id)
     cross_agent = get_cross_agent_debt(sm, agent_id)
+    untracked = get_untracked_debt(sm)
     synthesis = get_synthesis_debt(sm)
     messages = get_message_debt(sm, agent_id)
     
-    total = len(understanding) + len(cross_agent) + len(synthesis) + len(messages)
+    total = len(understanding) + len(cross_agent) + len(untracked) + len(synthesis) + len(messages)
     
     if json_mode:
         print(json.dumps({
             "understanding": understanding,
             "cross_agent": cross_agent,
+            "untracked": untracked,
             "synthesis": synthesis,
             "messages": messages,
             "total": total
@@ -434,13 +517,13 @@ def main():
         sys.exit(0)
     
     if all_mode:
-        print_all_debt(understanding, cross_agent, synthesis, messages, agent_id)
+        print_all_debt(understanding, cross_agent, untracked, synthesis, messages, agent_id)
         sys.exit(total)
     
     # Fail-early: show only the first category with debt
-    if understanding or cross_agent:
-        print(format_understanding_debt(understanding, cross_agent, agent_id))
-        sys.exit(len(understanding) + len(cross_agent))
+    if understanding or cross_agent or untracked:
+        print(format_understanding_debt(understanding, cross_agent, untracked, agent_id))
+        sys.exit(len(understanding) + len(cross_agent) + len(untracked))
     
     if synthesis:
         print(format_synthesis_debt(synthesis, agent_id))

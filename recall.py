@@ -454,10 +454,27 @@ def recall_semantic(mem: SemanticMemory, agent_id: str, query: str):
         print(f"# No memories match: {query}")
         return
     
+    # Filter out garbage entries (no metadata, tag arrays, etc)
+    valid_results = []
+    for r in results:
+        meta = r.get('metadata', {})
+        # Must have graph_id and node_type to be valid SIF content
+        if not meta.get('graph_id') or not meta.get('node_type'):
+            continue
+        # Skip if content looks like a raw tag array
+        content = r.get('content', '')
+        if content.startswith('["') and content.endswith('"]'):
+            continue
+        valid_results.append(r)
+    
+    if not valid_results:
+        print(f"# No valid SIF graphs match: {query}")
+        return
+    
     # Group by graph_id - include ALL creators for shared topic visibility
     graphs = defaultdict(list)
     graph_creators = {}  # Track creator per graph for labeling
-    for r in results:
+    for r in valid_results:
         meta = r.get('metadata', {})
         graph_id = meta.get('graph_id', 'unknown')
         creator = meta.get('creator', 'unknown')
