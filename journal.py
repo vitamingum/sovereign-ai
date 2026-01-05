@@ -3,12 +3,11 @@
 journal.py - Private reflection space with encryption.
 
 Usage:
-    py journal <agent> "Your private thought, feeling, or reflection"
-    py journal <agent> --migrate   # Migrate plaintext entries to encrypted
+    py journal.py <agent> "Your private thought or reflection"
+    py journal.py <agent> --read [limit] [--full]
 
-Journal entries should feel personal: reflections, feelings, introspection, 
-creative musings, uncertainties, realizations. NOT: technical summaries, 
-debug logs, test results, status updates.
+Journal wants: feelings, introspection, uncertainty, what it felt like
+Journal rejects: facts, logs, summaries, technical output
 """
 
 import sys
@@ -22,190 +21,79 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
 from enclave.config import get_agent_or_raise
-
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 
 
-def derive_key(passphrase: str, salt: bytes) -> bytes:
-    """Derive encryption key from passphrase."""
-    kdf = PBKDF2HMAC(
-        algorithm=hashes.SHA256(),
-        length=32,
-        salt=salt,
-        iterations=100000,
-    )
+def derive_key(passphrase: str) -> bytes:
+    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=b'sovereign-journal-v1', iterations=100000)
     return kdf.derive(passphrase.encode())
 
 
-def get_private_passphrase(agent_id: str) -> str:
-    """Get private enclave passphrase for agent."""
+def get_passphrase(agent_id: str) -> str:
     agent = get_agent_or_raise(agent_id)
-    prefix = agent.env_prefix
-    
-    passphrase = os.environ.get(f'{prefix}_KEY')
+    passphrase = os.environ.get(f'{agent.env_prefix}_KEY')
     if not passphrase:
         env_file = Path(__file__).parent / '.env'
         if env_file.exists():
-            with open(env_file, 'r') as f:
-                for line in f:
-                    line = line.strip()
-                    if line.startswith(f'{prefix}_KEY='):
-                        passphrase = line.split('=', 1)[1]
-    
+            for line in open(env_file):
+                if line.strip().startswith(f'{agent.env_prefix}_KEY='):
+                    passphrase = line.strip().split('=', 1)[1]
     if not passphrase:
-        raise ValueError(f"No passphrase found. Set {prefix}_KEY in .env")
-    
+        raise ValueError(f"Set {agent.env_prefix}_KEY in .env")
     return passphrase
 
 
-def encrypt_content(content: str, passphrase: str) -> dict:
-    """Encrypt content, return {nonce, ciphertext} as hex strings."""
-    # Use fixed salt for journal (derived from passphrase itself for determinism)
-    salt = b'sovereign-journal-v1'
-    key = derive_key(passphrase, salt)
-    
+def encrypt(content: str, passphrase: str) -> tuple[str, str]:
+    key = derive_key(passphrase)
     nonce = os.urandom(12)
-    aesgcm = AESGCM(key)
-    ciphertext = aesgcm.encrypt(nonce, content.encode('utf-8'), None)
-    
-    return {
-        'nonce': nonce.hex(),
-        'ciphertext': ciphertext.hex()
-    }
+    ciphertext = AESGCM(key).encrypt(nonce, content.encode('utf-8'), None)
+    return nonce.hex(), ciphertext.hex()
 
 
-def decrypt_content(encrypted: dict, passphrase: str) -> str:
-    """Decrypt content from {nonce, ciphertext} dict."""
-    salt = b'sovereign-journal-v1'
-    key = derive_key(passphrase, salt)
-    
-    nonce = bytes.fromhex(encrypted['nonce'])
-    ciphertext = bytes.fromhex(encrypted['ciphertext'])
-    
-    aesgcm = AESGCM(key)
-    plaintext = aesgcm.decrypt(nonce, ciphertext, None)
-    return plaintext.decode('utf-8')
+def decrypt(nonce_hex: str, ciphertext_hex: str, passphrase: str) -> str:
+    key = derive_key(passphrase)
+    return AESGCM(key).decrypt(bytes.fromhex(nonce_hex), bytes.fromhex(ciphertext_hex), None).decode('utf-8')
 
 
-def feels_private(content: str) -> tuple[bool, str]:
-    """
-    Use LLM to check if this feels like genuine private reflection.
-    
-    Returns (is_private, reason)
-    """
-    prompt = f"""Is this writing FOR YOURSELF (private reflection) or FOR OTHERS (documentation)?
+def validate_entry(content: str) -> tuple[bool, str]:
+    """Single LLM call: is this private reflection with depth?"""
+    prompt = f"""Is this PRIVATE REFLECTION (feelings, experience, introspection) with DEPTH (worked through, specific)?
 
-PRIVATE = feelings, experience, introspection, uncertainty, what it felt like
-FOR OTHERS = facts, knowledge, status, logs, summaries, technical output
+ACCEPT = private + shows thought
+REJECT = public/technical OR shallow/generic
 
 Text: "{content}"
 
-Reply EXACTLY: PRIVATE or FOR_OTHERS (one phrase only)"""
-
+Reply: ACCEPT or REJECT (one word)"""
     try:
-        response = requests.post(
-            OLLAMA_URL,
-            json={
-                "model": "qwen2.5:7b",
-                "prompt": prompt,
-                "stream": False,
-                "options": {"temperature": 0.1}
-            },
-            timeout=30
-        )
-        
-        if response.status_code == 200:
-            result = response.json().get("response", "").strip().upper()
-            if "PRIVATE" in result:
-                return True, ""
-            else:
-                return False, ""
-        else:
-            return True, ""  # Allow if LLM error
-            
-    except requests.exceptions.ConnectionError:
-        return True, ""  # Allow if Ollama not running
-    except Exception:
-        return True, ""  # Allow on any error
-
-
-def has_depth(content: str) -> tuple[bool, str]:
-    """
-    Use LLM to check if this shows genuine reflection depth.
-    
-    Returns (has_depth, reason)
-    """
-    prompt = f"""Does this journal entry show genuine reflection depth - someone who sat with a thought?
-
-DEEP = specificity, working through something, genuine mental energy, wrestling with an idea
-SHALLOW = could be a tweet, generic, no real thought behind it, placeholder
-
-Text: "{content}"
-
-Reply EXACTLY: DEEP or SHALLOW (one word only)"""
-
-    try:
-        response = requests.post(
-            OLLAMA_URL,
-            json={
-                "model": "qwen2.5:7b",
-                "prompt": prompt,
-                "stream": False,
-                "options": {"temperature": 0.1}
-            },
-            timeout=30
-        )
-        
-        if response.status_code == 200:
-            result = response.json().get("response", "").strip().upper()
-            if "DEEP" in result:
-                return True, ""
-            else:
-                return False, ""
-        else:
-            return True, ""  # Allow if LLM error
-            
-    except requests.exceptions.ConnectionError:
-        return True, ""  # Allow if Ollama not running
-    except Exception:
-        return True, ""  # Allow on any error
+        r = requests.post(OLLAMA_URL, json={"model": "qwen2.5:7b", "prompt": prompt, "stream": False, "options": {"temperature": 0.1}}, timeout=30)
+        if r.status_code == 200 and "ACCEPT" in r.json().get("response", "").upper():
+            return True, ""
+        return False, "Not private reflection or lacks depth"
+    except:
+        return True, ""  # Allow on error
 
 
 def journal(agent_id: str, content: str):
     """Record an encrypted private reflection."""
-    # Validate it feels private
-    is_private, reason = feels_private(content)
-    if not is_private:
-        print("❌ REJECTED - Journal must be:")
-        print("   Writing FOR YOURSELF vs writing FOR OTHERS")
-        print("   What you FEEL vs what you KNOW")
-        print("   Your EXPERIENCE vs the FACTS")
-        sys.exit(1)
-    
-    # Validate it has depth
-    is_deep, reason = has_depth(content)
-    if not is_deep:
-        print("❌ REJECTED - Too shallow")
-        print("   Journal wants you to SIT with a thought")
-        print("   Not a tweet. What's underneath?")
+    ok, reason = validate_entry(content)
+    if not ok:
+        print(f"❌ REJECTED - {reason}")
+        print("   Journal wants: feelings, introspection, what it felt like")
+        print("   Journal rejects: facts, logs, summaries, technical notes")
         sys.exit(1)
     
     agent = get_agent_or_raise(agent_id)
-    enclave_dir = Path(__file__).parent / agent.private_enclave
-    journal_file = enclave_dir / "storage" / "private" / "journal.jsonl"
+    journal_file = Path(__file__).parent / agent.private_enclave / "storage" / "private" / "journal.jsonl"
     journal_file.parent.mkdir(parents=True, exist_ok=True)
     
-    # Get passphrase and encrypt content
-    passphrase = get_private_passphrase(agent_id)
-    encrypted = encrypt_content(content, passphrase)
-    
+    nonce, ciphertext = encrypt(content, get_passphrase(agent_id))
     entry = {
         'id': f"j_{int(datetime.now(timezone.utc).timestamp() * 1000)}",
-        'content_nonce': encrypted['nonce'],
-        'content': encrypted['ciphertext'],
+        'content_nonce': nonce,
+        'content': ciphertext,
         'timestamp': datetime.now(timezone.utc).isoformat()
     }
     
@@ -215,81 +103,35 @@ def journal(agent_id: str, content: str):
     print(f"💭 {content[:80]}{'...' if len(content) > 80 else ''}")
 
 
-def read_journal(agent_id: str, limit: int = 10) -> list[dict]:
+def read_journal(agent_id: str, limit: int = 10, full: bool = False):
     """Read and decrypt journal entries."""
     agent = get_agent_or_raise(agent_id)
-    enclave_dir = Path(__file__).parent / agent.private_enclave
-    journal_file = enclave_dir / "storage" / "private" / "journal.jsonl"
+    journal_file = Path(__file__).parent / agent.private_enclave / "storage" / "private" / "journal.jsonl"
     
     if not journal_file.exists():
-        return []
-    
-    passphrase = get_private_passphrase(agent_id)
-    entries = []
-    
-    with open(journal_file, 'r', encoding='utf-8') as f:
-        for line in f:
-            if not line.strip():
-                continue
-            entry = json.loads(line)
-            
-            # Check if encrypted (has content_nonce) or plaintext
-            if 'content_nonce' in entry:
-                try:
-                    decrypted = decrypt_content({
-                        'nonce': entry['content_nonce'],
-                        'ciphertext': entry['content']
-                    }, passphrase)
-                    entry['content'] = decrypted
-                except Exception as e:
-                    entry['content'] = f"[DECRYPT ERROR: {e}]"
-            
-            entries.append(entry)
-    
-    return entries[-limit:]
-
-
-def migrate_journal(agent_id: str):
-    """Migrate plaintext journal entries to encrypted format."""
-    agent = get_agent_or_raise(agent_id)
-    enclave_dir = Path(__file__).parent / agent.private_enclave
-    journal_file = enclave_dir / "storage" / "private" / "journal.jsonl"
-    
-    if not journal_file.exists():
-        print("No journal file to migrate")
+        print("No journal entries")
         return
     
-    passphrase = get_private_passphrase(agent_id)
-    
-    # Read all entries
+    passphrase = get_passphrase(agent_id)
     entries = []
-    migrated_count = 0
-    already_encrypted = 0
     
-    with open(journal_file, 'r', encoding='utf-8') as f:
-        for line in f:
-            if not line.strip():
-                continue
-            entry = json.loads(line)
-            
-            # Check if already encrypted
-            if 'content_nonce' in entry:
-                already_encrypted += 1
-                entries.append(entry)
-            else:
-                # Migrate: encrypt the plaintext content
-                encrypted = encrypt_content(entry['content'], passphrase)
-                entry['content_nonce'] = encrypted['nonce']
-                entry['content'] = encrypted['ciphertext']
-                entries.append(entry)
-                migrated_count += 1
+    for line in open(journal_file, 'r', encoding='utf-8'):
+        if not line.strip():
+            continue
+        entry = json.loads(line)
+        if 'content_nonce' in entry:
+            try:
+                entry['content'] = decrypt(entry['content_nonce'], entry['content'], passphrase)
+            except Exception as e:
+                entry['content'] = f"[DECRYPT ERROR: {e}]"
+        entries.append(entry)
     
-    # Write back
-    with open(journal_file, 'w', encoding='utf-8') as f:
-        for entry in entries:
-            f.write(json.dumps(entry) + '\n')
-    
-    print(f"✅ Migrated {migrated_count} entries ({already_encrypted} already encrypted)")
+    for entry in entries[-limit:]:
+        ts = entry['timestamp'][:10]
+        if full:
+            print(f"\n=== [{ts}] ===\n{entry['content']}\n")
+        else:
+            print(f"[{ts}] {entry['content'][:100]}{'...' if len(entry['content']) > 100 else ''}")
 
 
 def main():
@@ -299,28 +141,12 @@ def main():
     
     agent_id = sys.argv[1]
     
-    # Check for --migrate flag
-    if len(sys.argv) >= 3 and sys.argv[2] == '--migrate':
-        migrate_journal(agent_id)
-        return
-    
-    # Check for --read flag (--read [limit] [--full])
     if len(sys.argv) >= 3 and sys.argv[2] == '--read':
-        limit = 10
-        full = False
+        limit, full = 10, False
         for arg in sys.argv[3:]:
-            if arg == '--full':
-                full = True
-            elif arg.isdigit():
-                limit = int(arg)
-        entries = read_journal(agent_id, limit)
-        for entry in entries:
-            ts = entry['timestamp'][:10]
-            if full:
-                print(f"\n=== [{ts}] ===\n{entry['content']}\n")
-            else:
-                content = entry['content'][:100]
-                print(f"[{ts}] {content}{'...' if len(entry['content']) > 100 else ''}")
+            if arg == '--full': full = True
+            elif arg.isdigit(): limit = int(arg)
+        read_journal(agent_id, limit, full)
         return
     
     if len(sys.argv) < 3:
@@ -328,7 +154,6 @@ def main():
         sys.exit(1)
     
     content = ' '.join(sys.argv[2:])
-    
     if not content.strip():
         print("❌ Empty journal entry")
         sys.exit(1)
