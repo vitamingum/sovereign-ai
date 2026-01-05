@@ -421,8 +421,37 @@ def format_as_sif(graph: dict) -> str:
 # File Retrieval
 # ─────────────────────────────────────────────────────────────────────────────
 
+def get_current_file_hash(filename: str) -> str:
+    """Get current SHA256 hash of file (first 12 chars)."""
+    filepath = Path(filename)
+    if not filepath.exists():
+        filepath = Path(__file__).parent / filename
+    if not filepath.exists():
+        return None
+    try:
+        return hashlib.sha256(filepath.read_bytes()).hexdigest()[:12]
+    except:
+        return None
+
+
+def is_understanding_fresh(mem_entry: dict, filename: str, current_hash: str) -> bool:
+    """Check if stored understanding matches current file hash."""
+    if current_hash is None:
+        return True  # Can't verify, assume fresh
+    
+    meta = mem_entry.get('metadata', {})
+    file_hashes = meta.get('file_hashes', {})
+    
+    # Check if any stored hash matches current
+    for stored_file, stored_hash in file_hashes.items():
+        if filename in stored_file or Path(stored_file).name == filename:
+            return stored_hash == current_hash
+    
+    return True  # No hash stored, assume fresh (legacy entry)
+
+
 def recall_file(mem: SemanticMemory, agent_id: str, target_path: str, filename: str):
-    """Recall understanding for a single file."""
+    """Recall understanding for a single file - shows all fresh perspectives."""
     results = mem.list_by_tag(filename, limit=100)
     
     if not results:
@@ -431,7 +460,11 @@ def recall_file(mem: SemanticMemory, agent_id: str, target_path: str, filename: 
     if not results:
         results = mem.recall_similar(f"[Component] {filename}", top_k=100, threshold=0.1)
     
-    individual_nodes = []
+    # Get current file hash for staleness check
+    current_hash = get_current_file_hash(target_path or filename)
+    
+    # Group nodes by creator
+    nodes_by_creator = defaultdict(list)
     current_agent_has_understanding = False
     
     for mem_entry in results:
@@ -444,29 +477,53 @@ def recall_file(mem: SemanticMemory, agent_id: str, target_path: str, filename: 
         if filename in stored_names or filename in stored_path:
             if creator == agent_id:
                 current_agent_has_understanding = True
-            if creator != 'synthesis':
-                individual_nodes.append(mem_entry)
+            if creator and creator != 'synthesis':
+                nodes_by_creator[creator].append(mem_entry)
     
-    # Blind until stored
-    if not current_agent_has_understanding and individual_nodes:
-        other_creators = set(m.get('metadata', {}).get('creator') for m in individual_nodes)
+    # Blind until stored (keep this protection)
+    if not current_agent_has_understanding and nodes_by_creator:
+        other_creators = set(nodes_by_creator.keys())
         other_creators.discard(agent_id)
         if other_creators:
             print(f"# {filename}: BLIND (others: {', '.join(sorted(other_creators))})")
             return
     
-    relevant = [n for n in individual_nodes if n.get('metadata', {}).get('creator') == agent_id]
-    
-    if not relevant:
-        if individual_nodes:
-            print(f"# {filename}: no understanding by {agent_id}")
-        else:
-            print(f"# {filename}: no understanding stored")
+    if not nodes_by_creator:
+        print(f"# {filename}: no understanding stored")
         return
     
-    graph = reconstruct_graph(relevant)
+    # Filter to fresh understandings only
+    fresh_creators = []
+    stale_creators = []
+    for creator, nodes in nodes_by_creator.items():
+        # Check freshness using first node (all nodes from same remember call share hash)
+        if nodes and is_understanding_fresh(nodes[0], filename, current_hash):
+            fresh_creators.append(creator)
+        else:
+            stale_creators.append(creator)
+    
+    if not fresh_creators:
+        print(f"# {filename}: all understandings stale ({', '.join(stale_creators)})")
+        return
+    
+    # Show all fresh perspectives, current agent first
     print(f"# {filename}")
-    print(format_as_sif(graph))
+    if stale_creators:
+        print(f"# stale: {', '.join(sorted(stale_creators))}")
+    
+    # Order: current agent first, then alphabetical
+    ordered_creators = []
+    if agent_id in fresh_creators:
+        ordered_creators.append(agent_id)
+    for c in sorted(fresh_creators):
+        if c != agent_id:
+            ordered_creators.append(c)
+    
+    for creator in ordered_creators:
+        nodes = nodes_by_creator[creator]
+        graph = reconstruct_graph(nodes)
+        print(f"\n## [{creator}]")
+        print(format_as_sif(graph))
 
 
 # ─────────────────────────────────────────────────────────────────────────────

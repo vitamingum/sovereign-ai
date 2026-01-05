@@ -1,0 +1,10 @@
+@G llm-py gemini 2026-01-05
+N S 'Interface to local LLM (Ollama) providing sovereignty'
+N P 'Enables agents to think, synthesize, and validate without external dependencies'
+N Flow 'generate_json() -> generate() -> requests.post(Ollama)'
+N Loc 'LocalLLM(class) ~line 10' -> implements 'Wrapper for Ollama API'
+N Loc 'generate(prompt: str, ...)() ~line 15' -> implements 'Text generation via API'
+N Loc 'generate_json(prompt: str, ...)() ~line 39' -> implements 'Strict JSON generation with schema support'
+N D 'Design: Local Ollama execution' -> ensures 'No data leaves the device (sovereignty)'
+N G 'Gotcha: Timeout handling' -> warns 'Heavy models may timeout on 60s limit'
+N G 'Gotcha: JSON parsing brittleness' -> warns 'LLMs may still output markdown fences despite instructions'
