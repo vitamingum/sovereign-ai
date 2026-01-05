@@ -9,11 +9,13 @@ Examples:
   py recall opus crypto.py           # exact file match
   py recall opus --theme encryption  # exact theme match  
   py recall opus "key derivation"    # semantic search (graphs + journal)
+  py recall opus --literal "exact phrase"  # O(N) literal string search
 
 The system figures out the retrieval path:
 1. If query looks like a file path → exact file match
 2. If --theme flag → exact theme match
-3. Otherwise → semantic search across shared graphs AND private journal
+3. If --literal flag → brute-force string search (O(N), no embeddings)
+4. Otherwise → semantic search across shared graphs AND private journal
 """
 
 import sys
@@ -703,6 +705,76 @@ def is_file_query(query: str) -> bool:
     return False
 
 
+def recall_literal(mem: SemanticMemory, agent_id: str, query: str):
+    """Brute-force literal string search. O(N) but exact.
+    
+    Searches both shared memory and private journal for exact substring matches.
+    No embedding computation - just Python string matching.
+    """
+    query_lower = query.lower()
+    
+    # Search shared memory
+    shared_results = []
+    for m in mem.list_all(limit=None):
+        content = m.get('content', '')
+        if query_lower in content.lower():
+            shared_results.append(m)
+    
+    # Search journal
+    journal_results = []
+    try:
+        private_enclave, private_passphrase = load_private_passphrase(agent_id)
+        journal_mem = SemanticMemory(private_enclave, memory_file="journal_memories.jsonl")
+        journal_mem.unlock(private_passphrase)
+        
+        for m in journal_mem.list_all(limit=None):
+            content = m.get('content', '')
+            if query_lower in content.lower():
+                journal_results.append(m)
+    except ValueError:
+        pass  # No private key
+    
+    total = len(shared_results) + len(journal_results)
+    if total == 0:
+        print(f"# No literal matches for: {query}")
+        return
+    
+    print(f"# Literal search: {query}")
+    print(f"# Found {len(shared_results)} shared, {len(journal_results)} journal")
+    print()
+    
+    # Sort by match density (count of matches / content length) - most relevant first
+    def match_score(r):
+        content = r.get('content', '').lower()
+        count = content.count(query_lower)
+        # Score: matches per 100 chars, capped
+        return count / max(len(content), 1) * 100
+    
+    shared_results.sort(key=match_score, reverse=True)
+    journal_results.sort(key=match_score, reverse=True)
+    
+    # Show shared results (sorted by relevance)
+    for r in shared_results[:10]:
+        meta = r.get('metadata', {})
+        graph_id = meta.get('graph_id', 'unknown')
+        creator = meta.get('creator', 'unknown')
+        ts = r.get('timestamp', '')[:19].replace('T', ' ')
+        
+        print(f"## {graph_id} [by {creator}] @ {ts}")
+        # Show content with match highlighted
+        content = r.get('content', '')
+        print(content[:500] + ('...' if len(content) > 500 else ''))
+        print()
+    
+    # Show journal results
+    for r in journal_results[:5]:
+        ts = r.get('timestamp', '')[:10]
+        content = r.get('content', '')
+        print(f"## 📔 journal [{ts}]")
+        print(content[:500] + ('...' if len(content) > 500 else ''))
+        print()
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Main
 # ─────────────────────────────────────────────────────────────────────────────
@@ -722,6 +794,24 @@ def main():
             sys.exit(1)
         theme = sys.argv[theme_idx + 1]
         recall_theme(agent_id, theme)
+        return
+    
+    # Literal string search mode
+    if '--literal' in sys.argv:
+        literal_idx = sys.argv.index('--literal')
+        if len(sys.argv) < literal_idx + 2:
+            print("Usage: py recall <agent> --literal <string>", file=sys.stderr)
+            sys.exit(1)
+        # Get all args after --literal as the search string
+        literal_query = ' '.join(sys.argv[literal_idx + 1:])
+        try:
+            enclave_dir, passphrase = load_passphrase(agent_id)
+            mem = SemanticMemory(enclave_dir)
+            mem.unlock(passphrase)
+            recall_literal(mem, agent_id, literal_query)
+        except ValueError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
         return
     
     query = ' '.join(sys.argv[2:])
