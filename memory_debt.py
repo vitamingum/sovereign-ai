@@ -78,18 +78,18 @@ def get_understanding_debt(sm: SemanticMemory, agent_id: str = None) -> list[dic
             filepath = Path(filename)
             if not filepath.exists():
                 filepath = Path(__file__).parent / filename
+            # Don't glob search - if file moved, it's a different file
+            # Understanding for "dream.py" shouldn't match "research/dream.py"
             if not filepath.exists():
-                matches = list(Path(__file__).parent.glob(f'**/{filename}'))
-                filepath = matches[0] if matches else None
+                continue  # File deleted or moved - not debt, just orphaned understanding
             
-            if filepath and filepath.exists():
-                current = file_hash(filepath)
-                if current and current not in stored_hashes:
-                    debt.append({
-                        "file": filename,
-                        "stored_hash": list(stored_hashes)[0],
-                        "current_hash": current,
-                    })
+            current = file_hash(filepath)
+            if current and current not in stored_hashes:
+                debt.append({
+                    "file": filename,
+                    "stored_hash": list(stored_hashes)[0],
+                    "current_hash": current,
+                })
         
         return debt
     except:
