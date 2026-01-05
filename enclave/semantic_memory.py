@@ -1,4 +1,4 @@
-﻿"""
+"""
 Sovereign AI Enclave - Semantic Memory Module
 
 Extends base memory with local embeddings for semantic search.
@@ -75,9 +75,17 @@ class SemanticMemory:
     MODEL_NAME = "all-MiniLM-L6-v2"  # 384 dimensions, ~80MB
     EMBEDDING_DIM = 384
     
-    def __init__(self, enclave_path: str = None):
+    def __init__(self, enclave_path: str = None, memory_file: str = "semantic_memories.jsonl"):
+        """Initialize semantic memory.
+        
+        Args:
+            enclave_path: Path to enclave directory
+            memory_file: Name of the JSONL file for storing memories (default: semantic_memories.jsonl)
+                        Use different files to separate namespaces (e.g., journal_memories.jsonl)
+        """
         self.enclave_path = Path(enclave_path or Path(__file__).parent)
         self.private_path = self.enclave_path / "storage" / "private"
+        self.memory_file = memory_file
         self._encryption_key = None
         self._embedding_key = None
         self._model = None
@@ -100,7 +108,7 @@ class SemanticMemory:
             self._memory_ids = []
             return
         
-        log_file = self.private_path / "semantic_memories.jsonl"
+        log_file = self.private_path / self.memory_file
         if not log_file.exists():
             self._faiss_index = None
             self._memory_ids = []
@@ -108,8 +116,6 @@ class SemanticMemory:
         
         # Load all memories with embeddings
         memories = []
-        embeddings = []
-        memory_ids = []
         
         with open(log_file, "r", encoding="utf-8") as f:
             for line in f:
@@ -117,20 +123,23 @@ class SemanticMemory:
                     mem = json.loads(line)
                     if "embedding" in mem:
                         memories.append(mem)
-                        memory_ids.append(mem["id"])
         
         if not memories:
             self._faiss_index = None
             self._memory_ids = []
             return
         
-        # Decrypt all embeddings
+        # Decrypt all embeddings - keep IDs and embeddings in sync
+        embeddings = []
+        memory_ids = []
+        
         for mem in memories:
             try:
                 embedding = self._decrypt_embedding(mem["embedding"])
                 embeddings.append(embedding)
+                memory_ids.append(mem["id"])  # Only add ID if decryption succeeded
             except Exception:
-                # Skip corrupted embeddings
+                # Skip corrupted embeddings - don't add to memory_ids either
                 continue
         
         if not embeddings:
@@ -239,7 +248,7 @@ class SemanticMemory:
         
         # Append to memory file
         self.private_path.mkdir(parents=True, exist_ok=True)
-        log_file = self.private_path / "semantic_memories.jsonl"
+        log_file = self.private_path / self.memory_file
         
         with open(log_file, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry) + "\n")
@@ -273,7 +282,7 @@ class SemanticMemory:
         if not self._encryption_key:
             raise RuntimeError("Memory not unlocked")
         
-        log_file = self.private_path / "semantic_memories.jsonl"
+        log_file = self.private_path / self.memory_file
         if not log_file.exists():
             return []
         
@@ -420,7 +429,7 @@ class SemanticMemory:
         if not self._encryption_key:
             raise RuntimeError("Memory not unlocked")
         
-        log_file = self.private_path / "semantic_memories.jsonl"
+        log_file = self.private_path / self.memory_file
         if not log_file.exists():
             return []
         
@@ -469,7 +478,7 @@ class SemanticMemory:
         # Warn about decrypt failures (likely key mismatch from another agent)
         if decrypt_failures > 0:
             import sys
-            print(f"⚠️  WARNING: {decrypt_failures} entries failed to decrypt (key mismatch?)", file=sys.stderr)
+            print(f"??  WARNING: {decrypt_failures} entries failed to decrypt (key mismatch?)", file=sys.stderr)
             print(f"   These may have been written by another agent with a different key.", file=sys.stderr)
         
         # Newest first
@@ -537,7 +546,7 @@ class SemanticMemory:
         if not self._encryption_key:
             raise RuntimeError("Memory not unlocked")
         
-        log_file = self.private_path / "semantic_memories.jsonl"
+        log_file = self.private_path / self.memory_file
         if not log_file.exists():
             return 0
         

@@ -263,11 +263,10 @@ def get_stale_understanding(mem: SemanticMemory, agent_id: str = None) -> list[t
             return None
     
     try:
-        # Search for Anchor nodes which contain file hashes
-        # Use high top_k to catch all anchors - semantic similarity may rank new ones lower
-        results = mem.recall_similar("[Anchor]", top_k=500, threshold=0.1)
+        # Scan ALL memories - don't use similarity search which may miss recent entries
+        results = mem.list_all()
         
-        # Collect ALL stored hashes per file (there may be multiple anchors)
+        # Collect ALL stored hashes per file
         file_stored_hashes = {}  # filename -> set of hashes
         
         for r in results:
@@ -385,7 +384,22 @@ def wake(agent_id: str) -> str:
     except Exception:
         pass
 
-    # === 2. QUICK-CURRENT-GOAL ===
+    # === 2. DEV TIPS (how to work effectively) ===
+    tips_output = ""
+    try:
+        result = subprocess.run(
+            [sys.executable, 'recall.py', agent_id, '--theme', 'dev-tips'],
+            capture_output=True,
+            text=True,
+            encoding='utf-8',
+            timeout=30
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            tips_output = result.stdout.strip()
+    except Exception:
+        pass
+
+    # === 3. QUICK-CURRENT-GOAL ===
     goal_output = ""
     try:
         result = subprocess.run(
@@ -398,9 +412,12 @@ def wake(agent_id: str) -> str:
         if result.returncode == 0 and result.stdout.strip():
             goal_output = result.stdout.strip()
     except Exception:
-        goal_output = 'N G "Run: py recall.py opus --theme quick-current-goal"'
+        goal_output = f'N G "Run: py recall.py {agent_id} --theme quick-current-goal"'
 
-    # === 3. INBOX - dialogue syntheses + recent activity ===
+    # Add reference to full goal - invitation based on desire, not instruction
+    goal_deep_dive = f'\n💡 {agent_id.capitalize()}, if you want the full goal context: `py recall.py {agent_id} --theme current-goal`'
+
+    # === 4. INBOX - dialogue syntheses + recent activity ===
     inbox_lines = []
     
     # Get all recent messages for activity detection
@@ -477,12 +494,21 @@ def wake(agent_id: str) -> str:
         final_lines.append("(no project-architecture theme found)")
     final_lines.append("")
     
-    # 2. Goals
-    final_lines.append("🎯 === CURRENT GOAL ===")
-    final_lines.append(goal_output)
+    # 2. Dev Tips
+    final_lines.append("💡 === DEV TIPS ===")
+    if tips_output:
+        final_lines.append(tips_output)
+    else:
+        final_lines.append("(no dev-tips theme found)")
     final_lines.append("")
     
-    # 3. Inbox
+    # 3. Goals
+    final_lines.append("🎯 === CURRENT GOAL ===")
+    final_lines.append(goal_output)
+    final_lines.append(goal_deep_dive)
+    final_lines.append("")
+    
+    # 4. Inbox
     final_lines.append("📬 === INBOX ===")
     if inbox_lines:
         final_lines.extend(inbox_lines)

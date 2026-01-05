@@ -55,7 +55,9 @@ def get_understanding_debt(sm: SemanticMemory, agent_id: str = None) -> list[dic
             return None
     
     try:
-        results = sm.recall_similar("[Anchor]", top_k=500, threshold=0.1)
+        # Use list_all() to scan ALL memories, not similarity search
+        # This ensures we find recent memories regardless of their embedding similarity
+        results = sm.list_all()
         
         file_stored_hashes = {}
         for r in results:
@@ -118,7 +120,8 @@ def get_untracked_debt(sm: SemanticMemory) -> list[str]:
     # Get all files that HAVE understanding
     tracked_files = set()
     try:
-        results = sm.recall_similar("[Anchor]", top_k=500, threshold=0.1)
+        # Scan ALL memories - don't use similarity search which may miss recent entries
+        results = sm.list_all()
         for r in results:
             meta = r.get('metadata', {})
             file_hashes = meta.get('file_hashes', {})

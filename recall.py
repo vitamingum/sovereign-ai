@@ -8,12 +8,12 @@ Usage:
 Examples:
   py recall opus crypto.py           # exact file match
   py recall opus --theme encryption  # exact theme match  
-  py recall opus "key derivation"    # semantic search → relevant graphs
+  py recall opus "key derivation"    # semantic search (graphs + journal)
 
 The system figures out the retrieval path:
 1. If query looks like a file path → exact file match
 2. If --theme flag → exact theme match
-3. Otherwise → semantic search, returns full graphs (not scattered nodes)
+3. Otherwise → semantic search across shared graphs AND private journal
 """
 
 import sys
@@ -30,6 +30,8 @@ if sys.stderr.encoding != 'utf-8':
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import json
 
 from enclave.config import get_agent_or_raise
 from enclave.semantic_memory import SemanticMemory
@@ -64,6 +66,31 @@ def load_passphrase(agent_id: str) -> tuple[str, str]:
     
     if not passphrase:
         raise ValueError("No passphrase found. Set SHARED_ENCLAVE_KEY in .env")
+    
+    return enclave_dir, passphrase
+
+
+def load_private_passphrase(agent_id: str) -> tuple[str, str]:
+    """Load agent's private passphrase for journal access.
+    
+    Returns (private_enclave_dir, private_passphrase).
+    """
+    agent = get_agent_or_raise(agent_id)
+    enclave_dir = agent.private_enclave
+    
+    passphrase = os.environ.get(f'{agent.env_prefix}_KEY')
+    
+    if not passphrase:
+        env_file = Path(__file__).parent / '.env'
+        if env_file.exists():
+            with open(env_file, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith(f'{agent.env_prefix}_KEY='):
+                        passphrase = line.split('=', 1)[1]
+    
+    if not passphrase:
+        raise ValueError(f"No private passphrase. Set {agent.env_prefix}_KEY in .env")
     
     return enclave_dir, passphrase
 
@@ -446,30 +473,60 @@ def recall_file(mem: SemanticMemory, agent_id: str, target_path: str, filename: 
 # Semantic Retrieval
 # ─────────────────────────────────────────────────────────────────────────────
 
-def recall_semantic(mem: SemanticMemory, agent_id: str, query: str):
-    """Semantic search returning full graphs."""
-    results = mem.recall_similar(query, top_k=100, threshold=0.2)
+def extract_query_terms(query: str) -> set[str]:
+    """Extract meaningful terms from query for keyword matching."""
+    terms = set()
+    for word in query.lower().split():
+        # Keep terms 3+ chars, strip punctuation
+        clean = ''.join(c for c in word if c.isalnum() or c == '-')
+        if len(clean) >= 3:
+            terms.add(clean)
+    return terms
+
+
+def keyword_boost(result: dict, query_terms: set[str], boost: float = 0.5) -> float:
+    """Calculate keyword boost for a result based on exact term matches."""
+    content = result.get('content', '').lower()
+    graph_id = result.get('metadata', {}).get('graph_id', '').lower()
     
-    if not results:
-        print(f"# No memories match: {query}")
-        return
+    # Check if any query term appears in content or graph_id
+    for term in query_terms:
+        if term in content or term in graph_id:
+            return boost
+    return 0.0
+
+
+def recall_semantic(mem: SemanticMemory, agent_id: str, query: str):
+    """Semantic search across all agent-accessible memory: shared graphs + private journal.
+    
+    Both use FAISS indices - no on-the-fly embedding computation.
+    """
+    query_terms = extract_query_terms(query)
+    
+    # ─── Search shared semantic memory (graphs, themes) ───
+    results = mem.recall_similar(query, top_k=100, threshold=0.1)
     
     # Filter out garbage entries (no metadata, tag arrays, etc)
     valid_results = []
     for r in results:
         meta = r.get('metadata', {})
-        # Must have graph_id and node_type to be valid SIF content
-        if not meta.get('graph_id') or not meta.get('node_type'):
+        # Must have graph_id OR topic (for theme syntheses), and node_type OR be a theme entry
+        graph_id = meta.get('graph_id') or meta.get('topic')
+        if not graph_id:
             continue
         # Skip if content looks like a raw tag array
         content = r.get('content', '')
         if content.startswith('["') and content.endswith('"]'):
             continue
+        # Normalize: ensure graph_id is set for grouping
+        if not meta.get('graph_id') and meta.get('topic'):
+            meta['graph_id'] = meta['topic']
         valid_results.append(r)
     
-    if not valid_results:
-        print(f"# No valid SIF graphs match: {query}")
-        return
+    # Apply keyword boost to each result
+    for r in valid_results:
+        boost = keyword_boost(r, query_terms)
+        r['similarity'] = r.get('similarity', 0) + boost
     
     # Group by graph_id - include ALL creators for shared topic visibility
     graphs = defaultdict(list)
@@ -482,37 +539,95 @@ def recall_semantic(mem: SemanticMemory, agent_id: str, query: str):
         graphs[graph_id].append(r)
         graph_creators[graph_id] = creator
     
-    if not graphs:
+    # Sort by relevance - use average score (not sum) so themes aren't penalized for being single blobs
+    graph_scores = {g: sum(n.get('similarity', 0) for n in nodes) / len(nodes) for g, nodes in graphs.items()}
+    
+    # ─── Search private journal memory via FAISS ───
+    journal_results = []
+    try:
+        private_enclave, private_passphrase = load_private_passphrase(agent_id)
+        
+        # Journal has its own FAISS index - separate from other private memories
+        journal_mem = SemanticMemory(private_enclave, memory_file="journal_memories.jsonl")
+        journal_mem.unlock(private_passphrase)
+        
+        # Search journal directly - no pollution from other entry types
+        journal_hits = journal_mem.recall_similar(query, top_k=20, threshold=0.1)
+        
+        for r in journal_hits:
+            content = r.get('content', '')
+            similarity = r.get('similarity', 0)
+            
+            # Keyword boost
+            boost = 0.5 if any(term in content.lower() for term in query_terms) else 0.0
+            
+            meta = r.get('metadata', {})
+            journal_results.append({
+                'timestamp': meta.get('timestamp', r.get('timestamp', 'unknown')),
+                'content': content,
+                'similarity': similarity + boost
+            })
+                
+    except ValueError:
+        pass  # No private key available - skip journal search
+    
+    # Sort journal results
+    journal_results.sort(key=lambda x: x['similarity'], reverse=True)
+    
+    # ─── Output combined results ───
+    sorted_graphs = sorted(graph_scores.keys(), key=lambda g: graph_scores[g], reverse=True)
+    
+    total_sources = len(sorted_graphs) + len(journal_results)
+    if total_sources == 0:
         print(f"# No memories match: {query}")
         return
     
-    # Sort by relevance
-    graph_scores = {g: sum(n.get('similarity', 0) for n in nodes) for g, nodes in graphs.items()}
-    sorted_graphs = sorted(graph_scores.keys(), key=lambda g: graph_scores[g], reverse=True)
-    
     print(f"# Semantic recall: {query}")
-    print(f"# Found {len(sorted_graphs)} relevant graphs")
+    print(f"# Found {len(sorted_graphs)} graphs, {len(journal_results)} journal entries")
     print()
     
-    for graph_id in sorted_graphs[:3]:
-        nodes = graphs[graph_id]
-        score = graph_scores[graph_id]
-        creator = graph_creators.get(graph_id, 'unknown')
+    # Interleave top results by score
+    shown_graphs = 0
+    shown_journal = 0
+    max_each = 3  # Show up to 3 of each type
+    
+    while (shown_graphs < max_each or shown_journal < max_each) and (shown_graphs < len(sorted_graphs) or shown_journal < len(journal_results)):
+        # Get next candidates
+        next_graph_score = graph_scores.get(sorted_graphs[shown_graphs], 0) if shown_graphs < len(sorted_graphs) else -1
+        next_journal_score = journal_results[shown_journal]['similarity'] if shown_journal < len(journal_results) else -1
         
-        graph = reconstruct_graph(nodes)
-        
-        target_path = None
-        for n in nodes:
-            tp = n.get('metadata', {}).get('target_path')
-            if tp:
-                target_path = tp
-                break
-        
-        print(f"## {graph_id} [by {creator}] (relevance: {score:.2f})")
-        if target_path:
-            print(f"# file: {target_path}")
-        print(format_as_sif(graph))
-        print()
+        # Pick higher scoring one (prefer graphs if tied)
+        if shown_graphs < max_each and next_graph_score >= next_journal_score and shown_graphs < len(sorted_graphs):
+            graph_id = sorted_graphs[shown_graphs]
+            nodes = graphs[graph_id]
+            score = graph_scores[graph_id]
+            creator = graph_creators.get(graph_id, 'unknown')
+            
+            graph = reconstruct_graph(nodes)
+            
+            target_path = None
+            for n in nodes:
+                tp = n.get('metadata', {}).get('target_path')
+                if tp:
+                    target_path = tp
+                    break
+            
+            print(f"## {graph_id} [by {creator}] (relevance: {score:.2f})")
+            if target_path:
+                print(f"# file: {target_path}")
+            print(format_as_sif(graph))
+            print()
+            shown_graphs += 1
+        elif shown_journal < max_each and shown_journal < len(journal_results):
+            j = journal_results[shown_journal]
+            ts = j['timestamp'][:10] if len(j['timestamp']) >= 10 else j['timestamp']
+            
+            print(f"## 📔 journal [{ts}] (relevance: {j['similarity']:.2f})")
+            print(j['content'])  # Full content - journals are for retrieval, not preview
+            print()
+            shown_journal += 1
+        else:
+            break
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -576,7 +691,7 @@ def main():
             target_path = Path(query)
             recall_file(mem, agent_id, str(target_path), target_path.name)
     else:
-        # Semantic retrieval
+        # Semantic retrieval (searches both shared graphs AND private journal)
         recall_semantic(mem, agent_id, query)
 
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-journal.py - Private reflection space with encryption.
+journal.py - Private reflection space with FAISS-indexed semantic search.
 
 Usage:
     py journal.py <agent> "Your private thought or reflection"
@@ -8,30 +8,26 @@ Usage:
 
 Journal wants: feelings, introspection, uncertainty, what it felt like
 Journal rejects: facts, logs, summaries, technical output
+
+Storage: Uses SemanticMemory with agent's private enclave and key.
+Indexed in FAISS automatically - searchable via recall.py like everything else.
 """
 
 import sys
 import os
-import json
 import requests
 from pathlib import Path
 from datetime import datetime, timezone
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from cryptography.hazmat.primitives import hashes
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from enclave.config import get_agent_or_raise
+from enclave.semantic_memory import SemanticMemory
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 
 
-def derive_key(passphrase: str) -> bytes:
-    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=b'sovereign-journal-v1', iterations=100000)
-    return kdf.derive(passphrase.encode())
-
-
 def get_passphrase(agent_id: str) -> str:
+    """Load agent's private passphrase."""
     agent = get_agent_or_raise(agent_id)
     passphrase = os.environ.get(f'{agent.env_prefix}_KEY')
     if not passphrase:
@@ -43,18 +39,6 @@ def get_passphrase(agent_id: str) -> str:
     if not passphrase:
         raise ValueError(f"Set {agent.env_prefix}_KEY in .env")
     return passphrase
-
-
-def encrypt(content: str, passphrase: str) -> tuple[str, str]:
-    key = derive_key(passphrase)
-    nonce = os.urandom(12)
-    ciphertext = AESGCM(key).encrypt(nonce, content.encode('utf-8'), None)
-    return nonce.hex(), ciphertext.hex()
-
-
-def decrypt(nonce_hex: str, ciphertext_hex: str, passphrase: str) -> str:
-    key = derive_key(passphrase)
-    return AESGCM(key).decrypt(bytes.fromhex(nonce_hex), bytes.fromhex(ciphertext_hex), None).decode('utf-8')
 
 
 def validate_entry(content: str) -> tuple[bool, str]:
@@ -77,7 +61,7 @@ Reply: ACCEPT or REJECT (one word)"""
 
 
 def journal(agent_id: str, content: str):
-    """Record an encrypted private reflection."""
+    """Record a private reflection - FAISS indexed for semantic search."""
     ok, reason = validate_entry(content)
     if not ok:
         print(f"❌ REJECTED - {reason}")
@@ -86,52 +70,52 @@ def journal(agent_id: str, content: str):
         sys.exit(1)
     
     agent = get_agent_or_raise(agent_id)
-    journal_file = Path(__file__).parent / agent.private_enclave / "storage" / "private" / "journal.jsonl"
-    journal_file.parent.mkdir(parents=True, exist_ok=True)
+    passphrase = get_passphrase(agent_id)
     
-    nonce, ciphertext = encrypt(content, get_passphrase(agent_id))
-    entry = {
-        'id': f"j_{int(datetime.now(timezone.utc).timestamp() * 1000)}",
-        'content_nonce': nonce,
-        'content': ciphertext,
-        'timestamp': datetime.now(timezone.utc).isoformat()
-    }
+    # Use SemanticMemory with private enclave and dedicated journal file
+    # Separate from main semantic_memories.jsonl to avoid pollution
+    mem = SemanticMemory(agent.private_enclave, memory_file="journal_memories.jsonl")
+    mem.unlock(passphrase)
     
-    with open(journal_file, 'a', encoding='utf-8') as f:
-        f.write(json.dumps(entry) + '\n')
+    # Store with journal tag and metadata for filtering
+    result = mem.remember(
+        content,
+        tags=['journal'],
+        metadata={
+            'type': 'journal',
+            'creator': agent_id,
+            'timestamp': datetime.now(timezone.utc).isoformat()
+        }
+    )
     
     print(f"💭 {content[:80]}{'...' if len(content) > 80 else ''}")
 
 
 def read_journal(agent_id: str, limit: int = 10, full: bool = False):
-    """Read and decrypt journal entries."""
+    """Read journal entries (most recent first)."""
     agent = get_agent_or_raise(agent_id)
-    journal_file = Path(__file__).parent / agent.private_enclave / "storage" / "private" / "journal.jsonl"
+    passphrase = get_passphrase(agent_id)
     
-    if not journal_file.exists():
+    mem = SemanticMemory(agent.private_enclave, memory_file="journal_memories.jsonl")
+    mem.unlock(passphrase)
+    
+    # Get all journal entries
+    entries = mem.list_by_tag('journal')
+    
+    if not entries:
         print("No journal entries")
         return
     
-    passphrase = get_passphrase(agent_id)
-    entries = []
+    # Sort by timestamp (newest first)
+    entries.sort(key=lambda e: e.get('timestamp', ''), reverse=True)
     
-    for line in open(journal_file, 'r', encoding='utf-8'):
-        if not line.strip():
-            continue
-        entry = json.loads(line)
-        if 'content_nonce' in entry:
-            try:
-                entry['content'] = decrypt(entry['content_nonce'], entry['content'], passphrase)
-            except Exception as e:
-                entry['content'] = f"[DECRYPT ERROR: {e}]"
-        entries.append(entry)
-    
-    for entry in entries[-limit:]:
-        ts = entry['timestamp'][:10]
+    for entry in entries[:limit]:
+        ts = entry.get('timestamp', 'unknown')[:10]
+        content = entry.get('content', '')
         if full:
-            print(f"\n=== [{ts}] ===\n{entry['content']}\n")
+            print(f"\n=== [{ts}] ===\n{content}\n")
         else:
-            print(f"[{ts}] {entry['content'][:100]}{'...' if len(entry['content']) > 100 else ''}")
+            print(f"[{ts}] {content[:100]}{'...' if len(content) > 100 else ''}")
 
 
 def main():
