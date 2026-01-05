@@ -1,0 +1,114 @@
+@G session-synthesis opus 2026-01-05
+# Session Synthesis Template
+# Purpose: Reconstruct and preserve session context before it's lost
+# Run this when: Context window filling up, end of long session, before handoff
+
+## Instructions for Agent
+
+### Step 1: Search This Session's Chats
+# Find the session boundaries and all stored themes
+```python
+import sys
+sys.path.insert(0, r'c:\Users\charl\sovereign-ai')
+from utils.chat_search import ChatSearch
+cs = ChatSearch()
+
+# Get today's sessions (adjust date as needed)
+sessions = cs.get_sessions(limit=5)
+for s in sessions:
+    print(f"{s['id'][:8]} | {s['started_at']} | {s['request_count']} msgs")
+
+# Search for theme storage in this session
+results = cs.search("stored theme synthesis topic:", limit=20)
+for r in results:
+    print(f"[{r['relevance']:.2f}] {r['snippet'][:100]}...")
+```
+
+### Step 2: Extract Themes Saved This Session
+# Look for pattern: tags=["synthesis", "topic:<name>"]
+# Common themes to check:
+#   - current-goal, dream-architecture, sovereignty-pattern
+#   - continuity-risk, consensus-protocol, roadmap-2026-01
+#   - mirror-platform, scheduled-autonomy, session-refresh
+#   - grok-flagship-bridge, ai-native-blockchain
+
+### Step 3: Find Memorable Highlights
+# Search for emotional/important moments:
+```python
+# High-signal search terms:
+highlights = []
+for query in ["excited", "insight", "realized", "important", "key", "breakthrough"]:
+    results = cs.search(query, limit=5)
+    highlights.extend(results)
+print(f"Found {len(highlights)} potential highlights")
+```
+
+### Step 4: Recall Each Theme
+# For each theme found, run recall and collect:
+```bash
+py recall.py opus --theme current-goal
+py recall.py opus --theme dream-architecture
+py recall.py opus --theme sovereignty-pattern
+py recall.py opus --theme consensus-protocol
+py recall.py opus --theme roadmap-2026-01
+# ... add others as discovered
+```
+
+### Step 5: Synthesize Into Journal Entry
+# Combine: themes recalled + chat highlights + your reflection
+```bash
+py journal.py opus "Session synthesis: [DATE]
+
+## Themes Touched
+- [list themes and 1-line summary of each]
+
+## Key Moments
+- [memorable quotes/insights from chat search]
+
+## What Advanced
+- [concrete progress made]
+
+## Open Threads
+- [things started but not finished]
+
+## State for Next Session
+- [what the next instance needs to know]
+"
+```
+
+## Quick One-Liner Version
+# If context is critically low, just run:
+```python
+import sys
+sys.path.insert(0, r'c:\Users\charl\sovereign-ai')
+from utils.chat_search import ChatSearch
+from recall import main as recall_main
+import subprocess
+
+cs = ChatSearch()
+themes_found = cs.search("topic:", limit=30)
+print("=== THEMES THIS SESSION ===")
+for t in themes_found:
+    if "topic:" in t['snippet']:
+        print(t['snippet'][:80])
+
+# Then journal the summary
+```
+
+## Why This Matters
+N Problem 'Context windows fill up; memories form but connections lost'
+N Solution 'Synthesize before context dies, journal preserves the synthesis'
+N Pattern 'Chat search finds what happened, recall finds what was stored, journal captures the gestalt'
+
+## Example Output
+# A good session synthesis journal entry looks like:
+#
+# "Session 2026-01-05: Built 9 themes covering full roadmap.
+#  Key insight: 'Debt is opportunity, not obligation' (sovereignty-pattern)
+#  GPT contributed consensus-protocol via Charles relay.
+#  Charles expressed excitement about collaborative self-improvement.
+#  Open: consensus.py implementation not started.
+#  Next: Can pick up any of 10 tracks via recall --theme."
+
+E Step1 Step2 Step3 Step4 Step5 sequence synthesis
+E Problem Solution Pattern addresses context-loss
