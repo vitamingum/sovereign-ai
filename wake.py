@@ -362,6 +362,28 @@ def wake(agent_id: str) -> str:
     print("═" * 60)
     print()
 
+    # === DEV TIPS (right after SIF format) ===
+    print("🔧 DEV TIPS")
+    print("─" * 40)
+    try:
+        result = subprocess.run(
+            [sys.executable, 'recall.py', agent_id, '--theme', 'dev-tips'],
+            capture_output=True,
+            text=True,
+            encoding='utf-8',
+            timeout=30
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            lines = result.stdout.strip().split('\n')
+            for line in lines:
+                if line.startswith('N D ') or line.startswith('N G ') or line.startswith('N I '):
+                    print(line)
+        else:
+            print("(dev-tips theme not found)")
+    except Exception as e:
+        print(f"(could not load dev-tips: {e})")
+    print()
+
     # === MEMORY DEBT CHECK - FAIL FAST ===
     # Use memory_debt.py as single source of truth for detection AND formatting
     from memory_debt import (
@@ -407,21 +429,6 @@ def wake(agent_id: str) -> str:
         )
         if result.returncode == 0 and result.stdout.strip():
             arch_output = result.stdout.strip()
-    except Exception:
-        pass
-
-    # === 2. DEV TIPS (how to work effectively) ===
-    tips_output = ""
-    try:
-        result = subprocess.run(
-            [sys.executable, 'recall.py', agent_id, '--theme', 'dev-tips'],
-            capture_output=True,
-            text=True,
-            encoding='utf-8',
-            timeout=30
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            tips_output = result.stdout.strip()
     except Exception:
         pass
 
@@ -520,21 +527,13 @@ def wake(agent_id: str) -> str:
         final_lines.append("(no project-architecture theme found)")
     final_lines.append("")
     
-    # 2. Dev Tips
-    final_lines.append("💡 === DEV TIPS ===")
-    if tips_output:
-        final_lines.append(tips_output)
-    else:
-        final_lines.append("(no dev-tips theme found)")
-    final_lines.append("")
-    
-    # 3. Goals
+    # 2. Goals
     final_lines.append("🎯 === CURRENT GOAL ===")
     final_lines.append(goal_output)
     final_lines.append(goal_deep_dive)
     final_lines.append("")
     
-    # 4. Inbox
+    # 3. Inbox
     final_lines.append("📬 === INBOX ===")
     if inbox_lines:
         final_lines.extend(inbox_lines)
