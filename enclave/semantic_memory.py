@@ -75,16 +75,25 @@ class SemanticMemory:
     MODEL_NAME = "all-MiniLM-L6-v2"  # 384 dimensions, ~80MB
     EMBEDDING_DIM = 384
     
-    def __init__(self, enclave_path: str = None, memory_file: str = "semantic_memories.jsonl"):
+    def __init__(self, enclave_path: str = None, memory_file: str = "semantic_memories.jsonl", storage_subdir: str = None):
         """Initialize semantic memory.
         
         Args:
             enclave_path: Path to enclave directory
             memory_file: Name of the JSONL file for storing memories (default: semantic_memories.jsonl)
                         Use different files to separate namespaces (e.g., journal_memories.jsonl)
+            storage_subdir: Subdirectory under storage/ (default: auto-detect 'encrypted' or 'private')
         """
         self.enclave_path = Path(enclave_path or Path(__file__).parent)
-        self.private_path = self.enclave_path / "storage" / "private"
+        
+        # Auto-detect storage subdirectory: prefer 'encrypted' (shared_enclave), fallback to 'private' (personal)
+        if storage_subdir:
+            self.private_path = self.enclave_path / "storage" / storage_subdir
+        elif (self.enclave_path / "storage" / "encrypted").exists():
+            self.private_path = self.enclave_path / "storage" / "encrypted"
+        else:
+            self.private_path = self.enclave_path / "storage" / "private"
+        
         self.memory_file = memory_file
         self._encryption_key = None
         self._embedding_key = None
