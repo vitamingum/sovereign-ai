@@ -71,7 +71,7 @@ N A3 'Read AICONTEXT.md fully - this is ground truth for boot context'
 N A4 'List actual files: Get-ChildItem *.py | Select-Object Name'
 
 N K1 'Expected cognitive tools: wake.py recall.py remember.py q.py journal.py msg.py mirror.py'
-N K2 'Expected infrastructure: chat_search.py parity_test.py forge.py memory_debt.py'
+N K2 'Expected infrastructure: chat_search.py parity_test.py memory_gaps.py'
 N K3 'Expected architecture: enclave/ shared, enclave_<agent>/ private, messages/ signed, handoffs/ polling'
 N K4 'Expected LLMs: qwen2.5:7b (reflexes), deepseek-r1:14b (synthesis/mirror)'
 

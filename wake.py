@@ -391,9 +391,9 @@ def wake(agent_id: str) -> str:
     except Exception:
         pass  # Non-critical - don't interrupt wake
 
-    # === MEMORY DEBT CHECK - FAIL FAST ===
-    # Use memory_debt.py as single source of truth for detection AND formatting
-    from utils.memory_debt import (
+    # === MEMORY GAPS CHECK - FAIL FAST ===
+    # Use memory_gaps.py as single source of truth for detection AND formatting
+    from utils.memory_gaps import (
         get_understanding_debt, get_cross_agent_debt, get_untracked_debt, get_synthesis_debt, get_message_debt,
         format_understanding_debt, format_synthesis_debt, format_message_debt
     )

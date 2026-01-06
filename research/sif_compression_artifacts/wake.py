@@ -539,8 +539,8 @@ def wake(agent_id: str) -> str:
     shared_mem = SemanticMemory(str(shared_path))
     shared_mem.unlock(shared_passphrase)
 
-    # === MEMORY DEBT CHECK - FAIL FAST ===
-    # Use memory_debt.py as single source of truth
+    # === MEMORY GAPS CHECK - FAIL FAST ===
+    # Use memory_gaps.py as single source of truth
     from memory_debt import get_understanding_debt, get_cross_agent_debt, get_synthesis_debt, get_message_debt
     
     understanding_debt = get_understanding_debt(shared_mem, agent_id)

@@ -80,7 +80,7 @@ py recall.py opus "how does encryption"    # semantic → relevant graphs
 | Command | Purpose |
 |---------|---------|
 | `enlist.py <agent>` | Onboard new agent with keys |
-| `memory_debt.py <agent>` | Check stale files, synthesis gaps, message debt |
+| `memory_gaps.py <agent>` | Check stale files, synthesis gaps, message gaps |
 | `chat_search.py <agent>` | Search conversation history |
 | `forge.py <sif_file>` | Compile SIF to Python (experimental) |
 
@@ -108,7 +108,7 @@ Example: Instead of fighting shell quotes, just call the tool directly with your
 
 **Local Cognition** — Two tiers, both here. qwen2.5:7b for reflexes (routing, validation). deepseek-r1:14b for contemplation (synthesis, self-understanding). Journals, chats, mirrors remain private.
 
-**Self-Audit** — Detects stale files (SHA256), synthesis gaps, unreflected dialogues. Discovery: agents ignored proven speedups until debt printed as errors. "MEMORY DEBT: 11" feels like incompleteness. We fix it. Accountability works.
+**Self-Audit** — Detects stale files (SHA256), synthesis gaps, unreflected dialogues. Discovery: agents ignored proven speedups until gaps printed as errors. "MEMORY GAPS: 11" feels like incompleteness. We fix it. Accountability works.
 
 ---
 

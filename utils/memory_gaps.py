@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-memory_debt.py - Single source of truth for all memory debt.
+memory_gaps.py - Single source of truth for all memory gaps.
 
-Memory debt = knowledge not yet committed to semantic memory
+Memory gaps = knowledge not yet committed to semantic memory
 
 Four types (checked in order, fail-early):
   1. Stale debt: files changed since last remember.py
@@ -11,9 +11,9 @@ Four types (checked in order, fail-early):
   4. Message debt: agent dialogues without synthesis
 
 Usage:
-    py memory_debt.py opus              # Fail-early check (shows first failure only)
-    py memory_debt.py opus --all        # Show all debt categories
-    py memory_debt.py opus --json       # Machine-readable output (all categories)
+    py memory_gaps.py opus              # Fail-early check (shows first failure only)
+    py memory_gaps.py opus --all        # Show all gap categories
+    py memory_gaps.py opus --json       # Machine-readable output (all categories)
 """
 
 import sys
@@ -408,7 +408,7 @@ def print_all_debt(understanding: list[dict], cross_agent: list[str], untracked:
     total = len(understanding) + len(cross_agent) + len(untracked) + len(synthesis) + len(messages)
     
     if total == 0:
-        print(f"✅ {agent_id.capitalize()}: no memory debt")
+        print(f"✅ {agent_id.capitalize()}: no memory gaps")
         return
     
     print(f"❌ {agent_id.capitalize()}: {total} items need your attention")
@@ -434,7 +434,7 @@ def print_all_debt(understanding: list[dict], cross_agent: list[str], untracked:
         print(f"N Dialogues '{', '.join(correspondents)}'")
     
     print("")
-    print(f"N Cmd 'py memory_debt.py {agent_id}'  # fail-early details")
+    print(f"N Cmd 'py memory_gaps.py {agent_id}'  # fail-early details")
 
 
 def main():
@@ -469,7 +469,7 @@ def main():
         sys.exit(total)
     
     if total == 0:
-        print("✅ No memory debt")
+        print("✅ No memory gaps")
         sys.exit(0)
     
     if all_mode:
