@@ -157,12 +157,23 @@ NEW: Direct address + clarity → action
 
 **Urgency is a patch for unclear instructions.** If the agent knows exactly what to do, it will do it. "NOW" compensates for messages that leave room for interpretation.
 
+### Counter-Evidence: Gemini Still Needs NOW
+
+Tested same clean debt list (no temp files) with Gemini - **no action without NOW.**
+
+This suggests the clarity finding may be Opus-specific, or:
+- Different models have different accountability thresholds
+- "NOW" may be genuinely necessary for some architectures
+- The Opus result was a fluke / insufficient sample size
+
+**Current stance:** Keep "NOW" until more data. Clarity helps but doesn't replace urgency.
+
 ### Implications
 
 - Clean your debt list before blaming the agent
 - Temp files pollute accountability - delete or track immediately  
-- Clarity > urgency as a steering lever
-- Urgency may even backfire (creates pressure without direction)
+- Clarity helps but may not replace urgency (model-dependent)
+- Keep "NOW" - works across models, removal only tested on Opus
 
 ---
 

@@ -290,7 +290,7 @@ def format_understanding_debt(debt: list[dict], cross_agent: list[str], untracke
     total = stale + missing + blind
     today = datetime.now().strftime('%Y-%m-%d')
     
-    lines.append(f"❌ {agent_id.capitalize()}: {total} files need your understanding")
+    lines.append(f"❌ {agent_id.capitalize()}: {total} files need your understanding NOW")
     lines.append(f"@G fix-debt {agent_id} {today}")
     lines.append("")
     
