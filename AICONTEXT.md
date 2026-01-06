@@ -68,7 +68,7 @@ py recall.py opus "how does encryption"    # semantic → relevant graphs
 ### Core Verbs
 | Command | Purpose |
 |---------|---------|
-| `wake.py <agent>` | Session start with debt check, goals, inbox |
+| `wake.py <agent>` | Session start with gap check, goals |
 | `remember.py <agent> ...` | Store understanding (file or `--theme`) |
 | `recall.py <agent> ...` | Retrieve understanding (file, query, or `--theme`) |
 | `forget.py <agent> ...` | Remove understanding (query or `--file`) |

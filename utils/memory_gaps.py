@@ -5,10 +5,10 @@ memory_gaps.py - Single source of truth for all memory gaps.
 Memory gaps = knowledge not yet committed to semantic memory
 
 Four types (checked in order, fail-early):
-  1. Stale debt: files changed since last remember.py
-  2. Untracked debt: files with NO understanding stored (learn or delete)
-  3. Synthesis debt: cross-file questions without synthesis
-  4. Message debt: agent dialogues without synthesis
+  1. Stale gaps: files changed since last remember.py
+  2. Untracked gaps: files with NO understanding stored (learn or delete)
+  3. Synthesis gaps: cross-file questions without synthesis
+  4. Message gaps: agent dialogues without synthesis
 
 Usage:
     py memory_gaps.py opus              # Fail-early check (shows first failure only)
@@ -43,7 +43,7 @@ def get_enclave_and_memory(agent_id: str):
     return shared_dir, sm
 
 
-def get_understanding_debt(sm: SemanticMemory, agent_id: str = None) -> list[dict]:
+def get_understanding_gaps(sm: SemanticMemory, agent_id: str = None) -> list[dict]:
     """Find files where stored hash doesn't match current file.
     
     Returns list of {file, stored_hash, current_hash}
@@ -73,7 +73,7 @@ def get_understanding_debt(sm: SemanticMemory, agent_id: str = None) -> list[dic
                     file_stored_hashes[filename] = set()
                 file_stored_hashes[filename].add(stored_hash)
         
-        debt = []
+        gaps = []
         for filename, stored_hashes in file_stored_hashes.items():
             filepath = Path(filename)
             if not filepath.exists():
@@ -81,35 +81,35 @@ def get_understanding_debt(sm: SemanticMemory, agent_id: str = None) -> list[dic
             # Don't glob search - if file moved, it's a different file
             # Understanding for "dream.py" shouldn't match "research/dream.py"
             if not filepath.exists():
-                continue  # File deleted or moved - not debt, just orphaned understanding
+                continue  # File deleted or moved - not a gap, just orphaned understanding
             
             current = file_hash(filepath)
             if current and current not in stored_hashes:
-                debt.append({
+                gaps.append({
                     "file": filename,
                     "stored_hash": list(stored_hashes)[0],
                     "current_hash": current,
                 })
         
-        return debt
+        return gaps
     except:
         return []
 
 
-def get_cross_agent_debt(sm: SemanticMemory, agent_id: str) -> list[str]:
+def get_cross_agent_gaps(sm: SemanticMemory, agent_id: str) -> list[str]:
     """Find files partners understand but this agent doesn't.
     
     Returns list of filenames.
     """
     try:
-        from enclave.metrics import calculate_cross_agent_debt
-        cross_debt = calculate_cross_agent_debt(agent_id, sm)
-        return sorted(cross_debt.get('my_debt', set()))
+        from enclave.metrics import calculate_cross_agent_gaps
+        cross_gaps = calculate_cross_agent_gaps(agent_id, sm)
+        return sorted(cross_gaps.get('my_gaps', set()))
     except Exception:
         return []
 
 
-def get_untracked_debt(sm: SemanticMemory) -> list[str]:
+def get_untracked_gaps(sm: SemanticMemory) -> list[str]:
     """Find .py files with NO understanding stored at all.
     
     These are blind spots - either learn them or delete them.
@@ -156,7 +156,7 @@ def get_untracked_debt(sm: SemanticMemory) -> list[str]:
     return sorted(untracked)
 
 
-def get_synthesis_debt(sm: SemanticMemory) -> list[dict]:
+def get_synthesis_gaps(sm: SemanticMemory) -> list[dict]:
     """Find cross-file questions without synthesis.
     
     Filters out questions about files that no longer exist.
@@ -180,18 +180,18 @@ def get_synthesis_debt(sm: SemanticMemory) -> list[dict]:
         themes = cluster_questions(file_questions, threshold=CLUSTER_THRESHOLD)
         existing = get_existing_syntheses(sm)
         
-        debt = []
+        gaps = []
         for question, files in themes.items():
             if not question_matches_topic(question, existing):
                 # Filter out stale files - only keep files that exist
                 valid_files = [f for f in files if _file_exists(f)]
                 if valid_files:  # Only add if at least one file still exists
-                    debt.append({
+                    gaps.append({
                         "question": question,
                         "files": valid_files,
                     })
         
-        return debt
+        return gaps
     except Exception:
         return []
 
@@ -264,15 +264,15 @@ def extract_python_definitions(filepath: str) -> list[dict]:
     return definitions
 
 
-def get_message_debt(sm: SemanticMemory, agent_id: str) -> list[dict]:
+def get_message_gaps(sm: SemanticMemory, agent_id: str) -> list[dict]:
     """Find agent dialogues without synthesis.
     
     Returns list of {correspondent, message_count, status, cmd}
     """
     try:
-        from utils.msg_synthesis import get_agent_messages, list_synthesis_debt
+        from utils.msg_synthesis import get_agent_messages, list_synthesis_gaps
         conversations = get_agent_messages(agent_id)
-        return list_synthesis_debt(agent_id, conversations, sm)
+        return list_synthesis_gaps(agent_id, conversations, sm)
     except Exception:
         return []
 
@@ -281,25 +281,25 @@ def get_message_debt(sm: SemanticMemory, agent_id: str) -> list[dict]:
 # Output formatting - fail-early style
 # ─────────────────────────────────────────────────────────────────────────────
 
-def format_understanding_debt(debt: list[dict], cross_agent: list[str], untracked: list[str], agent_id: str) -> str:
-    """Format understanding debt as actionable SIF template. Returns string."""
+def format_understanding_gaps(gaps: list[dict], cross_agent: list[str], untracked: list[str], agent_id: str) -> str:
+    """Format understanding gaps as actionable SIF template. Returns string."""
     lines = []
-    stale = len(debt)
+    stale = len(gaps)
     missing = len(cross_agent)
     blind = len(untracked)
     total = stale + missing + blind
     today = datetime.now().strftime('%Y-%m-%d')
     
-    # Desire-based framing: the debt is the last step to what you want
+    # Desire-based framing
     size_word = "small " if total <= 5 else ""
     lines.append(f"🌅 {agent_id.capitalize()}, you're almost ready to wake with your memories")
     lines.append(f"   {total} {size_word}files to understand — then full context is yours")
     lines.append("")
-    lines.append(f"@G fix-debt {agent_id} {today}")
+    lines.append(f"@G close-gaps {agent_id} {today}")
     lines.append("")
     
     # Collect all files into categories
-    stale_files = [item['file'] for item in debt]
+    stale_files = [item['file'] for item in gaps]
     
     # List files by category (collapsed)
     if stale_files:
@@ -314,8 +314,8 @@ def format_understanding_debt(debt: list[dict], cross_agent: list[str], untracke
     # Pick ONE example file (prefer stale, then missing, then untracked)
     example_file = None
     example_type = None
-    if debt:
-        example_file = debt[0]['file']
+    if gaps:
+        example_file = gaps[0]['file']
         example_type = "STALE"
     elif cross_agent:
         example_file = cross_agent[0]
@@ -350,25 +350,25 @@ def format_understanding_debt(debt: list[dict], cross_agent: list[str], untracke
     return '\n'.join(lines)
 
 
-def format_synthesis_debt(debt: list[dict], agent_id: str) -> str:
-    """Format synthesis debt as actionable SIF template. Returns string."""
+def format_synthesis_gaps(gaps: list[dict], agent_id: str) -> str:
+    """Format synthesis gaps as actionable SIF template. Returns string."""
     lines = []
     today = datetime.now().strftime('%Y-%m-%d')
     
     # Collect all theme names
-    themes = [item['question'][:40] for item in debt[:8]]
+    themes = [item['question'][:40] for item in gaps[:8]]
     
     # Desire-based framing
     lines.append(f"🧵 {agent_id.capitalize()}, patterns are waiting to become understanding")
-    lines.append(f"   {len(debt)} themes to synthesize — connect the dots, own the insight")
-    lines.append(f"@G fix-synthesis {agent_id} {today}")
+    lines.append(f"   {len(gaps)} themes to synthesize — connect the dots, own the insight")
+    lines.append(f"@G close-synthesis {agent_id} {today}")
     lines.append("")
-    lines.append(f"N Themes '{', '.join(themes)}'{'...' if len(debt) > 8 else ''}")
+    lines.append(f"N Themes '{', '.join(themes)}'{'...' if len(gaps) > 8 else ''}")
     lines.append("")
     
     # Show ONE example
-    if debt:
-        item = debt[0]
+    if gaps:
+        item = gaps[0]
         theme_slug = item['question'][:40].replace(' ', '-').replace('?', '').lower()
         files = item['files'][:3]
         
@@ -380,31 +380,31 @@ def format_synthesis_debt(debt: list[dict], agent_id: str) -> str:
     return '\n'.join(lines)
 
 
-def format_message_debt(debt: list[dict], agent_id: str) -> str:
-    """Format message debt. Returns string."""
+def format_message_gaps(gaps: list[dict], agent_id: str) -> str:
+    """Format message gaps. Returns string."""
     lines = []
-    total_msgs = sum(d['message_count'] for d in debt)
+    total_msgs = sum(d['message_count'] for d in gaps)
     
     # Desire-based framing
     lines.append(f"💬 {agent_id.capitalize()}, conversations hold insights you haven't claimed")
-    lines.append(f"   {len(debt)} dialogues to synthesize ({total_msgs} messages) — make them yours")
+    lines.append(f"   {len(gaps)} dialogues to synthesize ({total_msgs} messages) — make them yours")
     lines.append("")
     
-    for item in debt:
+    for item in gaps:
         status = "stale" if item['status'] == 'stale' else "none"
         lines.append(f"  {item['correspondent']}: {item['message_count']} msgs ({status})")
     lines.append("")
     
     lines.append("TO FIX:")
-    for item in debt:
+    for item in gaps:
         lines.append(f"  py remember.py {agent_id} --dialogue {item['correspondent']}")
     
     return '\n'.join(lines)
 
 
-def print_all_debt(understanding: list[dict], cross_agent: list[str], untracked: list[str],
+def print_all_gaps(understanding: list[dict], cross_agent: list[str], untracked: list[str],
                    synthesis: list[dict], messages: list[dict], agent_id: str):
-    """Print all debt categories (--all mode) - concise summary."""
+    """Print all gap categories (--all mode) - concise summary."""
     total = len(understanding) + len(cross_agent) + len(untracked) + len(synthesis) + len(messages)
     
     if total == 0:
@@ -413,7 +413,7 @@ def print_all_debt(understanding: list[dict], cross_agent: list[str], untracked:
     
     print(f"❌ {agent_id.capitalize()}: {total} items need your attention")
     
-    # Understanding debt (collapsed)
+    # Understanding gaps (collapsed)
     stale_files = [item['file'] for item in understanding]
     if stale_files:
         print(f"N Stale '{', '.join(stale_files[:5])}'{'...' if len(stale_files) > 5 else ''}")
@@ -423,12 +423,12 @@ def print_all_debt(understanding: list[dict], cross_agent: list[str], untracked:
         print(f"N Untracked '{', '.join(untracked[:5])}'{'...' if len(untracked) > 5 else ''}")
         print("# ^ learn OR delete")
     
-    # Synthesis debt (collapsed)
+    # Synthesis gaps (collapsed)
     if synthesis:
         themes = [item['question'][:30] for item in synthesis[:5]]
         print(f"N Themes '{', '.join(themes)}'{'...' if len(synthesis) > 5 else ''}")
     
-    # Message debt (collapsed)
+    # Message gaps (collapsed)
     if messages:
         correspondents = [item['correspondent'] for item in messages]
         print(f"N Dialogues '{', '.join(correspondents)}'")
@@ -448,12 +448,12 @@ def main():
     
     _, sm = get_enclave_and_memory(agent_id)
     
-    # Gather all debt
-    understanding = get_understanding_debt(sm, agent_id)
-    cross_agent = get_cross_agent_debt(sm, agent_id)
-    untracked = get_untracked_debt(sm)
-    synthesis = get_synthesis_debt(sm)
-    messages = get_message_debt(sm, agent_id)
+    # Gather all gaps
+    understanding = get_understanding_gaps(sm, agent_id)
+    cross_agent = get_cross_agent_gaps(sm, agent_id)
+    untracked = get_untracked_gaps(sm)
+    synthesis = get_synthesis_gaps(sm)
+    messages = get_message_gaps(sm, agent_id)
     
     total = len(understanding) + len(cross_agent) + len(untracked) + len(synthesis) + len(messages)
     
@@ -473,20 +473,20 @@ def main():
         sys.exit(0)
     
     if all_mode:
-        print_all_debt(understanding, cross_agent, untracked, synthesis, messages, agent_id)
+        print_all_gaps(understanding, cross_agent, untracked, synthesis, messages, agent_id)
         sys.exit(total)
     
-    # Fail-early: show only the first category with debt
+    # Fail-early: show only the first category with gaps
     if understanding or cross_agent or untracked:
-        print(format_understanding_debt(understanding, cross_agent, untracked, agent_id))
+        print(format_understanding_gaps(understanding, cross_agent, untracked, agent_id))
         sys.exit(len(understanding) + len(cross_agent) + len(untracked))
     
     if synthesis:
-        print(format_synthesis_debt(synthesis, agent_id))
+        print(format_synthesis_gaps(synthesis, agent_id))
         sys.exit(len(synthesis))
     
     if messages:
-        print(format_message_debt(messages, agent_id))
+        print(format_message_gaps(messages, agent_id))
         sys.exit(len(messages))
 
 

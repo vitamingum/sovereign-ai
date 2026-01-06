@@ -97,7 +97,7 @@ CRITICAL_THEMES = {
             (r'llm|ollama|qwen|deepseek', 'LLM'),
             (r'breakthrough|milestone|created|proved', 'Breakthroughs'),
             (r'research|exploring|thread', 'Research'),
-            (r'audit|debt|stale|enforcement', 'Self-Audit'),
+            (r'audit|gaps|stale|enforcement', 'Self-Audit'),
             (r'Q\s+[\'"]|\?\s*$|unknown|open question', 'Questions'),
             # NEW: Implementation layer requirements
             (r'N\s+Sig\s+[\'"]|signature', 'Signatures (Sig nodes)'),

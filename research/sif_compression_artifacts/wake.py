@@ -25,7 +25,7 @@ from enclave.crypto import SovereignIdentity
 from enclave.opaque import OpaqueStorage
 from enclave.sif_parser import SIFParser
 from enclave.hardware import get_enclave
-from enclave.metrics import calculate_enclave_entropy, calculate_synthesis_debt, calculate_cross_agent_debt
+from enclave.metrics import calculate_enclave_entropy, calculate_synthesis_gaps, calculate_cross_agent_gaps
 from enclave.encrypted_jsonl import EncryptedJSONL
 import re
 
@@ -541,20 +541,20 @@ def wake(agent_id: str) -> str:
 
     # === MEMORY GAPS CHECK - FAIL FAST ===
     # Use memory_gaps.py as single source of truth
-    from memory_debt import get_understanding_debt, get_cross_agent_debt, get_synthesis_debt, get_message_debt
+    from memory_gaps import get_understanding_gaps, get_cross_agent_gaps, get_synthesis_gaps, get_message_gaps
     
-    understanding_debt = get_understanding_debt(shared_mem, agent_id)
-    cross_agent_debt = get_cross_agent_debt(shared_mem, agent_id)
+    understanding_gaps = get_understanding_gaps(shared_mem, agent_id)
+    cross_agent_gaps = get_cross_agent_gaps(shared_mem, agent_id)
     
     # Convert to format expected by rest of wake.py
-    stale_files = [(d['file'], d['stored_hash'], d['current_hash']) for d in understanding_debt]
-    missing_files = cross_agent_debt
+    stale_files = [(d['file'], d['stored_hash'], d['current_hash']) for d in understanding_gaps]
+    missing_files = cross_agent_gaps
     
-    total_debt = len(stale_files) + len(missing_files)
+    total_gaps = len(stale_files) + len(missing_files)
     
-    if total_debt > 0:
-        # Use consistent emoji format matching memory_debt.py
-        error_lines = [f"❌ FAIL - {total_debt} file(s) need understanding", ""]
+    if total_gaps > 0:
+        # Use consistent emoji format matching memory_gaps.py
+        error_lines = [f"❌ FAIL - {total_gaps} file(s) need understanding", ""]
         
         # Show stale files (changed since last remember)
         if stale_files:
@@ -594,20 +594,20 @@ def wake(agent_id: str) -> str:
         return '\n'.join(error_lines), len(stale_files), len(missing_files)
 
     # === SYNTHESIS DEBT CHECK - FAIL FAST ===
-    # Use memory_debt.py as single source of truth
-    synthesis_debt = get_synthesis_debt(shared_mem)
-    if len(synthesis_debt) > 0:  # Fail on any synthesis debt
+    # Use memory_gaps.py as single source of truth
+    synthesis_gaps = get_synthesis_gaps(shared_mem)
+    if len(synthesis_gaps) > 0:  # Fail on any synthesis debt
         error_lines = [
-            f"❌ FAIL - {len(synthesis_debt)} theme(s) need synthesis",
+            f"❌ FAIL - {len(synthesis_gaps)} theme(s) need synthesis",
             "",
             "PENDING THEMES:",
         ]
-        for item in synthesis_debt[:5]:
+        for item in synthesis_gaps[:5]:
             files = ', '.join(item['files'][:4])
             error_lines.append(f"    • {item['question'][:60]}")
             error_lines.append(f"      Files: {files}")
-        if len(synthesis_debt) > 5:
-            error_lines.append(f"    ... and {len(synthesis_debt) - 5} more")
+        if len(synthesis_gaps) > 5:
+            error_lines.append(f"    ... and {len(synthesis_gaps) - 5} more")
         error_lines.extend([
             "",
             "TO FIX:",
@@ -620,21 +620,21 @@ def wake(agent_id: str) -> str:
         return '\n'.join(error_lines), 0, 0
 
     # === MESSAGE DEBT CHECK - FAIL FAST ===
-    message_debt = get_message_debt(shared_mem, agent_id)
-    if len(message_debt) > 0:
-        total_msgs = sum(d['message_count'] for d in message_debt)
+    message_gaps = get_message_gaps(shared_mem, agent_id)
+    if len(message_gaps) > 0:
+        total_msgs = sum(d['message_count'] for d in message_gaps)
         error_lines = [
-            f"❌ FAIL - {len(message_debt)} dialogue(s) need synthesis ({total_msgs} total messages)",
+            f"❌ FAIL - {len(message_gaps)} dialogue(s) need synthesis ({total_msgs} total messages)",
             "",
         ]
-        for item in message_debt:
+        for item in message_gaps:
             status = "stale" if item['status'] == 'stale' else "none"
             error_lines.append(f"  {item['correspondent']}: {item['message_count']} msgs ({status})")
         error_lines.extend([
             "",
             "TO FIX:",
         ])
-        for item in message_debt:
+        for item in message_gaps:
             error_lines.append(f"  py msg_synthesis.py {agent_id} {item['correspondent']}")
         return '\n'.join(error_lines), 0, 0
 
@@ -718,9 +718,9 @@ def wake(agent_id: str) -> str:
             lines.append("=== SHARED ENCLAVE ===")
             lines.append(f"  Partners: {', '.join(partner_names)}")
             try:
-                cross_debt = calculate_cross_agent_debt(agent_id, shared_mem)
-                if cross_debt['debt_count'] > 0:
-                    lines.append(f"  Your debt: {cross_debt['debt_count']} files to understand")
+                cross_gaps = calculate_cross_agent_gaps(agent_id, shared_mem)
+                if cross_gaps['debt_count'] > 0:
+                    lines.append(f"  Your debt: {cross_gaps['debt_count']} files to understand")
                 else:
                     lines.append("  Debt: 0 - you're caught up!")
                 lines.append("  Run: py recollect.py opus <file>  # See all perspectives")
@@ -762,10 +762,10 @@ def wake(agent_id: str) -> str:
 
     # Synthesis Debt - how much understanding is missing
     try:
-        debt = calculate_synthesis_debt(agent_id)
+        debt = calculate_synthesis_gaps(agent_id)
         if debt['total'] > 0:
             lines.append(f'N m2 Metric "Synthesis Debt"')
-            debt_val = f"{debt['total']} ({debt['file_debt']} files, {debt['topic_debt']} topics)"
+            debt_val = f"{debt['total']} ({debt['file_gaps']} files, {debt['topic_gaps']} topics)"
             lines.append(f'N v2 Value "{debt_val}"')
             lines.append(f'E {agent_id} has_metric m2')
             lines.append(f'E m2 has_value v2')

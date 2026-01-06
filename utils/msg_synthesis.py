@@ -155,9 +155,9 @@ def get_last_message_timestamp(messages: list[dict]) -> str:
     return max(m['timestamp'] for m in messages)
 
 
-def list_synthesis_debt(agent_id: str, conversations: dict, sm: SemanticMemory):
+def list_synthesis_gaps(agent_id: str, conversations: dict, sm: SemanticMemory):
     """List agents with unsynthesized or stale message synthesis."""
-    debt = []
+    gaps = []
     
     for correspondent, messages in conversations.items():
         if not messages:
@@ -167,7 +167,7 @@ def list_synthesis_debt(agent_id: str, conversations: dict, sm: SemanticMemory):
         existing_synthesis = get_existing_synthesis_timestamp(sm, correspondent)
         
         if existing_synthesis is None:
-            debt.append({
+            gaps.append({
                 'correspondent': correspondent,
                 'message_count': len(messages),
                 'last_message': last_msg,
@@ -175,7 +175,7 @@ def list_synthesis_debt(agent_id: str, conversations: dict, sm: SemanticMemory):
                 'cmd': f'py remember.py {agent_id} --dialogue {correspondent}'
             })
         elif last_msg > existing_synthesis:
-            debt.append({
+            gaps.append({
                 'correspondent': correspondent,
                 'message_count': len(messages),
                 'last_message': last_msg,
@@ -184,7 +184,7 @@ def list_synthesis_debt(agent_id: str, conversations: dict, sm: SemanticMemory):
                 'cmd': f'py remember.py {agent_id} --dialogue {correspondent}'
             })
     
-    return debt
+    return gaps
 
 
 def format_message_for_context(msg: dict, decrypted_content: str) -> str:
@@ -239,25 +239,25 @@ def main():
     conversations = get_agent_messages(agent_id)
     
     if len(sys.argv) < 3 or sys.argv[2] == '--list':
-        # List synthesis debt
-        debt = list_synthesis_debt(agent_id, conversations, sm)
+        # List synthesis gaps
+        gaps = list_synthesis_gaps(agent_id, conversations, sm)
         
-        if not debt:
+        if not gaps:
             print("✅ All message dialogues synthesized")
             return
         
-        print(f"MESSAGE SYNTHESIS DEBT: {len(debt)}")
-        for item in debt:
+        print(f"MESSAGE SYNTHESIS GAPS: {len(gaps)}")
+        for item in gaps:
             status = "⚠️ stale" if item['status'] == 'stale' else "❌ none"
             print(f"\n{item['correspondent']}: {item['message_count']} messages ({status})")
             print(f"  {item['cmd']}")
         
-        sys.exit(len(debt))
+        sys.exit(len(gaps))
     
     elif sys.argv[2] == '--all':
         # Synthesize all
-        debt = list_synthesis_debt(agent_id, conversations, sm)
-        for item in debt:
+        gaps = list_synthesis_gaps(agent_id, conversations, sm)
+        for item in gaps:
             correspondent = item['correspondent']
             messages = conversations[correspondent]
             print(synthesize_dialogue(agent_id, correspondent, messages))

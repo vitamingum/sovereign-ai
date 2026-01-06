@@ -134,14 +134,14 @@ def calculate_synthesis(agent_id: str) -> float:
         return 0.0
 
 
-def calculate_synthesis_debt(agent_id: str) -> dict:
+def calculate_synthesis_gaps(agent_id: str) -> dict:
     """
-    Calculate synthesis debt based on THEMES, not bridge pairs.
+    Calculate synthesis gaps based on THEMES, not bridge pairs.
     
     Theme-based model:
       - Bridge evaluations extract theme_words (abstract nouns like "resilience")
       - Themes aggregate across pairs → "resilience" spans [backup, risk, crypto]
-      - Debt = themes with 2+ topics that don't have a synthesis tagged theme:<name>
+      - Gaps = themes with 2+ topics that don't have a synthesis tagged theme:<name>
     
     This makes synthesis tractable: O(themes) not O(pairs).
     
@@ -246,7 +246,7 @@ def calculate_synthesis_debt(agent_id: str) -> dict:
         return {'themes_total': 0, 'themes_synthesized': 0, 'themes_pending': 0, 'pending_themes': [], 'total': 0, 'error': str(e)}
 
 
-def calculate_cross_agent_debt(agent_id: str, memory: SemanticMemory) -> dict:
+def calculate_cross_agent_gaps(agent_id: str, memory: SemanticMemory) -> dict:
     """
     Calculate what files OTHER agents have understood that THIS agent hasn't.
     
@@ -256,15 +256,15 @@ def calculate_cross_agent_debt(agent_id: str, memory: SemanticMemory) -> dict:
         {
             'my_files': set of files this agent understands,
             'partner_files': {partner_id: set of files they understand},
-            'my_debt': set of files I need to understand,
-            'debt_count': int
+            'my_gaps': set of files I need to understand,
+            'gap_count': int
         }
     """
     from enclave.config import get_enclave_partners, AGENTS
     
     partners = get_enclave_partners(agent_id)
     if not partners:
-        return {'my_files': set(), 'partner_files': {}, 'my_debt': set(), 'debt_count': 0}
+        return {'my_files': set(), 'partner_files': {}, 'my_gaps': set(), 'gap_count': 0}
     
     # Get all memories
     all_mems = memory.list_all(limit=5000)
@@ -294,26 +294,26 @@ def calculate_cross_agent_debt(agent_id: str, memory: SemanticMemory) -> dict:
         partner_files[partner.id] = pfiles
         all_partner_files.update(pfiles)
     
-    # My debt = files partners have that I don't (only if file still exists)
+    # My gaps = files partners have that I don't (only if file still exists)
     from pathlib import Path
     project_root = Path(__file__).parent.parent
-    my_debt = set()
+    my_gaps = set()
     for f in (all_partner_files - my_files):
         # Check if file exists at project root
         if (project_root / f).exists():
-            my_debt.add(f)
+            my_gaps.add(f)
     
     return {
         'my_files': my_files,
         'partner_files': partner_files,
-        'my_debt': my_debt,
-        'debt_count': len(my_debt)
+        'my_gaps': my_gaps,
+        'gap_count': len(my_gaps)
     }
 
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
-        debt = calculate_synthesis_debt(sys.argv[1])
-        print(f"Synthesis debt for {sys.argv[1]}: {debt['total']} themes pending")
+        gaps = calculate_synthesis_gaps(sys.argv[1])
+        print(f"Synthesis gaps for {sys.argv[1]}: {gaps['total']} themes pending")
     else:
         print("Usage: py -m enclave.metrics <agent_id>")

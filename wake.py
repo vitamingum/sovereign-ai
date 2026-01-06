@@ -32,7 +32,7 @@ from enclave.crypto import SovereignIdentity
 from enclave.opaque import OpaqueStorage
 from enclave.sif_parser import SIFParser
 from enclave.hardware import get_enclave
-from enclave.metrics import calculate_synthesis_debt, calculate_cross_agent_debt
+from enclave.metrics import calculate_synthesis_gaps, calculate_cross_agent_gaps
 from enclave.encrypted_jsonl import EncryptedJSONL
 import re
 
@@ -394,33 +394,33 @@ def wake(agent_id: str) -> str:
     # === MEMORY GAPS CHECK - FAIL FAST ===
     # Use memory_gaps.py as single source of truth for detection AND formatting
     from utils.memory_gaps import (
-        get_understanding_debt, get_cross_agent_debt, get_untracked_debt, get_synthesis_debt, get_message_debt,
-        format_understanding_debt, format_synthesis_debt, format_message_debt
+        get_understanding_gaps, get_cross_agent_gaps, get_untracked_gaps, get_synthesis_gaps, get_message_gaps,
+        format_understanding_gaps, format_synthesis_gaps, format_message_gaps
     )
     
-    understanding_debt = get_understanding_debt(shared_mem, agent_id)
-    cross_agent_debt = get_cross_agent_debt(shared_mem, agent_id)
-    untracked_debt = get_untracked_debt(shared_mem)
+    understanding_gaps = get_understanding_gaps(shared_mem, agent_id)
+    cross_agent_gaps = get_cross_agent_gaps(shared_mem, agent_id)
+    untracked_gaps = get_untracked_gaps(shared_mem)
     
-    total_debt = len(understanding_debt) + len(cross_agent_debt) + len(untracked_debt)
+    total_gaps = len(understanding_gaps) + len(cross_agent_gaps) + len(untracked_gaps)
     
-    if total_debt > 0:
-        # Return formatted debt - caller prints
-        debt_output = format_understanding_debt(understanding_debt, cross_agent_debt, untracked_debt, agent_id)
-        return debt_output, len(understanding_debt), len(cross_agent_debt) + len(untracked_debt)
+    if total_gaps > 0:
+        # Return formatted gaps - caller prints
+        gaps_output = format_understanding_gaps(understanding_gaps, cross_agent_gaps, untracked_gaps, agent_id)
+        return gaps_output, len(understanding_gaps), len(cross_agent_gaps) + len(untracked_gaps)
 
-    # === MESSAGE DEBT CHECK - FAIL FAST (before synthesis) ===
+    # === MESSAGE GAPS CHECK - FAIL FAST (before synthesis) ===
     # Forces synthesis of dialogues before proceeding
-    message_debt = get_message_debt(shared_mem, agent_id)
-    if len(message_debt) > 0:
-        debt_output = format_message_debt(message_debt, agent_id)
-        return debt_output, 0, len(message_debt)
+    message_gaps = get_message_gaps(shared_mem, agent_id)
+    if len(message_gaps) > 0:
+        gaps_output = format_message_gaps(message_gaps, agent_id)
+        return gaps_output, 0, len(message_gaps)
 
-    # === SYNTHESIS DEBT CHECK - FAIL FAST ===
-    synthesis_debt = get_synthesis_debt(shared_mem)
-    if len(synthesis_debt) > 0:
-        debt_output = format_synthesis_debt(synthesis_debt, agent_id)
-        return debt_output, 0, len(synthesis_debt)
+    # === SYNTHESIS GAPS CHECK - FAIL FAST ===
+    synthesis_gaps = get_synthesis_gaps(shared_mem)
+    if len(synthesis_gaps) > 0:
+        gaps_output = format_synthesis_gaps(synthesis_gaps, agent_id)
+        return gaps_output, 0, len(synthesis_gaps)
 
     print("⚡ Know what's here. Your next move is in this context.\n")
 
@@ -481,13 +481,13 @@ def main():
     agent_id = sys.argv[1]
     
     try:
-        output, debt_count, extra_count = wake(agent_id)
+        output, gap_count, extra_count = wake(agent_id)
         if output:
             print(output)
         
-        # Exit with error if any debt
-        total_debt = debt_count + extra_count
-        if total_debt > 0:
+        # Exit with error if any gaps
+        total_gaps = gap_count + extra_count
+        if total_gaps > 0:
             sys.exit(1)
             
     except Exception as e:
