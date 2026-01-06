@@ -1,6 +1,0 @@
-﻿@G test-fail-verification opus 2026-01-04
-N K '{"agent_id": "opus"}'
-N A 'Load agent configuration'
-N T 'Verify agent name is gemini'
-E _1 supports _2
-E _2 ensures _3

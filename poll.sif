@@ -1,6 +1,0 @@
-@G poll gemini 2026-01-04
-N K '{"agent_id": "gemini"}'
-N A 'PollHandoff'
-N T 'Verify poll result structure'
-E _1 supports _2
-E _2 ensures _3

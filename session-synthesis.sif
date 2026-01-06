@@ -1,6 +1,0 @@
-@G session-synthesis opus 2026-01-05
-N Problem 'Context windows fill up
-N Solution 'Synthesize before context dies, journal preserves the synthesis'
-N Pattern 'Chat search finds what happened, recall finds what was stored, journal captures the gestalt'
-E Step1 Step2 Step3 Step4 Step5 sequence synthesis
-E Problem Solution Pattern addresses context-loss

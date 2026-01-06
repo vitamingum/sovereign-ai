@@ -20,7 +20,7 @@ from pathlib import Path
 from datetime import datetime
 
 WORKSPACE_STORAGE = Path.home() / "AppData/Roaming/Code/User/workspaceStorage"
-INDEX_DB = Path(__file__).parent / "enclave" / "chat_index.db"
+INDEX_DB = Path(__file__).parent.parent / "data" / "chat_index.db"
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

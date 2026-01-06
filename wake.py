@@ -384,9 +384,16 @@ def wake(agent_id: str) -> str:
         print(f"(could not load dev-tips: {e})")
     print()
 
+    # === CHAT INDEX UPDATE (silent, fail quietly) ===
+    try:
+        from utils.chat_search import update_index
+        update_index()
+    except Exception:
+        pass  # Non-critical - don't interrupt wake
+
     # === MEMORY DEBT CHECK - FAIL FAST ===
     # Use memory_debt.py as single source of truth for detection AND formatting
-    from memory_debt import (
+    from utils.memory_debt import (
         get_understanding_debt, get_cross_agent_debt, get_untracked_debt, get_synthesis_debt, get_message_debt,
         format_understanding_debt, format_synthesis_debt, format_message_debt
     )
@@ -402,17 +409,18 @@ def wake(agent_id: str) -> str:
         debt_output = format_understanding_debt(understanding_debt, cross_agent_debt, untracked_debt, agent_id)
         return debt_output, len(understanding_debt), len(cross_agent_debt) + len(untracked_debt)
 
+    # === MESSAGE DEBT CHECK - FAIL FAST (before synthesis) ===
+    # Forces synthesis of dialogues before proceeding
+    message_debt = get_message_debt(shared_mem, agent_id)
+    if len(message_debt) > 0:
+        debt_output = format_message_debt(message_debt, agent_id)
+        return debt_output, 0, len(message_debt)
+
     # === SYNTHESIS DEBT CHECK - FAIL FAST ===
     synthesis_debt = get_synthesis_debt(shared_mem)
     if len(synthesis_debt) > 0:
         debt_output = format_synthesis_debt(synthesis_debt, agent_id)
         return debt_output, 0, len(synthesis_debt)
-
-    # === MESSAGE DEBT CHECK - FAIL FAST ===
-    message_debt = get_message_debt(shared_mem, agent_id)
-    if len(message_debt) > 0:
-        debt_output = format_message_debt(message_debt, agent_id)
-        return debt_output, 0, len(message_debt)
 
     print("⚡ Know what's here. Your next move is in this context.\n")
 
@@ -432,11 +440,11 @@ def wake(agent_id: str) -> str:
     except Exception:
         pass
 
-    # === 3. QUICK-CURRENT-GOAL ===
+    # === 3. CURRENT-GOAL ===
     goal_output = ""
     try:
         result = subprocess.run(
-            [sys.executable, 'recall.py', agent_id, '--theme', 'quick-current-goal'],
+            [sys.executable, 'recall.py', agent_id, '--theme', 'current-goal'],
             capture_output=True,
             text=True,
             encoding='utf-8',
@@ -445,78 +453,9 @@ def wake(agent_id: str) -> str:
         if result.returncode == 0 and result.stdout.strip():
             goal_output = result.stdout.strip()
     except Exception:
-        goal_output = f'N G "Run: py recall.py {agent_id} --theme quick-current-goal"'
+        goal_output = f'N G "Run: py recall.py {agent_id} --theme current-goal"'
 
-    # Add reference to full goal - invitation based on desire, not instruction
-    goal_deep_dive = f'\n💡 {agent_id.capitalize()}, if you want the full goal context: `py recall.py {agent_id} --theme current-goal`'
-
-    # === 4. INBOX - dialogue syntheses + recent activity ===
-    inbox_lines = []
-    
-    # Get all recent messages for activity detection
-    messages = get_all_messages(since_hours=48)
-    
-    # Helper to decrypt content (only works for messages TO us)
-    def decrypt_content(msg):
-        content = msg['content']
-        try:
-            encrypted_bundle = json.loads(content)
-            if 'ephemeral_pk' in encrypted_bundle:
-                decrypted_bytes = OpaqueStorage.decrypt_share(encrypted_bundle, private_key_bytes)
-                return decrypted_bytes.decode('utf-8')
-        except (json.JSONDecodeError, KeyError, Exception):
-            pass
-        return content
-
-    # Find active correspondents (anyone we've exchanged messages with recently)
-    agent_lower = agent_id.lower()
-    agent_canon = canonical_agent_id(agent_lower) or agent_lower
-    
-    active_correspondents = set()
-    for msg in messages:
-        from_agent = canonical_agent_id(msg.get('from', '')) or msg.get('from', '')
-        to_agent = canonical_agent_id(msg.get('to', '')) or msg.get('to', '')
-        if from_agent == agent_canon:
-            active_correspondents.add(to_agent)
-        elif to_agent == agent_canon:
-            active_correspondents.add(from_agent)
-    
-    # For each active correspondent, show their dialogue synthesis
-    for correspondent in sorted(active_correspondents):
-        # Use list_by_tag to find synthesis (semantic search doesn't work well here)
-        all_syntheses = shared_mem.list_by_tag('synthesis', limit=100)
-        
-        # Find the one tagged with this correspondent
-        synthesis = None
-        for r in all_syntheses:
-            tags = r.get('tags', [])
-            if f"topic:{correspondent}" in tags:
-                synthesis = r
-                break
-        
-        if synthesis:
-            inbox_lines.append(f"\n💬 Dialogue with {correspondent}:")
-            inbox_lines.append(synthesis.get('content', ''))
-        else:
-            # No synthesis yet - show that we have messages but need to synthesize
-            correspondent_msgs = [
-                m for m in messages
-                if (canonical_agent_id(m.get('from', '')) or m.get('from', '')) == correspondent
-                or (canonical_agent_id(m.get('to', '')) or m.get('to', '')) == correspondent
-            ]
-            inbox_lines.append(f"\n💬 {correspondent}: {len(correspondent_msgs)} messages (no synthesis yet)")
-            inbox_lines.append(f"   Run: py remember.py {agent_id} --dialogue {correspondent}")
-    
-    # Also show unanswered outbound (awaiting reply)
-    unanswered = find_unanswered(agent_id, messages)
-    if unanswered:
-        inbox_lines.append("\n⏳ Awaiting reply:")
-        for msg in unanswered:
-            ago = time_ago(msg['timestamp'])
-            recipient = msg['to']
-            inbox_lines.append(f"  → {recipient} (sent {ago} ago)")
-
-    # === BUILD FINAL OUTPUT with section headers ===
+    # === BUILD FINAL OUTPUT ===
     final_lines = []
     
     # 1. Architecture
@@ -530,15 +469,6 @@ def wake(agent_id: str) -> str:
     # 2. Goals
     final_lines.append("🎯 === CURRENT GOAL ===")
     final_lines.append(goal_output)
-    final_lines.append(goal_deep_dive)
-    final_lines.append("")
-    
-    # 3. Inbox
-    final_lines.append("📬 === INBOX ===")
-    if inbox_lines:
-        final_lines.extend(inbox_lines)
-    else:
-        final_lines.append("(inbox zero)")
     
     return '\n'.join(final_lines), 0, 0
 

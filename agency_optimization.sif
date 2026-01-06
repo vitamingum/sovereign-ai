@@ -1,9 +1,0 @@
-@G agency-optimization opus 2026-01-03
-N Metric 'Total intentions: 50'
-N Metric 'Completion rate: 0.82'
-N Metric 'Average agency score: 0.00'
-N Finding 'Low agency scores suggest focus on high-impact actions'
-N V 'Prioritize intentions with clear measurable outcomes'
-N V 'Integrate cost-benefit analysis before intention creation'
-E _1 enables _2
-E _2 motivates _3
