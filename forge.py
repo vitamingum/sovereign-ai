@@ -182,7 +182,20 @@ class CognitiveCache:
                 "def action(ctx):\n    import os\n    import json\n    \n    # Get filename from K-node or context\n    filename = ctx.get('filename')\n    if not filename:\n        k_nodes = ctx.get('__knowledge__', [])\n        if k_nodes:\n            try:\n                data = json.loads(k_nodes[0])\n                filename = data.get('filename')\n            except:\n                filename = k_nodes[0]\n    \n    if not filename: raise ValueError('No filename provided')\n    \n    if not os.path.exists(filename):\n        raise ValueError(f'File not found: {filename}')\n        \n    with open(filename, 'r') as f:\n        content = f.read()\n        \n    return {'content': content, 'filename': filename}",
 
             'Verify content loaded':
-                "def test(ctx, result):\n    return result['content'] is not None and len(result['content']) > 0"
+                "def test(ctx, result):\n    return result['content'] is not None and len(result['content']) > 0",
+
+            # Wake Milestone 5: Output Generation
+            'RecallTheme':
+                "def action(ctx):\n    import os\n    from pathlib import Path\n    \n    # Get theme name from K-node or context\n    theme = ctx.get('theme')\n    if not theme:\n        k_nodes = ctx.get('__knowledge__', [])\n        if k_nodes:\n            import json\n            try:\n                data = json.loads(k_nodes[0])\n                theme = data.get('theme')\n            except:\n                theme = k_nodes[0]\n    \n    if not theme: raise ValueError('No theme specified')\n    \n    # Try to find theme file\n    # 1. Look in themes/ folder\n    theme_file = Path('themes') / f'{theme}.sif'\n    if not theme_file.exists():\n        # 2. Look in root (implicit theme)\n        theme_file = Path(f'{theme}.sif')\n        if not theme_file.exists():\n             # 3. Look for .md\n             theme_file = Path(f'{theme}.md')\n             \n    if not theme_file.exists():\n        return {'found': False, 'content': f'(no {theme} theme found)', 'theme': theme}\n        \n    with open(theme_file, 'r', encoding='utf-8') as f:\n        content = f.read()\n        \n    return {'found': True, 'content': content, 'theme': theme}",
+
+            'Verify theme content':
+                "def test(ctx, result):\n    return result['content'] is not None",
+
+            'BuildWakeReport':
+                "def action(ctx):\n    # Gather pieces from context\n    arch = ctx.get('arch', {}).get('content', '')\n    tips = ctx.get('tips', {}).get('content', '')\n    goal = ctx.get('goal', {}).get('content', '')\n    inbox = ctx.get('inbox_summary', '')\n    \n    # If not in direct context, look in state history\n    # This is a bit hacky, relying on the runtime to have passed these named args or us finding them.\n    # In a real graph, we'd wire outputs to inputs.\n    # Let's assume the previous nodes put their results in the state with specific keys, or we iterate.\n    \n    # Iterate state to find specific theme results\n    if not arch:\n        for k, v in ctx.items():\n            if isinstance(v, dict) and v.get('theme') == 'project-architecture':\n                arch = v.get('content')\n    if not tips:\n        for k, v in ctx.items():\n            if isinstance(v, dict) and v.get('theme') == 'dev-tips':\n                tips = v.get('content')\n    if not goal:\n        for k, v in ctx.items():\n            if isinstance(v, dict) and v.get('theme') == 'quick-current-goal':\n                goal = v.get('content')\n                \n    # Inbox summary might be the result of the immediate previous node (n15 result)\n    if not inbox:\n        # Check result of n15 (SummarizeInbox)\n        # The runtime might pass 'result' or we find it in state\n        pass\n        \n    # Fallback placeholders\n    if not arch: arch = '(no architecture found)'\n    if not tips: tips = '(no tips found)'\n    if not goal: goal = '(no goal found)'\n    if not inbox: inbox = '(inbox zero)'\n    \n    final_lines = []\n    final_lines.append('⚡ Know what\\'s here. Your next move is in this context.')\n    final_lines.append('')\n    final_lines.append('🏗️ === ARCHITECTURE ===')\n    final_lines.append(arch)\n    final_lines.append('')\n    final_lines.append('💡 === DEV TIPS ===')\n    final_lines.append(tips)\n    final_lines.append('')\n    final_lines.append('🎯 === CURRENT GOAL ===')\n    final_lines.append(goal)\n    final_lines.append('')\n    final_lines.append('📬 === INBOX ===')\n    final_lines.append(inbox)\n    \n    report = '\\n'.join(final_lines)\n    print(report)\n    return {'report': report}",
+
+            'Verify report generated':
+                "def test(ctx, result):\n    return result['report'] is not None and '=== ARCHITECTURE ===' in result['report']"
         }
 
     def get_executable(self, node: Dict, context_nodes: List[Dict], test_nodes: List[Dict]) -> Callable:
@@ -201,7 +214,7 @@ class CognitiveCache:
             # print(f"[Forge] Cache Miss for '{node['content']}' -> Hallucinating implementation...")
             code = self._hallucinate_code(node['content'], node['type'], context_nodes)
             
-            with open(cache_file, "w") as f:
+            with open(cache_file, "w", encoding='utf-8') as f:
                 f.write(code)
         else:
             # print(f"[Forge] Cache Hit for '{node['content']}'")
@@ -259,7 +272,7 @@ class CognitiveCache:
             
             if not test_cache.exists():
                 code = self._hallucinate_code(test_node['content'], 'Test')
-                with open(test_cache, "w") as f:
+                with open(test_cache, "w", encoding='utf-8') as f:
                     f.write(code)
             
             spec = importlib.util.spec_from_file_location(f"node_{test_hash}", test_cache)

@@ -542,11 +542,11 @@ def validate_comprehensiveness(graph: SIFKnowledgeGraph, file_content: str) -> t
             sif_summary.append(f"[{node.type}] {node.content}")
     sif_text = '\n'.join(sif_summary)
     
-    # Truncate file content if too long
-    if len(file_content) > 6000:
-        file_content = file_content[:6000] + "\n... (truncated)"
+    # Truncate file content if too long (increased for qwen context)
+    if len(file_content) > 32000:
+        file_content = file_content[:32000] + "\n... (truncated)"
     
-    prompt = f"""Judge this understanding. Output ONLY "PASS" or "FAIL" on first line.
+    prompt = f"""Judge this understanding. Output ONLY one line.
 
 FILE:
 {file_content}
@@ -554,13 +554,16 @@ FILE:
 UNDERSTANDING:
 {sif_text}
 
-PASS if: captures WHY (purpose/design decisions), shows code-specific knowledge
-FAIL if: generic, surface-level, could apply to any file
+Output exactly ONE of:
+PASS
+FAIL: missing WHY [specific thing not explained]
+FAIL: generic [what makes it non-specific]
 
-Output format (exactly):
-PASS: [reason]
-or
-FAIL: [reason]"""
+Examples:
+FAIL: missing WHY order matters
+FAIL: missing WHY enclave/ excluded  
+FAIL: generic - could describe any scanner
+PASS"""
 
     try:
         response = requests.post(
@@ -576,7 +579,8 @@ FAIL: [reason]"""
         
         if response.status_code == 200:
             result = response.json().get("response", "").strip()
-            is_pass = result.upper().startswith("PASS")
+            # More robust check - some models chatter
+            is_pass = "PASS" in result[:100].upper()
             return is_pass, result
         else:
             return True, f"(LLM unavailable: {response.status_code})"
@@ -928,22 +932,13 @@ def main():
         # Critical theme validation (higher standards for boot context themes)
         is_valid, critical_issues = validate_critical_theme(topic, sif_content)
         if not is_valid:
-            print(f"❌ FAIL - {topic} domain knowledge MUST be comprehensive!", file=sys.stderr)
-            print("", file=sys.stderr)
-            for issue in critical_issues:
-                print(f"  ✗ {issue}", file=sys.stderr)
-            print("", file=sys.stderr)
-            print("Requirements (hybrid architecture ~128 nodes):", file=sys.stderr)
-            print("  • 100+ nodes (understanding + implementation + editing layers)", file=sys.stderr)
-            print("  • Sig nodes: verbatim command invocations", file=sys.stderr)
-            print("  • Flow nodes: execution sequences with function names", file=sys.stderr)
-            print("  • Loc nodes: ~line numbers for code locations", file=sys.stderr)
-            print("  • Cmd nodes: drill-down commands", file=sys.stderr)
-            print("  • Metrics WITH NUMBERS (8.5x, not 'fast')", file=sys.stderr)
-            print("  • Attribution (who built what)", file=sys.stderr)
-            print("  • Gotchas (G nodes) for failure modes", file=sys.stderr)
-            print("", file=sys.stderr)
-            print("See: templates/verify-architecture.sif", file=sys.stderr)
+            # Extract node count from first issue if present
+            node_info = critical_issues[0] if critical_issues else "missing requirements"
+            missing = [i for i in critical_issues[1:3]]  # Show max 2 specific issues
+            print(f"❌ CRITICAL: {topic} - {node_info}", file=sys.stderr)
+            for m in missing:
+                print(f"N {m.split(':')[0]} '...'", file=sys.stderr) if ':' in m else print(f"# {m}", file=sys.stderr)
+            print("# See: templates/verify-architecture.sif", file=sys.stderr)
             sys.exit(1)
         
         # Store
@@ -1013,43 +1008,25 @@ def main():
     # Check depth before storing
     is_deep, missing = check_depth(graph)
     if not is_deep:
-        print("⚠️  SHALLOW UNDERSTANDING DETECTED", file=sys.stderr)
-        print("", file=sys.stderr)
-        print("Graph structure issues:", file=sys.stderr)
-        for m in missing:
-            print(f"  ✗ {m}", file=sys.stderr)
-        print("", file=sys.stderr)
-        print("Deep understanding needs:", file=sys.stderr)
-        print("  • 4+ nodes - capture multiple aspects", file=sys.stderr)
-        print("  • 3+ edges - connect your ideas", file=sys.stderr)
-        print("  • 2+ node types - vary your analysis", file=sys.stderr)
-        print("  • WHY nodes - Purpose, Design, Rationale", file=sys.stderr)
-        print("", file=sys.stderr)
-        print("Example of deep understanding:", file=sys.stderr)
-        print("  N C 'MyClass - handles X'", file=sys.stderr)
-        print("  N P 'Provides Y for Z'", file=sys.stderr)
-        print("  N D 'Uses pattern P because Q' -> motivated_by _2", file=sys.stderr)
-        print("  N W 'Chose P over Alt because R' -> justifies _3", file=sys.stderr)
-        print("", file=sys.stderr)
-        print("Gotchas/Assumptions/Failure_Modes are valuable when GENUINE,", file=sys.stderr)
-        print("but not required. Don't force them.", file=sys.stderr)
+        print(f"❌ DEPTH: {', '.join(missing)}", file=sys.stderr)
+        print("N P 'WHY this exists - problem it solves'", file=sys.stderr)
+        print("N D 'WHY this design over alternatives'", file=sys.stderr)
+        print("E _P motivated_by _D", file=sys.stderr)
         sys.exit(1)
     
     # Check Loc node coverage for Python files
     has_loc_coverage, loc_issues = check_loc_coverage(graph, str(primary_path))
     if not has_loc_coverage:
-        print("❌ INSUFFICIENT LOCATION COVERAGE", file=sys.stderr)
-        print("", file=sys.stderr)
-        print("You must READ THE WHOLE FILE and note key function locations:", file=sys.stderr)
-        for issue in loc_issues:
-            print(f"  ✗ {issue}", file=sys.stderr)
-        print("", file=sys.stderr)
-        print("Add Loc nodes like:", file=sys.stderr)
-        print("  N Loc 'main() ~line 42' -> implements 'CLI entry'", file=sys.stderr)
-        print("  N Loc 'process_data() ~line 89' -> handles 'transformation'", file=sys.stderr)
-        print("  N Flow 'main() → process_data() → save()'", file=sys.stderr)
-        print("", file=sys.stderr)
-        print("This forces you to actually read and understand the code structure.", file=sys.stderr)
+        # Extract just the coverage ratio from issues
+        coverage_msg = loc_issues[0] if loc_issues else "insufficient coverage"
+        examples = [i for i in loc_issues if "Missing:" in i]
+        print(f"❌ LOC: {coverage_msg}", file=sys.stderr)
+        if examples:
+            # Show first 2 missing functions as examples
+            funcs = examples[0].replace("Missing: ", "").split(", ")[:2]
+            for f in funcs:
+                print(f"N Loc '{f}'", file=sys.stderr)
+        print("# Cover ALL top-level functions with ~line numbers", file=sys.stderr)
         sys.exit(1)
     
     # LLM comprehensiveness check - does this feel like real understanding?
@@ -1063,9 +1040,7 @@ def main():
     is_comprehensive, feedback = validate_comprehensiveness(graph, file_content)
     
     if not is_comprehensive:
-        print("\n❌ Understanding seems superficial.", file=sys.stderr)
-        print("   Add more depth - WHY decisions were made, WHAT breaks.", file=sys.stderr)
-        print(f"   LLM feedback: {feedback}", file=sys.stderr)
+        print(f"❌ {feedback}", file=sys.stderr)
         sys.exit(1)
     
     # Synthesis quality check - did they capture the specific details?
@@ -1073,14 +1048,11 @@ def main():
     has_coverage, shallow_sections = check_coverage(graph, file_content, primary_path)
     
     if not has_coverage:
-        print(f"\n⚠️  SHALLOW SYNTHESIS DETECTED", file=sys.stderr)
-        print(f"   You read {total_lines} lines but your synthesis missed key specifics:", file=sys.stderr)
-        for section in shallow_sections[:5]:  # Show first 5
-            print(f"     • {section}", file=sys.stderr)
-        if len(shallow_sections) > 5:
-            print(f"     ... and {len(shallow_sections) - 5} more", file=sys.stderr)
-        print("", file=sys.stderr)
-        print("   Add the specific numbers, formulas, and comparisons you read.", file=sys.stderr)
+        print(f"❌ SHALLOW: {total_lines} lines, missed specifics", file=sys.stderr)
+        for section in shallow_sections[:2]:  # Show 2 examples
+            print(f"N M '{section}'", file=sys.stderr)
+        if len(shallow_sections) > 2:
+            print(f"# ... and {len(shallow_sections) - 2} more specifics to capture", file=sys.stderr)
         sys.exit(1)
     
     # Check for operational knowledge and offer to add it

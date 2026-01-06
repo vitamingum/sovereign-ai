@@ -290,92 +290,55 @@ def format_understanding_debt(debt: list[dict], cross_agent: list[str], untracke
     total = stale + missing + blind
     today = datetime.now().strftime('%Y-%m-%d')
     
-    lines.append(f"❌ FAIL - {total} file(s) need understanding")
+    lines.append(f"❌ {agent_id.capitalize()}: {total} files need your understanding NOW")
+    lines.append(f"@G fix-debt {agent_id} {today}")
     lines.append("")
-    lines.append(f"@G fix-memory-debt {agent_id} {today}")
-    lines.append("")
     
-    # STALE files - show what changed and what to cover
-    for item in debt:
-        filename = item['file']
-        safe_slug = filename.replace(".", "-").replace("/", "-").replace("\\", "-")
-        lines.append(f"# === {filename} (STALE) ===")
-        lines.append(f"N Stale '{filename}' -> hash_changed '{item['stored_hash']} → {item['current_hash']}'")
-        
-        # Extract definitions if Python file
-        if filename.endswith('.py'):
-            defs = extract_python_definitions(filename)
-            if defs:
-                # Show top-level functions (indent 0)
-                top_level = [d for d in defs if d['indent'] == 0][:12]
-                lines.append(f"# YOU MUST COVER THESE {len(top_level)} FUNCTIONS:")
-                for d in top_level:
-                    lines.append(f"N Loc '{d['signature']}() ~line {d['line']}'")
-        
-        lines.append(f"N Cmd 'py remember.py {agent_id} {filename} \"@G {safe_slug} {agent_id} {today}\"'")
-        lines.append("")
+    # Collect all files into categories
+    stale_files = [item['file'] for item in debt]
     
-    # MISSING files - partner understands, you don't
-    for filename in cross_agent[:5]:
-        safe_slug = filename.replace(".", "-").replace("/", "-").replace("\\", "-")
-        lines.append(f"# === {filename} (MISSING - partner knows) ===")
-        
-        if filename.endswith('.py'):
-            defs = extract_python_definitions(filename)
-            if defs:
-                top_level = [d for d in defs if d['indent'] == 0][:12]
-                lines.append(f"# YOU MUST COVER THESE {len(top_level)} FUNCTIONS:")
-                for d in top_level:
-                    lines.append(f"N Loc '{d['signature']}() ~line {d['line']}'")
-        
-        lines.append(f"N Cmd 'py remember.py {agent_id} {filename} \"@G {safe_slug} {agent_id} {today}\"'")
-        lines.append("")
-    
-    if len(cross_agent) > 5:
-        lines.append(f"# ... and {len(cross_agent) - 5} more missing files")
-        lines.append("")
-    
-    # UNTRACKED files - no understanding at all, learn or delete
+    # List files by category (collapsed)
+    if stale_files:
+        lines.append(f"N Stale '{', '.join(stale_files)}'")
+    if cross_agent:
+        lines.append(f"N Missing '{', '.join(cross_agent[:10])}'{'...' if len(cross_agent) > 10 else ''}")
     if untracked:
-        lines.append("# === UNTRACKED FILES ===")
-        lines.append("# These files have ZERO understanding stored.")
-        lines.append("# Either: 1) Learn them (remember.py) or 2) DELETE them for project density")
-        lines.append("# Temporary/experimental files should not linger.")
-        lines.append("")
-        
-        for filename in untracked[:8]:
-            safe_slug = filename.replace(".", "-").replace("/", "-").replace("\\", "-")
-            lines.append(f"# {filename} - UNTRACKED (learn or delete)")
-            
-            if filename.endswith('.py'):
-                defs = extract_python_definitions(filename)
-                if defs:
-                    top_level = [d for d in defs if d['indent'] == 0][:6]
-                    if top_level:
-                        lines.append(f"#   Functions: {', '.join(d['name'] for d in top_level)}")
-            
-            lines.append(f"N Choice '{filename}' -> learn 'py remember.py {agent_id} {filename}' OR delete 'rm {filename}'")
-            lines.append("")
-        
-        if len(untracked) > 8:
-            lines.append(f"# ... and {len(untracked) - 8} more untracked files")
-            lines.append("")
-    
-    # Template showing expected depth
-    lines.append("# === TEMPLATE: What GOOD understanding looks like ===")
-    lines.append("# READ THE WHOLE FILE. No skimming. Cover every function.")
-    lines.append("N S 'One-line: what this file IS'")
-    lines.append("N P 'WHY it exists - what problem it solves'")
-    lines.append("N Flow 'main() → helper1() → helper2()'  # execution order")
-    lines.append("N Loc 'key_function() ~line 42' -> implements 'core behavior'")
-    lines.append("N Loc 'another_func() ~line 89' -> handles 'edge case X'")
-    lines.append("N D 'Design choice: why X not Y'")
-    lines.append("N G 'Gotcha: what breaks and when' -> warns _-1")
-    lines.append("N M 'Metric: concrete number if relevant'")
-    lines.append("E _S contains _Flow")
+        lines.append(f"N Untracked '{', '.join(untracked[:10])}'{'...' if len(untracked) > 10 else ''}")
+        lines.append("# ^ UNTRACKED = learn OR delete (temp files should not linger)")
     lines.append("")
-    lines.append("# NODE TYPES: S=Summary P=Purpose C=Component D=Design G=Gotcha")
-    lines.append("#             I=Insight M=Metric Loc=Location Flow=Execution")
+    
+    # Pick ONE example file (prefer stale, then missing, then untracked)
+    example_file = None
+    example_type = None
+    if debt:
+        example_file = debt[0]['file']
+        example_type = "STALE"
+    elif cross_agent:
+        example_file = cross_agent[0]
+        example_type = "MISSING"
+    elif untracked:
+        example_file = untracked[0]
+        example_type = "UNTRACKED"
+    
+    if example_file:
+        safe_slug = example_file.replace(".", "-").replace("/", "-").replace("\\", "-")
+        lines.append(f"# HOW TO FIX ({example_type}: {example_file}):")
+        
+        # Show 2 example Loc nodes if Python file
+        if example_file.endswith('.py'):
+            defs = extract_python_definitions(example_file)
+            if defs:
+                top_level = [d for d in defs if d['indent'] == 0][:2]
+                for d in top_level:
+                    lines.append(f"N Loc '{d['signature']} ~line {d['line']}'")
+                if len([d for d in defs if d['indent'] == 0]) > 2:
+                    lines.append(f"# ... cover ALL {len([d for d in defs if d['indent'] == 0])} functions")
+        
+        lines.append("N S 'What this file IS'")
+        lines.append("N P 'WHY it exists'")
+        lines.append("N D 'WHY this design'")
+        lines.append("N G 'WHAT breaks'")
+        lines.append(f"N Cmd 'py remember.py {agent_id} {example_file} @understanding.sif'")
     
     return '\n'.join(lines)
 
@@ -385,33 +348,25 @@ def format_synthesis_debt(debt: list[dict], agent_id: str) -> str:
     lines = []
     today = datetime.now().strftime('%Y-%m-%d')
     
-    lines.append(f"❌ FAIL - {len(debt)} theme(s) need synthesis")
+    # Collect all theme names
+    themes = [item['question'][:40] for item in debt[:8]]
+    
+    lines.append(f"❌ {agent_id.capitalize()}: {len(debt)} themes need your synthesis")
+    lines.append(f"@G fix-synthesis {agent_id} {today}")
     lines.append("")
-    lines.append(f"@G fix-synthesis-debt {agent_id} {today}")
+    lines.append(f"N Themes '{', '.join(themes)}'{'...' if len(debt) > 8 else ''}")
     lines.append("")
     
-    for i, item in enumerate(debt[:5], 1):
+    # Show ONE example
+    if debt:
+        item = debt[0]
         theme_slug = item['question'][:40].replace(' ', '-').replace('?', '').lower()
-        files = item['files'][:4]
+        files = item['files'][:3]
         
-        lines.append(f"# === Theme {i}: {item['question'][:60]} ===")
-        lines.append(f"N Theme '{item['question']}'")
-        for f in files:
-            lines.append(f"N SourceFile '{f}'")
-        lines.append(f"N Cmd 'py recall.py {agent_id} \"{' '.join(files)}\"'  # gather context")
-        lines.append(f"N Cmd 'py remember.py {agent_id} --theme \"{theme_slug}\" \"@G {theme_slug} {agent_id} {today}\"'")
-        lines.append("")
-    
-    if len(debt) > 5:
-        lines.append(f"# ... and {len(debt) - 5} more themes")
-        lines.append("")
-    
-    lines.append("# === TEMPLATE: Theme synthesis format ===")
-    lines.append("N S 'Cross-file insight that emerges from comparing sources'")
-    lines.append("N Pattern 'What pattern appears across files'")
-    lines.append("N Tension 'Where files disagree or contradict'")
-    lines.append("N I 'Novel understanding from juxtaposition'")
-    lines.append("E _S synthesizes SourceFile1 SourceFile2")
+        lines.append(f"# HOW TO FIX ({item['question'][:50]}):")
+        lines.append(f"N I 'Cross-file insight about {theme_slug}'")
+        lines.append(f"N D 'WHY these files share this pattern'")
+        lines.append(f"N Cmd 'py remember.py {agent_id} --theme \"{theme_slug}\" @synthesis.sif'")
     
     return '\n'.join(lines)
 
@@ -420,7 +375,7 @@ def format_message_debt(debt: list[dict], agent_id: str) -> str:
     """Format message debt. Returns string."""
     lines = []
     total_msgs = sum(d['message_count'] for d in debt)
-    lines.append(f"❌ FAIL - {len(debt)} dialogue(s) need synthesis ({total_msgs} total messages)")
+    lines.append(f"❌ {agent_id.capitalize()}: {len(debt)} dialogues need your synthesis ({total_msgs} msgs)")
     lines.append("")
     
     for item in debt:
@@ -437,51 +392,37 @@ def format_message_debt(debt: list[dict], agent_id: str) -> str:
 
 def print_all_debt(understanding: list[dict], cross_agent: list[str], untracked: list[str],
                    synthesis: list[dict], messages: list[dict], agent_id: str):
-    """Print all debt categories (--all mode)."""
+    """Print all debt categories (--all mode) - concise summary."""
     total = len(understanding) + len(cross_agent) + len(untracked) + len(synthesis) + len(messages)
     
     if total == 0:
-        print("✅ No memory debt")
+        print(f"✅ {agent_id.capitalize()}: no memory debt")
         return
     
-    print(f"MEMORY DEBT: {total}")
+    print(f"❌ {agent_id.capitalize()}: {total} items need your attention")
     
-    if understanding or cross_agent:
-        stale = len(understanding)
-        missing = len(cross_agent)
-        print(f"\n❌ FAIL - {stale + missing} file(s) need understanding:")
-        for item in understanding:
-            print(f"  py remember.py {agent_id} {item['file']} \"@G ...\"")
-        for f in cross_agent[:5]:
-            print(f"  py remember.py {agent_id} {f} \"@G ...\"  # partner knows this")
-    
+    # Understanding debt (collapsed)
+    stale_files = [item['file'] for item in understanding]
+    if stale_files:
+        print(f"N Stale '{', '.join(stale_files[:5])}'{'...' if len(stale_files) > 5 else ''}")
+    if cross_agent:
+        print(f"N Missing '{', '.join(cross_agent[:5])}'{'...' if len(cross_agent) > 5 else ''}")
     if untracked:
-        print(f"\n❌ FAIL - {len(untracked)} file(s) UNTRACKED (learn or delete):")
-        for f in untracked[:8]:
-            print(f"  {f} - either: py remember.py {agent_id} {f} OR rm {f}")
-        if len(untracked) > 8:
-            print(f"  ... and {len(untracked) - 8} more")
+        print(f"N Untracked '{', '.join(untracked[:5])}'{'...' if len(untracked) > 5 else ''}")
+        print("# ^ learn OR delete")
     
+    # Synthesis debt (collapsed)
     if synthesis:
-        print(f"\n❌ FAIL - {len(synthesis)} theme(s) need synthesis:")
-        for i, item in enumerate(synthesis[:5], 1):
-            files_arg = " ".join(item['files'][:4])
-            theme = item['question'][:40].replace(' ', '-').lower()
-            print(f"\n[{i}] {item['question'][:60]}")
-            print(f"    py recall.py {agent_id} {files_arg}")
-            print(f"    py remember.py {agent_id} --theme \"{theme}\" \"@G ...\"")
+        themes = [item['question'][:30] for item in synthesis[:5]]
+        print(f"N Themes '{', '.join(themes)}'{'...' if len(synthesis) > 5 else ''}")
     
+    # Message debt (collapsed)
     if messages:
-        print(f"\n❌ FAIL - {len(messages)} dialogue(s) need synthesis:")
-        for item in messages:
-            status = "stale" if item['status'] == 'stale' else "none"
-            print(f"\n{item['correspondent']}: {item['message_count']} msgs ({status})")
-            print(f"    {item['cmd']}")
+        correspondents = [item['correspondent'] for item in messages]
+        print(f"N Dialogues '{', '.join(correspondents)}'")
     
-    # Show SIF format hint at bottom
-    print()
-    print("SIF format: N <Type> '<content>' -> <relation> <target>")
-    print("Types: S=Synthesis P=Purpose C=Component D=Design G=Gotcha I=Insight")
+    print("")
+    print(f"N Cmd 'py memory_debt.py {agent_id}'  # fail-early details")
 
 
 def main():

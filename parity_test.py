@@ -211,7 +211,8 @@ def infer_inputs_from_assertion(assertion: str, verb: str) -> Dict[str, Any]:
         # Default remember inputs - USE REAL FILE THAT EXISTS
         # MUST have 4+ nodes to pass Python depth validation
         inputs['agent_id'] = 'opus'
-        inputs['sif_content'] = '@G test opus 2026-01-04; N S "Summary of parity_test.py"; N I "It validates logic parity between Python and SIF"; N D "Uses TestCase dataclass for structure"; N G "Beware of TYPE_SHORTCUTS mapping conflicts"; E _1 has _2; E _2 supports _3; E _3 warns _4'
+        # Added multiple function names AND line numbers to pass coverage (names) and line ref (~line) checks
+        inputs['sif_content'] = '@G test opus 2026-01-04; N S "Summary of parity_test.py"; N I "It validates logic parity between Python and SIF"; N D "Uses TestCase dataclass for structure"; N G "Beware of TYPE_SHORTCUTS mapping conflicts"; N l1 Loc "Functions: extract_test_nodes ~line 70, extract_logic_nodes ~line 110, extract_action_nodes ~line 147, generate_test_cases, infer_inputs_from_assertion"; E _1 has _2; E _2 supports _3; E _3 warns _4'
         inputs['target_file'] = 'parity_test.py'  # Use this file - it exists!
         inputs['_test_mode'] = True  # Signal to skip actual storage
         
@@ -219,7 +220,7 @@ def infer_inputs_from_assertion(assertion: str, verb: str) -> Dict[str, Any]:
             # Test shallow vs deep graphs
             inputs['_variants'] = [
                 {'sif_content': '@G shallow opus 2026-01-04; N S "Only one node"'},  # Should fail depth
-                {'sif_content': '@G deep opus 2026-01-04; N S "Summary"; N I "Insight"; N D "Design"; N G "Gotcha"; E _1 has _2; E _2 supports _3; E _3 warns _4'},  # Should pass
+                {'sif_content': '@G deep opus 2026-01-04; N S "Summary"; N I "Insight"; N D "Design"; N G "Gotcha"; N l1 Loc "Functions: extract_test_nodes ~line 70, extract_logic_nodes ~line 110, extract_action_nodes ~line 147, generate_test_cases, infer_inputs_from_assertion"; E _1 has _2; E _2 supports _3; E _3 warns _4'},  # Should pass
             ]
     
     elif verb == 'recall':
@@ -244,7 +245,9 @@ def infer_inputs_for_branch(logic_content: str, branch: str, verb: str) -> Dict[
         inputs['agent_id'] = 'opus'
         inputs['_test_mode'] = True  # Signal to skip actual storage
         # ALWAYS use 4+ node graph to pass Python depth validation
-        base_sif = '@G {topic} opus 2026-01-04; N S "{s}"; N I "{i}"; N D "{d}"; N G "{g}"; E _1 has _2; E _2 supports _3; E _3 warns _4'
+        # Modified base_sif to include MULTIPLE function names AND line numbers to pass all validation checks
+        # Mentions: extract_test_nodes (~line 70), extract_logic_nodes (~line 110), etc.
+        base_sif = '@G {topic} opus 2026-01-04; N S "{s}"; N I "{i}"; N D "{d}"; N G "{g}"; N l1 Loc "Functions: extract_test_nodes ~line 70, extract_logic_nodes ~line 110, extract_action_nodes ~line 147, generate_test_cases ~line 170, infer_inputs_from_assertion ~line 204"; E _1 has _2; E _2 supports _3; E _3 warns _4; E l1 supports _2'
         
         if 'theme' in content_lower:
             # Is Theme Mode?
@@ -307,15 +310,18 @@ def infer_inputs_for_branch(logic_content: str, branch: str, verb: str) -> Dict[
             # Does Target File Exist?
             if branch == 'yes':
                 inputs['target_file'] = 'remember.py'  # File that exists
+                # Use remember.py specific SIF to pass 30% coverage and line ref check
+                # Mentions: load_passphrase ~line 40, validate_critical_theme ~line 100, etc.
+                inputs['sif_content'] = '@G file-test opus 2026-01-04; N S "File existence"; N I "Insight"; N D "Design"; N G "Gotcha"; N l1 Loc "load_passphrase ~line 40, validate_critical_theme ~line 100, evaluate_theme_depth ~line 190, store_theme, compute_file_hash"; E _1 has _2; E _2 supports _3; E _3 warns _4'
             else:
                 inputs['target_file'] = 'nonexistent_file_xyz.py'
-            inputs['sif_content'] = base_sif.format(
-                topic='file-test',
-                s='File existence test',
-                i='File test insight',
-                d='File test design',
-                g='File test gotcha'
-            )
+                inputs['sif_content'] = base_sif.format(
+                    topic='file-test',
+                    s='File existence test',
+                    i='File test insight',
+                    d='File test design',
+                    g='File test gotcha'
+                )
         
         else:
             # Default: use real file with valid graph
@@ -376,6 +382,7 @@ def run_python_verb(verb: str, inputs: Dict[str, Any], verbose: bool = False) ->
             cmd, 
             capture_output=True, 
             text=True, 
+            encoding='utf-8',
             timeout=60,
             cwd=Path(__file__).parent
         )
@@ -420,6 +427,7 @@ def run_sif_verb(verb: str, inputs: Dict[str, Any], verbose: bool = False) -> Tu
             cmd,
             capture_output=True,
             text=True,
+            encoding='utf-8',
             timeout=120,  # SIF execution may be slower (LLM calls)
             cwd=Path(__file__).parent
         )
