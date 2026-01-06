@@ -336,6 +336,32 @@ def wake(agent_id: str) -> str:
     shared_mem = SemanticMemory(str(shared_path))
     shared_mem.unlock(shared_passphrase)
 
+    # === SIF FORMAT REFERENCE (always show first) ===
+    print("═" * 60)
+    print("📖 SIF FORMAT SPEC")
+    print("═" * 60)
+    try:
+        import subprocess
+        result = subprocess.run(
+            [sys.executable, 'recall.py', agent_id, '--theme', 'sif-format-spec'],
+            capture_output=True,
+            text=True,
+            encoding='utf-8',
+            timeout=30
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            # Print just the SIF content, skip the header
+            lines = result.stdout.strip().split('\n')
+            for line in lines:
+                if line.startswith('@G') or line.startswith('N ') or line.startswith('E '):
+                    print(line)
+        else:
+            print("(sif-format-spec theme not found - run: python remember.py <agent> --theme sif-format-spec)")
+    except Exception as e:
+        print(f"(could not load sif-format-spec: {e})")
+    print("═" * 60)
+    print()
+
     # === MEMORY DEBT CHECK - FAIL FAST ===
     # Use memory_debt.py as single source of truth for detection AND formatting
     from memory_debt import (
