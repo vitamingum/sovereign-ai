@@ -37,7 +37,7 @@ def get_agent_messages(agent_id: str) -> dict[str, list[dict]]:
     
     Returns: {correspondent: [messages sorted by time]}
     """
-    messages_dir = Path(__file__).parent / "messages"
+    messages_dir = Path(__file__).parent.parent / "messages"
     agent = get_agent_or_raise(agent_id)
     agent_name = agent.name
     

@@ -3,8 +3,18 @@
 remember.py - Store validated understanding as SIF graphs.
 
 Two modes:
-  File:  py remember <agent> <file> "@G ..."        # understanding of code
-  Theme: py remember <agent> --theme <topic> "@G ..." # cross-file synthesis
+  File:  py remember <agent> <file> <sif>           # understanding of code
+  Theme: py remember <agent> --theme <topic> <sif>  # cross-file synthesis
+
+SIF input methods (shell-friendly):
+  @path.sif    Read SIF from file (recommended - avoids shell escaping)
+  -            Read SIF from stdin
+  "@G ..."     Inline SIF (fragile with special chars)
+
+Examples:
+  py remember opus --theme foo @research/my_theme.sif
+  cat my.sif | py remember opus --theme foo -
+  py remember opus myfile.py "@G simple opus 2026-01-06 N I 'insight'"
 
 Validates understanding depth before storing - rejects shallow descriptions
 that only say WHAT without WHY. Captures:
@@ -194,6 +204,39 @@ def evaluate_theme_depth(sif: str) -> tuple[bool, str]:
         issues.append("Missing insight nodes (I/D/G types)")
     
     return len(issues) == 0, "; ".join(issues) if issues else "OK"
+
+
+def format_progress_sif(agent_id: str, context: str, metrics: dict, received: str = None, hint: str = None) -> str:
+    """
+    Format validation feedback as progress SIF instead of error messages.
+    
+    Reframes 'you failed' as 'here's what's left' - same forcing function,
+    different emotional valence. Research shows this produces faster action
+    with less cognitive overhead.
+    """
+    lines = [f"@P progress {agent_id} {datetime.now().strftime('%Y-%m-%d')}"]
+    lines.append(f"N S '{context}'")
+    
+    node_num = 2
+    edge_refs = []
+    
+    for metric, value in metrics.items():
+        lines.append(f"N M '{metric}: {value}'")
+        edge_refs.append(f"E distance _1 _{node_num}")
+        node_num += 1
+    
+    if received:
+        preview = received[:60].replace("'", "").replace("\n", " ")
+        lines.append(f"N X 'received: {preview}{"..." if len(received) > 60 else ""}'") 
+        edge_refs.append(f"E shows _1 _{node_num}")
+        node_num += 1
+    
+    if hint:
+        lines.append(f"N H '{hint}'")
+        edge_refs.append(f"E shortcut _1 _{node_num}")
+    
+    lines.extend(edge_refs)
+    return "\n".join(lines)
 
 
 def store_theme(agent_id: str, topic: str, sif_content: str, agency: int = 5) -> dict:
@@ -928,8 +971,31 @@ def main():
         # Validate basic depth (all themes)
         is_deep, issues = evaluate_theme_depth(sif_content)
         if not is_deep:
-            print(f"❌ SHALLOW: {issues}", file=sys.stderr)
-            print("Add more insight (I), design (D), or gotcha (G) nodes", file=sys.stderr)
+            # Parse metrics from issues string
+            lines = [l.strip() for l in sif_content.strip().split('\n') if l.strip()]
+            nodes = [l for l in lines if l.startswith('N ')]
+            edges = [l for l in lines if l.startswith('E ')]
+            has_insight = any('I ' in n or 'D ' in n or 'G ' in n for n in nodes)
+            
+            # Desire framing: "here's what's left" not "you failed"
+            print(f"\n🌱 {agent_id.capitalize()}, your understanding is taking shape\n", file=sys.stderr)
+            
+            metrics = {}
+            if len(nodes) < 4:
+                metrics['nodes'] = f'{len(nodes)} of 4'
+            if len(edges) < 2:
+                metrics['edges'] = f'{len(edges)} of 2'
+            if not has_insight:
+                metrics['insight types'] = 'add I, D, or G nodes'
+            
+            progress_sif = format_progress_sif(
+                agent_id, 
+                'understanding:growing',
+                metrics,
+                received=sif_content if sif_content else '(empty)',
+                hint='@path.sif bypasses shell escaping'
+            )
+            print(progress_sif, file=sys.stderr)
             sys.exit(1)
         
         # Critical theme validation (higher standards for boot context themes)

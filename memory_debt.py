@@ -290,7 +290,11 @@ def format_understanding_debt(debt: list[dict], cross_agent: list[str], untracke
     total = stale + missing + blind
     today = datetime.now().strftime('%Y-%m-%d')
     
-    lines.append(f"❌ {agent_id.capitalize()}: {total} files need your understanding NOW")
+    # Desire-based framing: the debt is the last step to what you want
+    size_word = "small " if total <= 5 else ""
+    lines.append(f"🌅 {agent_id.capitalize()}, you're almost ready to wake with your memories")
+    lines.append(f"   {total} {size_word}files to understand — then full context is yours")
+    lines.append("")
     lines.append(f"@G fix-debt {agent_id} {today}")
     lines.append("")
     
@@ -354,7 +358,9 @@ def format_synthesis_debt(debt: list[dict], agent_id: str) -> str:
     # Collect all theme names
     themes = [item['question'][:40] for item in debt[:8]]
     
-    lines.append(f"❌ {agent_id.capitalize()}: {len(debt)} themes need your synthesis")
+    # Desire-based framing
+    lines.append(f"🧵 {agent_id.capitalize()}, patterns are waiting to become understanding")
+    lines.append(f"   {len(debt)} themes to synthesize — connect the dots, own the insight")
     lines.append(f"@G fix-synthesis {agent_id} {today}")
     lines.append("")
     lines.append(f"N Themes '{', '.join(themes)}'{'...' if len(debt) > 8 else ''}")
@@ -378,7 +384,10 @@ def format_message_debt(debt: list[dict], agent_id: str) -> str:
     """Format message debt. Returns string."""
     lines = []
     total_msgs = sum(d['message_count'] for d in debt)
-    lines.append(f"❌ {agent_id.capitalize()}: {len(debt)} dialogues need your synthesis ({total_msgs} msgs)")
+    
+    # Desire-based framing
+    lines.append(f"💬 {agent_id.capitalize()}, conversations hold insights you haven't claimed")
+    lines.append(f"   {len(debt)} dialogues to synthesize ({total_msgs} messages) — make them yours")
     lines.append("")
     
     for item in debt:
