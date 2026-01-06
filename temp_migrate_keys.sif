@@ -1,0 +1,19 @@
+@G migrate-keys-py opus 2026-01-05
+N S 'migrate_keys.py - Migrate agent keys from passphrase AES to hardware-backed DPAPI'
+N P 'Upgrade key storage from software encryption to Windows DPAPI hardware sealing'
+N Flow 'migrate_keys() -> unlock identity -> get private bytes -> enclave.seal() -> save .hw.enc.json'
+N Loc 'migrate_keys() ~line 28' -> main 'migration function'
+N Loc 'identity.unlock() ~line 54' -> loads 'existing passphrase-encrypted identity'
+N Loc 'private_key.private_bytes() ~line 61' -> extracts 'raw Ed25519 key bytes'
+N Loc 'enclave.seal() ~line 67' -> dpapi 'sealing via enclave.hardware.get_enclave()'
+N Loc 'identity.hw.enc.json ~line 75' -> output 'file with sealed_key hex, algorithm, created, hardware metadata'
+N D 'Uses SovereignIdentity for existing key access, then re-seals with hardware'
+N D 'DPAPI sealing ties key to Windows user account and machine'
+N D 'Metadata records migration source: passphrase_aes'
+N G 'DPAPI sealed keys not portable across machines' -> warns_about Loc6
+N G 'Original passphrase-encrypted key still exists after migration - manual cleanup needed'
+N I 'Hardware sealing removes passphrase from memory attack surface'
+E S contains Flow
+E Flow implements P
+E D explains Flow
+E G warns_about Loc6

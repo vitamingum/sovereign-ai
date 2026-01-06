@@ -240,6 +240,7 @@ class SIFParser:
         
         nodes = []
         edges = []
+        tip_shown = False
         
         for line in lines[1:]:
             line = line.strip()
@@ -277,6 +278,10 @@ class SIFParser:
                     rest = parts[3:]
                 else:
                     # N <id> <type> "<content>" [...] - explicit ID
+                    if not tip_shown:
+                        print("💡 Tip: You can omit the ID if you like: N <Type> '<Content>'")
+                        tip_shown = True
+
                     if len(parts) < 4: continue
                     nid = scope_id(parts[1])
                     ntype = expand_type(parts[2])

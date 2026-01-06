@@ -1,6 +1,6 @@
 ﻿@G test-oracle-failure opus 2026-01-04
-N n1 K '{"agent_id": "WRONG_AGENT"}'
-N n2 A 'Load agent configuration'
-N n3 T 'Verify agent name is gemini'
-E n1 supports n2
-E n2 ensures n3
+N K '{"agent_id": "WRONG_AGENT"}'
+N A 'Load agent configuration'
+N T 'Verify agent name is gemini'
+E _1 supports _2
+E _2 ensures _3

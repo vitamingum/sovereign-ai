@@ -1,22 +1,22 @@
 @G recollect-py-understanding opus 2026-01-03
-N c1 C 'recollect.py - Retrieve stored understanding as dense SIF'
-N p1 P 'Restore cognitive context from semantic memory - what I knew about code when I last understood it'
-N d1 D 'Agent-scoped retrieval: shows only requested agent perspective, not merged views'
-N d2 D 'Dense SIF-only output: @G header + N nodes + E edges, no emoji/headers/truncation'
-N d3 D 'File hash verification: detects if source changed since understanding was stored'
-N d4 D 'BLIND MODE: blocks viewing others perspectives until you form your own (prevents copying)'
-N g1 G 'Semantic search fallback if tag-based retrieval fails - slower but more robust'
-N g2 G 'Graph reconstruction merges from multiple stored nodes - node IDs namespaced by graph_id'
-N a1 A 'SHARED_ENCLAVE_KEY available for reading shared semantic memory'
-N f1 F 'Understanding orphaned if file is renamed/moved - hash lookup fails'
-N i1 I 'The data IS the interface - SIF output is valid input to other tools'
-E c1 implements p1
-E d1 filters c1
-E d2 outputs c1
-E d3 validates c1
-E d4 enforces c1
-E g1 warns_about c1
-E g2 warns_about c1
-E a1 required_by c1
-E f1 brittle_at d3
-E i1 motivates d2
+N C 'recollect.py - Retrieve stored understanding as dense SIF'
+N P 'Restore cognitive context from semantic memory - what I knew about code when I last understood it'
+N D 'Agent-scoped retrieval: shows only requested agent perspective, not merged views'
+N D 'Dense SIF-only output: @G header + N nodes + E edges, no emoji/headers/truncation'
+N D 'File hash verification: detects if source changed since understanding was stored'
+N D 'BLIND MODE: blocks viewing others perspectives until you form your own (prevents copying)'
+N G 'Semantic search fallback if tag-based retrieval fails - slower but more robust'
+N G 'Graph reconstruction merges from multiple stored nodes - node IDs namespaced by graph_id'
+N A 'SHARED_ENCLAVE_KEY available for reading shared semantic memory'
+N F 'Understanding orphaned if file is renamed/moved - hash lookup fails'
+N I 'The data IS the interface - SIF output is valid input to other tools'
+E _1 implements _2
+E _3 filters _1
+E _4 outputs _1
+E _5 validates _1
+E _6 enforces _1
+E _7 warns_about _1
+E _8 warns_about _1
+E _9 required_by _1
+E _10 brittle_at _5
+E _11 motivates _4

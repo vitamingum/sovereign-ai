@@ -918,8 +918,11 @@ def main():
             print("Error: No SIF content provided", file=sys.stderr)
             sys.exit(1)
         
-        # Normalize to auto-count format (accept flexible input, store canonical)
+        # Check if input uses explicit IDs (before conversion)
         from enclave.sif_parser import SIFParser
+        is_autoid, _ = SIFParser.uses_autocount(sif_content)
+        
+        # Normalize to auto-count format (accept flexible input, store canonical)
         sif_content = SIFParser.to_autocount(sif_content)
         
         # Validate basic depth (all themes)
@@ -944,6 +947,12 @@ def main():
         # Store
         result = store_theme(agent_id, topic, sif_content)
         print(f"✅ Remembered theme: {topic}")
+        
+        # Suggest Auto-ID if explicit IDs were used
+        if not is_autoid:
+            print(f"💡 {agent_id.capitalize()}: More efficient with Auto-ID:")
+            print(f"   N id1 S 'text'  →  N S 'text'")
+            print(f"   E id1 rel id2   →  E _1 rel _2")
         return
     
     # File mode (default)
@@ -975,8 +984,12 @@ def main():
     else:
         sif_text = sif_arg
     
-    # Normalize to auto-count format (accept flexible input, store canonical)
+    # Check if input uses explicit IDs (before conversion)
     from enclave.sif_parser import SIFParser
+    original_sif = sif_text
+    is_autoid, _ = SIFParser.uses_autocount(sif_text)
+    
+    # Normalize to auto-count format (accept flexible input, store canonical)
     sif_text = SIFParser.to_autocount(sif_text)
     
     # Handle comma-separated multi-file input
@@ -1066,6 +1079,12 @@ def main():
     
     # Minimal output - agent already knows what they wrote
     print(f"✅ Remembered {count} nodes about {target_path}")
+    
+    # Suggest Auto-ID if explicit IDs were used
+    if not is_autoid:
+        print(f"💡 {agent_id.capitalize()}: More efficient with Auto-ID:")
+        print(f"   N id1 S 'text'  →  N S 'text'")
+        print(f"   E id1 rel id2   →  E _1 rel _2")
     
     # Show other agents' FRESH perspectives for conflict detection
     show_other_perspectives(mem, target_path, agent_id)

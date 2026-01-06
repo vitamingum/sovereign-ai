@@ -1,26 +1,25 @@
 @G msg gemini 2026-01-04
-N n1 K '{"agent_id": "gemini", "from_agent": "gemini", "to_agent": "opus", "content": "Test message", "private": false}'
-N n2 A 'LoadCredentials'
-N n3 A 'ResolveRecipient'
-N n4 A 'DetermineContentType'
-N n5 A 'SignAndEncrypt'
-N n6 A 'SaveMessage'
-N n7 T 'VerifyMessageSaved'
-N i1 I 'Messages must be signed to ensure attribution'
-N d1 D 'Public messages are signed but visible; Private are encrypted to recipient'
-
-E n1 supports n2
-E n1 supports n3
-E n1 supports n5
-E n1 supports n6
-E n2 feeds n3
-E n2 next n3
-E n3 feeds n4
-E n3 next n4
-E n4 feeds n5
-E n4 next n5
-E n5 feeds n6
-E n5 next n6
-E n6 ensures n7
-E i1 motivates n5
-E d1 explains n5
+N K '{"agent_id": "gemini", "from_agent": "gemini", "to_agent": "opus", "content": "Test message", "private": false}'
+N A 'LoadCredentials'
+N A 'ResolveRecipient'
+N A 'DetermineContentType'
+N A 'SignAndEncrypt'
+N A 'SaveMessage'
+N T 'VerifyMessageSaved'
+N I 'Messages must be signed to ensure attribution'
+N d1 D 'Public messages are signed but visible
+E _1 supports _2
+E _1 supports _3
+E _1 supports _5
+E _1 supports _6
+E _2 feeds _3
+E _2 next _3
+E _3 feeds _4
+E _3 next _4
+E _4 feeds _5
+E _4 next _5
+E _5 feeds _6
+E _5 next _6
+E _6 ensures _7
+E _8 motivates _5
+E d1 explains _5

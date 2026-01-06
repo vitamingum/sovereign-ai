@@ -1,0 +1,21 @@
+@G chat-search-py opus 2026-01-05
+N S 'chat_search.py - Search VS Code chat history with auto-indexing FTS5'
+N P 'Find past conversations with AI agents - where did we discuss X?'
+N Flow 'main() -> init_index_db() -> update_index() -> search_fts() or stats()'
+N Loc 'WORKSPACE_STORAGE ~line 18' -> path 'AppData/Roaming/Code/User/workspaceStorage'
+N Loc 'INDEX_DB ~line 19' -> sqlite 'utils/enclave/chat_index.db'
+N Loc 'init_index_db() ~line 26' -> creates 'workspaces, sessions, requests tables + FTS5 virtual table'
+N Loc 'find_all_workspaces() ~line 63' -> scans 'workspaceStorage for chatSessions folders'
+N Loc 'extract_response_text() ~line 76' -> parses 'thinking, toolInvocationSerialized, markdownContent kinds'
+N Loc 'index_session() ~line 115' -> indexes 'single session file, skips if mtime unchanged'
+N D 'Auto-indexes on every search - instant if no changes due to mtime check'
+N D 'FTS5 full-text search across all indexed requests'
+N D 'Response parsing extracts thinking (AI reasoning) and terminal commands'
+N D 'Mtime-based incremental indexing - only reparse changed session files'
+N G 'Thinking kind value check len > 10 filters noise but may miss short insights'
+N G 'Index location in utils/enclave/ may conflict with enclave module'
+N I 'Access to AI reasoning via thinking kind - most valuable for understanding past decisions'
+N M '4500+ indexed requests mentioned in docstring'
+E S contains Flow
+E Flow implements P
+E D explains Flow

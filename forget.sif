@@ -1,51 +1,33 @@
 @G forget opus 2026-01-04
-# CLI for deleting memories from semantic storage
-# Usage: py forget.py <agent> --theme|--file|--id <value> [--all]
-
-# === Knowledge ===
-N k_args K 'CLI: forget.py <agent> --theme <topic> | --file <path> | --id <memory_id> [--all]'
-N k_api K 'API: SemanticMemory.forget(theme=None, creator=None, id=None) -> int deleted'
-N k_api2 K 'API: SemanticMemory.list_by_tag(tag, limit) -> list[node]; delete_by_ids(set) -> int'
-N k_env K 'Load passphrase from SHARED_ENCLAVE_KEY env or .env file'
-
-# === Intent ===
-N i_replace I 'Enable theme replacement: delete old before storing new synthesis'
-N i_cleanup I 'Clean orphaned/duplicate syntheses and stale file understanding'
-
-# === Decision: Mutual Exclusion ===
-N d_mode D 'Exactly one mode required: --theme XOR --file XOR --id'
-N d_all D '--all flag only valid with --theme (deletes across all agents)'
-
-# === Actions ===
-N a_load A 'LoadMemory: get_agent_or_raise → load passphrase → SemanticMemory.unlock'
-N a_parse A 'ParseArgs: extract agent_id, mode flag, value, --all'
-
-# === Theme Mode ===
-N a_theme A 'ForgetTheme: sm.forget(theme=theme, creator=agent_id or None if --all)'
-N t_theme T 'Verify: deleted>0 → "🗑️ Deleted N memories" else "No memories found"'
-
-# === File Mode ===
-N a_file A 'ForgetFile: list_by_tag(filename) → filter by creator → delete_by_ids'
-N t_file T 'Verify: matches creator filter, returns deletion count'
-
-# === ID Mode ===
-N a_id A 'ForgetId: sm.forget(id=memory_id) - direct single deletion'
-N t_id T 'Verify: deleted>0 → "🗑️ Deleted memory" else "No memory found"'
-
-# === Control Flow ===
-E k_args supports a_parse
-E k_env supports a_load
-E k_api supports a_theme
-E k_api supports a_id
-E k_api2 supports a_file
-E a_parse next a_load
-E a_load feeds a_theme 'if --theme'
-E a_load feeds a_file 'if --file'
-E a_load feeds a_id 'if --id'
-E a_theme ensures t_theme
-E a_file ensures t_file
-E a_id ensures t_id
-E d_mode governs a_parse
-E d_all governs a_theme
-E i_replace motivates a_theme
-E i_cleanup motivates a_file
+N K 'CLI: forget.py <agent> --theme <topic> | --file <path> | --id <memory_id> [--all]'
+N K 'API: SemanticMemory.forget(theme=None, creator=None, id=None) -> int deleted'
+N k_api2 K 'API: SemanticMemory.list_by_tag(tag, limit) -> list[node]
+N K 'Load passphrase from SHARED_ENCLAVE_KEY env or .env file'
+N I 'Enable theme replacement: delete old before storing new synthesis'
+N I 'Clean orphaned/duplicate syntheses and stale file understanding'
+N D 'Exactly one mode required: --theme XOR --file XOR --id'
+N D '--all flag only valid with --theme (deletes across all agents)'
+N A 'LoadMemory: get_agent_or_raise → load passphrase → SemanticMemory.unlock'
+N A 'ParseArgs: extract agent_id, mode flag, value, --all'
+N A 'ForgetTheme: sm.forget(theme=theme, creator=agent_id or None if --all)'
+N T 'Verify: deleted>0 → "🗑️ Deleted N memories" else "No memories found"'
+N A 'ForgetFile: list_by_tag(filename) → filter by creator → delete_by_ids'
+N T 'Verify: matches creator filter, returns deletion count'
+N A 'ForgetId: sm.forget(id=memory_id) - direct single deletion'
+N T 'Verify: deleted>0 → "🗑️ Deleted memory" else "No memory found"'
+E _1 supports _9
+E _3 supports _8
+E _2 supports _10
+E _2 supports _14
+E k_api2 supports _12
+E _9 next _8
+E _8 feeds _10 if --theme
+E _8 feeds _12 if --file
+E _8 feeds _14 if --id
+E _10 ensures _11
+E _12 ensures _13
+E _14 ensures _15
+E _6 governs _9
+E _7 governs _10
+E _4 motivates _10
+E _5 motivates _12

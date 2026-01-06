@@ -1,0 +1,20 @@
+@G msg-synthesis-py opus 2026-01-05
+N S 'msg_synthesis.py - Synthesize all messages with an agent into dialogue summary'
+N P 'Create dialogue synthesis - not two monologues, but what we figured out together'
+N Flow 'main() -> get_agent_messages() -> decrypt if needed -> synthesize_dialogue() -> store as theme'
+N Loc 'get_agent_messages() ~line 40' -> groups 'messages by correspondent from messages/*.json'
+N Loc 'normalize_name() ~line 49' -> handles 'variations like gpt-5.2 vs gpt52'
+N Loc 'decrypt_message() ~line 97' -> decrypts 'encrypted messages using recipient private key'
+N Loc 'get_existing_synthesis_timestamp() ~line 127' -> checks 'if synthesis exists via list_by_tag'
+N Loc 'list_synthesis_debt() ~line 150' -> returns 'correspondents with new messages since last synthesis'
+N D 'Messages grouped by OTHER agent in conversation, not self'
+N D 'Synthesis stored as theme (--theme correspondent) for recall'
+N D 'Only recipient can decrypt - sender cant read encrypted message they sent'
+N D 'Debt calculation: messages newer than last synthesis timestamp'
+N G 'Encrypted messages from self show [encrypted - sent to recipient]' -> warns_about Loc4
+N G 'OpaqueStorage.decrypt_share requires raw private key bytes'
+N I 'Dialogue synthesis captures emergent understanding from exchange, not just content concatenation'
+E S contains Flow
+E Flow implements P
+E D explains Flow
+E G warns_about Loc4

@@ -1,26 +1,26 @@
 @G remember-py-understanding opus 2026-01-03
-N c1 C 'remember.py - Store validated understanding as SIF graphs with quality gates'
-N p1 P 'Persist cognitive state (WHY/HOW) not just code description (WHAT) - enable cold-start restoration'
-N d1 D 'Three-gate validation: depth check (node types) -> LLM comprehensiveness -> shallow synthesis detection'
-N d2 D 'Shallow synthesis detection extracts specific details (numbers, formulas, %) and verifies SIF contains them'
-N d3 D 'Dense output: prints full SIF on success, no truncation, directly pipeable'
-N d4 D 'Other perspectives shown as dense SIF for conflict detection'
-N g1 G 'LLM validation skipped silently if Ollama unavailable - quality degrades without warning'
-N g2 G '--force bypasses all gates but logs usage for pattern analysis'
-N a1 A 'File paths valid and hashable for staleness detection'
-N a2 A 'Local LLM at localhost:11434 for comprehensiveness check'
-N f1 F 'New node types not in category lists silently dont count toward depth'
-N f2 F 'Shell arg limits can truncate long SIF strings - use @file syntax instead'
-N i1 I 'Memory without synthesis is noise - the gates enforce transformation not transcription'
-E c1 implements p1
-E d1 gates c1
-E d2 extends d1
-E d3 outputs c1
-E d4 enables c1
-E g1 degrades d1
-E g2 bypasses d1
-E a1 assumed_by c1
-E a2 required_by d1
-E f1 brittle_at d1
-E f2 brittle_at c1
-E i1 motivates p1
+N C 'remember.py - Store validated understanding as SIF graphs with quality gates'
+N P 'Persist cognitive state (WHY/HOW) not just code description (WHAT) - enable cold-start restoration'
+N D 'Three-gate validation: depth check (node types) -> LLM comprehensiveness -> shallow synthesis detection'
+N D 'Shallow synthesis detection extracts specific details (numbers, formulas, %) and verifies SIF contains them'
+N D 'Dense output: prints full SIF on success, no truncation, directly pipeable'
+N D 'Other perspectives shown as dense SIF for conflict detection'
+N G 'LLM validation skipped silently if Ollama unavailable - quality degrades without warning'
+N G '--force bypasses all gates but logs usage for pattern analysis'
+N A 'File paths valid and hashable for staleness detection'
+N A 'Local LLM at localhost:11434 for comprehensiveness check'
+N F 'New node types not in category lists silently dont count toward depth'
+N F 'Shell arg limits can truncate long SIF strings - use @file syntax instead'
+N I 'Memory without synthesis is noise - the gates enforce transformation not transcription'
+E _1 implements _2
+E _3 gates _1
+E _4 extends _3
+E _5 outputs _1
+E _6 enables _1
+E _7 degrades _3
+E _8 bypasses _3
+E _9 assumed_by _1
+E _10 required_by _3
+E _11 brittle_at _3
+E _12 brittle_at _1
+E _13 motivates _2

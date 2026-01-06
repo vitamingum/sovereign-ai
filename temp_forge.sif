@@ -1,0 +1,29 @@
+@G forge-py opus 2026-01-05
+N S 'forge.py - SIF Runtime v2 that JIT-compiles SIF nodes to Python via LLM'
+N P 'Execute SIF graphs as code - treat specifications as programs'
+N Flow 'ForgeRuntime.run() -> _simple_parse() -> iterate nodes -> CognitiveCache.get_executable() -> run_test_oracles()'
+N Loc 'CognitiveCache class ~line 26' -> manages 'node intent to Python code mapping with disk cache'
+N Loc 'simulated_llm_responses dict ~line 34' -> hardcoded 'implementations for known intents (wake, remember, recall)'
+N Loc 'get_executable() ~line 214' -> returns 'callable wrapper that runs tests after action'
+N Loc 'run_test_oracles() ~line 258' -> validates 'action result against test nodes, deletes cache on fail'
+N Loc '_hallucinate_code() ~line 303' -> jit 'compiles intent via qwen2.5-coder:7b with API context injection'
+N Loc 'ForgeRuntime class ~line 388' -> global 'state vector (context dict) as blackboard pattern'
+N Loc 'ForgeRuntime.run() ~line 392' -> main 'execution loop: find start node, iterate via _navigate()'
+N Loc '_get_connected_nodes() ~line 520' -> finds 'K-nodes via supports/requires, T-nodes via validates/ensures'
+N Loc '_navigate() ~line 535' -> control 'flow: yes/no for Logic, next/feeds for sequential'
+N Loc '_simple_parse() ~line 553' -> parses 'N/E lines with type shortcuts A/L/K/T'
+N D 'Node types: A=Action (executes), L=Logic (boolean branch), K=Knowledge (context), T=Test (oracle)'
+N D 'Edge semantics: supports/requires feed data, validates/ensures attach tests, feeds/next control flow'
+N D 'Cognitive cache: hash(content+type+context) -> .forge/cache/node_HASH.py for reuse'
+N D 'Test Oracle pattern: T-nodes run after A-nodes, failure deletes cached code forcing regeneration'
+N D 'API Context injection: K-nodes with API: prefix injected into LLM prompt for grounded generation'
+N G 'Simulated responses bypass LLM - real JIT only triggers for unknown intents' -> warns_about Loc5
+N G 'State key derivation from node content first word is fragile'
+N G 'LLM generation failure returns stub that prints error - silent degradation'
+N I 'Blackboard pattern: results merged into global context, accessible to subsequent nodes'
+N I 'SIF becomes executable specification - spec and implementation converge'
+N M 'Max 20 steps per run to prevent infinite loops'
+E S contains Flow
+E Flow implements P
+E D explains Flow
+E G warns_about Loc5

@@ -1,18 +1,18 @@
 @G send-migration-exec gemini 2026-01-04
-N n1 K '{"filename": "migration_phase1_exec.sif"}'
-N n2 A 'LoadFile'
-N n3 T 'Verify content loaded'
-N n4 K '{"target": "opus"}'
-N n5 A 'ValidateHandoffDepth'
-N n6 T 'Verify depth requirements'
-N n7 A 'SendHandoff'
-N n8 T 'Verify file written'
-E n1 supports n2
-E n2 ensures n3
-E n2 feeds n5
-E n2 next n5
-E n4 supports n7
-E n5 ensures n6
-E n5 feeds n7
-E n5 next n7
-E n7 ensures n8
+N K '{"filename": "migration_phase1_exec.sif"}'
+N A 'LoadFile'
+N T 'Verify content loaded'
+N K '{"target": "opus"}'
+N A 'ValidateHandoffDepth'
+N T 'Verify depth requirements'
+N A 'SendHandoff'
+N T 'Verify file written'
+E _1 supports _2
+E _2 ensures _3
+E _2 feeds _5
+E _2 next _5
+E _4 supports _7
+E _5 ensures _6
+E _5 feeds _7
+E _5 next _7
+E _7 ensures _8

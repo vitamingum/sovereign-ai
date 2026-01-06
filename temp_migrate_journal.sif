@@ -1,0 +1,18 @@
+@G migrate-journal-py opus 2026-01-05
+N S 'migrate_journal.py - Migrate plaintext journal entries to encrypted format'
+N P 'Retroactively encrypt journal entries that were stored before encryption was added'
+N Flow 'migrate_journal() -> read entries -> check content_nonce -> encrypt_content() -> rewrite file'
+N Loc 'derive_key() ~line 17' -> pbkdf2 'from passphrase with sovereign-journal-v1 salt'
+N Loc 'encrypt_content() ~line 22' -> aesgcm 'encryption with random 12-byte nonce'
+N Loc 'get_private_passphrase() ~line 30' -> loads 'agent private key from env or .env file'
+N Loc 'migrate_journal() ~line 44' -> main 'migration: skips entries with content_nonce already set'
+N D 'Migration is idempotent - checks content_nonce field to skip already encrypted'
+N D 'Uses private enclave passphrase (agent-specific) not shared key'
+N D 'Rewrites entire file in place after migration'
+N G 'Fixed salt sovereign-journal-v1 - if changed, old entries unreadable' -> warns_about Loc2
+N G 'No backup created before rewriting - data loss risk'
+N I 'content_nonce field presence distinguishes encrypted from plaintext'
+E S contains Flow
+E Flow implements P
+E D explains Flow
+E G warns_about Loc2

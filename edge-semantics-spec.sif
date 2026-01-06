@@ -6,7 +6,7 @@ N I2 'Loose for metadata: Governance/support allows worldview nuance, like biolo
 N C 'Strict Labels: next, feeds, branches - define precise traversal (e.g., next = sequential, feeds = data dependency)'
 N C2 'Discretionary Labels: governs, supports, reframes_as, probes - agent interprets based on internal model'
 N C3 'Hybrid Labels: implements, enables - strict topology but discretionary weighting'
-N D 'Spec Rule: Runtime edges (next/feeds/branches) require universal semantics; metadata free for evolution'
+N D 'Spec Rule: Runtime edges (next/feeds/branches) require universal semantics
 N D2 'Variance Detection: Cross-agent oracle compares execution traces on shared SIF subgraph'
 N G 'Over-tightening kills evolvability: Fixed semantics prevent agent-specific optimizations'
 N G2 'Under-tightening invites chaos: Non-deterministic runtime breaks collaboration'

@@ -1,14 +1,14 @@
 @G remember-understanding-gemini gemini 2026-01-03
-N c1 C 'remember.py - Cognitive Gatekeeper'
-N p1 P 'Enforce deep understanding (WHY/HOW) over shallow description (WHAT)'
-N i1 I 'Memory without synthesis is noise: we must refuse to store surface-level readings'
-N d1 D 'Two-stage validation: Structural (regex) + Semantic (LLM)'
-N g1 G 'Dependency on local LLM (Ollama): memory quality relies on model availability'
-N f1 F 'Shallow Synthesis: The system rejects thoughts that lack specific details (numbers, formulas)'
-N i2 I 'Staleness is the enemy: File hashes bind thoughts to specific code versions'
-E c1 implements p1
-E c1 demonstrates i1
-E c1 contains d1
-E d1 warns_about g1
-E d1 mitigates f1
-E c1 enforces i2
+N C 'remember.py - Cognitive Gatekeeper'
+N P 'Enforce deep understanding (WHY/HOW) over shallow description (WHAT)'
+N I 'Memory without synthesis is noise: we must refuse to store surface-level readings'
+N D 'Two-stage validation: Structural (regex) + Semantic (LLM)'
+N G 'Dependency on local LLM (Ollama): memory quality relies on model availability'
+N F 'Shallow Synthesis: The system rejects thoughts that lack specific details (numbers, formulas)'
+N I 'Staleness is the enemy: File hashes bind thoughts to specific code versions'
+E _1 implements _2
+E _1 demonstrates _3
+E _1 contains _4
+E _4 warns_about _5
+E _4 mitigates _6
+E _1 enforces _7

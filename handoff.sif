@@ -1,29 +1,15 @@
 # Handoff Protocol Template
-# Usage: Copy, fill in variables, embed in --theme synthesis
-# Variables: $FROM, $TO, $TOPIC, $STATUS, $WORK_DONE, $OPINION, $NEXT_TASK
-
-@G handoff $FROM 2026-01-04
 N From '$FROM handing off to $TO'
 N Topic '$TOPIC'
 N Status '$STATUS'
-
-# What I did
 N Done '$WORK_DONE'
-
-# My opinion (not just facts - what I THINK)
 N Opinion '$OPINION'
-
-# Your instructions (prescriptive, not suggestive)
 N Instruction 'THINK: Read my synthesis and comments. Form your own opinion.'
 N Instruction 'DECIDE: If you disagree, say why and propose alternative. Do not silently comply.'
 N Instruction 'ACT: If aligned, begin work. If conflict, STOP and explain in your synthesis.'
 N Instruction 'HANDOFF: When done, py remember.py $TO --theme $TOPIC with @NEXT $FROM'
-
-# Polling contract
 N Contract '$FROM will poll py recall.py $FROM --theme $TOPIC'
 N Contract 'Your synthesis replaces mine. Include @NEXT $FROM when ready.'
-
-# Edges enforce structure
 E _1 initiates _2
 E _3 describes _4
 E _5 expresses _6

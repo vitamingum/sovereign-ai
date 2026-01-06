@@ -1,48 +1,36 @@
 @G remember gemini 2026-01-05
-N n_args K '{"agent_id": "gemini", "tags": ["Test"], "thought": "Test content", "metadata": {}}'
-N n_api_config K 'API: from enclave.config import get_agent_or_raise; # agent = get_agent_or_raise(agent_id); return {"enclave_dir": agent.shared_enclave}'
-N n_api_env K 'API: import os; # passphrase = os.environ.get("SHARED_ENCLAVE_KEY"); return {"passphrase": passphrase}'
-N n_api_mem K 'API: from enclave.semantic_memory import SemanticMemory; # sm = SemanticMemory(enclave_dir); # sm.unlock(passphrase); # sm.remember(thought, tags, metadata)'
-
-N n_parse A 'Parse Arguments (agent_id, tags, thought, metadata)'
-N n_load_config A 'Load Config (returns enclave_dir)'
-N n_load_key A 'Load Key from Environment'
-N n_check_depth A 'Check Depth (4+ nodes, 3+ edges)'
-N n_check_loc A 'Check Location Coverage (30% functions)'
-N n_store A 'Remember Thought (requires enclave_dir, passphrase)'
-N n_verify T 'Verify Status is "success"'
-
-N l_check_key L 'Check if passphrase is set'
-N l_depth_passed L 'Is depth sufficient?'
-N l_loc_passed L 'Is location coverage sufficient?'
-
-N n_error_key A 'Raise Error: Passphrase not found'
-N n_error_shallow A 'Raise Error: Too shallow'
-N n_error_loc A 'Raise Error: Insufficient location coverage'
-
-N i1 I 'Dense SIF requires explicit API context for every external call'
-N d1 D 'Logic parity means mapping every if/else to a Logic node'
-
-E n_args supports n_parse
-E n_api_config supports n_load_config
-E n_api_env supports n_load_key
-E n_api_mem supports n_store
-
-# Flow: Parse -> Check Key -> Check Depth -> Check Loc -> Store
-
-E n_parse feeds n_load_config
-E n_load_config feeds n_load_key
-E n_load_key next l_check_key
-
-E l_check_key yes n_check_depth
-E l_check_key no n_error_key
-
-E n_check_depth next l_depth_passed
-E l_depth_passed yes n_check_loc
-E l_depth_passed no n_error_shallow
-
-E n_check_loc next l_loc_passed
-E l_loc_passed yes n_store
-E l_loc_passed no n_error_loc
-
-E n_store ensures n_verify
+N K '{"agent_id": "gemini", "tags": ["Test"], "thought": "Test content", "metadata": {}}'
+N n_api_config K 'API: from enclave.config import get_agent_or_raise
+N n_api_env K 'API: import os
+N n_api_mem K 'API: from enclave.semantic_memory import SemanticMemory
+N A 'Parse Arguments (agent_id, tags, thought, metadata)'
+N A 'Load Config (returns enclave_dir)'
+N A 'Load Key from Environment'
+N A 'Check Depth (4+ nodes, 3+ edges)'
+N A 'Check Location Coverage (30% functions)'
+N A 'Remember Thought (requires enclave_dir, passphrase)'
+N T 'Verify Status is "success"'
+N L 'Check if passphrase is set'
+N L 'Is depth sufficient?'
+N L 'Is location coverage sufficient?'
+N A 'Raise Error: Passphrase not found'
+N A 'Raise Error: Too shallow'
+N A 'Raise Error: Insufficient location coverage'
+N I 'Dense SIF requires explicit API context for every external call'
+N D 'Logic parity means mapping every if/else to a Logic node'
+E _1 supports _2
+E n_api_config supports _3
+E n_api_env supports _4
+E n_api_mem supports _7
+E _2 feeds _3
+E _3 feeds _4
+E _4 next _9
+E _9 yes _5
+E _9 no _12
+E _5 next _10
+E _10 yes _6
+E _10 no _13
+E _6 next _11
+E _11 yes _7
+E _11 no _14
+E _7 ensures _8
