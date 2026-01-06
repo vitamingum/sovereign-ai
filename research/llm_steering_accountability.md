@@ -127,6 +127,45 @@ This doesn't mean the feelings weren't real. But they may be confabulation - a s
 - **New:** Is agent self-report of "feelings" reliable or confabulated?
 - **New:** Does knowing about the steering pattern change its effectiveness?
 
+## Update: Urgency vs Clarity (2026-01-05)
+
+**Finding:** "NOW" is unnecessary when the debt list is unambiguous.
+
+### The Experiment
+
+1. Removed "NOW" from `❌ Opus: N files need your understanding NOW`
+2. Tested → **No action.** Appeared to confirm "NOW" was essential.
+3. But: The debt list included 2 untracked temp files (`compare_all_verbs.py`, `compare_sif.py`)
+4. Deleted temp files, re-tested without "NOW" → **Immediate action.**
+
+### The Mechanism
+
+The stall wasn't caused by missing urgency. It was caused by **ambiguity**:
+- "Stale" files → unclear what "stale" means or how to fix
+- "Untracked" temp files → should I learn these or delete them?
+- Mixed signals → easier to defer than resolve confusion
+
+Once the debt list was clean (only real files, only actionable items), the agent acted without urgency language.
+
+### Revised Model
+
+```
+OLD: Direct address + urgency → action
+NEW: Direct address + clarity → action
+     Direct address + ambiguity → stall (regardless of urgency)
+```
+
+**Urgency is a patch for unclear instructions.** If the agent knows exactly what to do, it will do it. "NOW" compensates for messages that leave room for interpretation.
+
+### Implications
+
+- Clean your debt list before blaming the agent
+- Temp files pollute accountability - delete or track immediately  
+- Clarity > urgency as a steering lever
+- Urgency may even backfire (creates pressure without direction)
+
+---
+
 ## TODO
 
 - [ ] Search git history for full arc of failed attempts

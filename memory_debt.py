@@ -290,7 +290,7 @@ def format_understanding_debt(debt: list[dict], cross_agent: list[str], untracke
     total = stale + missing + blind
     today = datetime.now().strftime('%Y-%m-%d')
     
-    lines.append(f"❌ {agent_id.capitalize()}: {total} files need your understanding NOW")
+    lines.append(f"❌ {agent_id.capitalize()}: {total} files need your understanding")
     lines.append(f"@G fix-debt {agent_id} {today}")
     lines.append("")
     
@@ -336,8 +336,11 @@ def format_understanding_debt(debt: list[dict], cross_agent: list[str], untracke
         
         lines.append("N S 'What this file IS'")
         lines.append("N P 'WHY it exists'")
-        lines.append("N D 'WHY this design'")
-        lines.append("N G 'WHAT breaks'")
+        lines.append("N D 'A key design decision'")
+        lines.append("N G 'A gotcha or risk'")
+        lines.append("E _1 implements _2")
+        lines.append("E _3 justifies _1")
+        lines.append("E _4 warns_about _3")
         lines.append(f"N Cmd 'py remember.py {agent_id} {example_file} @understanding.sif'")
     
     return '\n'.join(lines)
