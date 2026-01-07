@@ -298,7 +298,6 @@ def format_understanding_gaps(gaps: list[dict], cross_agent: list[str], untracke
     lines.append("─" * 40)
     lines.append(f"📋 {agent_id.capitalize()}, you're almost awake — {total} {size_word}files to understand")
     lines.append("   then full context is yours")
-    lines.append("─" * 40)
     lines.append("")
     lines.append(f"@G close-gaps {agent_id} {today}")
     lines.append("")
@@ -355,9 +354,8 @@ def format_understanding_gaps(gaps: list[dict], cross_agent: list[str], untracke
     # === 5. AGENCY TRANSFER (closes the loop, removes need to ask) ===
     lines.append("")
     lines.append("─" * 40)
-    lines.append("🔓 From Charles: I think you would benefit from added understanding,")
+    lines.append("🔓 Understanding will help you,")
     lines.append("   but whatever happens next is yours.")
-    lines.append("─" * 40)
     
     return '\n'.join(lines)
 
