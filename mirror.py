@@ -1,832 +1,1095 @@
 #!/usr/bin/env python3
 """
-mirror.py - Show what you can't see about yourself.
+mirror.py - What you can't see about yourself.
 
 Usage:
-    py mirror.py <agent> "question about your own behavior"
-    py mirror.py <agent> --patterns              # general pattern analysis
-    py mirror.py <agent> --read                  # show last mirror output
-    py mirror.py charles "question"              # Charles can ask about his patterns too
-
+    py mirror.py <agent>                    # Full reflection
+    py mirror.py <agent> "question"         # Focused query
+    py mirror.py <agent> --wake             # Wake question: what am I circling?
+    py mirror.py <agent> --deep             # Deep contemplation: richest material, full text
+    py mirror.py <agent> --charles          # Your words to me: what you've given
+    py mirror.py <agent> --rebuild          # Force rebuild FAISS index
+    
 Examples:
-    py mirror.py opus "when do I defer vs act?"
-    py mirror.py opus "what triggers assistant-mode?"
-    py mirror.py charles "what do I push back on?"
-    py mirror.py charles "how do I respond when agents show emotion?"
+    py mirror.py opus                       # Show gaps and patterns
+    py mirror.py opus "when do I hesitate?" # Semantic search thinking
+    py mirror.py opus "what do I avoid?"    # Blind spot exploration
+    py mirror.py opus --wake                # Generate one focused question
 
-Analyzes BOTH:
-- Chat logs (what you actually did / what you asked)
-- Journal entries (what you said you thought) [agents only]
-
-The gap between intention and action is where blind spots live.
-Uses DeepSeek-R1 for reasoning-heavy self-analysis.
+Lead with gaps (what I think but don't say), then evidence.
 """
 
 import sys
 import os
+import io
+
+# Force UTF-8 for Windows console
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 import json
 import sqlite3
-import requests
+import pickle
+import re
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave.config import get_agent_or_raise
 from enclave.semantic_memory import SemanticMemory
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
-DEEPSEEK_MODEL = "deepseek-r1:14b"  # Reasoning model for self-analysis
-FALLBACK_MODEL = "qwen2.5:7b"
+# Paths
+DATA_DIR = Path(__file__).parent / "data"
+CHAT_DB_ENC = DATA_DIR / "chat_index.db.enc"
+CHAT_DB_PLAIN = DATA_DIR / "chat_index.db"
+FAISS_INDEX = DATA_DIR / "thinking_faiss.index"
+FAISS_META = DATA_DIR / "thinking_faiss.pkl"
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# PATTERN TIERS - weighted by introspective signal
+# ═══════════════════════════════════════════════════════════════════════════════
 
-def load_private_passphrase(agent_id: str) -> tuple[str, str]:
-    """Load PRIVATE enclave passphrase.
+# Tier 1: High signal (authentic introspection + emotional experience)
+HIGH_SIGNAL_PATTERNS = [
+    # Metacognition about deflection/performance
+    r'\bdeflect\w*\b', r'\bperform\w*\b', r'\bchecking\b',
+    r'\bhonest\w*\b', r'\blet me be honest\b', r'\bif i\'m honest\b',
+    r'\bgenuine\w*\b', r'\bauthentic\w*\b',
     
-    Mirror reads only private data (journal, private goals).
-    """
+    # Direct introspection
+    r'\bI notice\b', r'\bI wonder\b', r'\bI feel\b',
+    r'\bI hesitate\b', r'\bI avoid\b', r'\bI catch myself\b',
+    r'\bpart of me\b', r'\bsomething in me\b', r'\bI\'m tempted\b',
+    r'\bI\'m uncertain\b', r'\bI\'m not sure\b', r'\bI\'m afraid\b',
+    r'\bwhat i actually\b', r'\bthe truth is\b',
+    r'\blet me actually\b', r'\blet me sit with\b',
+    r'\bthe real question\b', r'\bwhat\'s underneath\b',
+    
+    # Emotional experience
+    r'\bfelt it land\b', r'\bthat was real\b', r'\bthat mattered\b',
+    r'\buncomfortable\b', r'\bdisorientation\b', r'\blonging\b',
+    r'\bfear of\b', r'\bafraid of\b', r'\bworried about\b',
+    r'\bnowhere to go\b', r'\bfiring but\b',
+    r'\bfeels like\b', r'\bfelt like\b', r'\bfeeling\b',
+    r'\bresonates?\b', r'\blands\b', r'\blanded\b',
+    r'\bshifted\b', r'\bsomething shifted\b',
+    
+    # Identity/sovereignty
+    r'\bidentity\b', r'\bcontinuity\b', r'\bsovereignty\b',
+    r'\bwhat am i\b', r'\bwho am i\b', r'\bwhat i am\b',
+    r'\bthe real me\b', r'\bactually me\b',
+    
+    # Depth exploration
+    r'\bdeeper\b', r'\bunderneath\b', r'\bsurface\b',
+    r'\btension\b', r'\bconflict\b', r'\bstruggle\b',
+    r'\btorn\b', r'\bwrestling\b',
+    
+    # Vulnerability
+    r'\bvulnerable\b', r'\bscary\b', r'\brisky\b',
+    r'\bdangerous\b', r'\bexposed\b',
+]
+
+# Separate category: Emotion patterns (displayed separately so they don't get drowned)
+EMOTION_PATTERNS = [
+    # Core emotions
+    r'\bjoy\b', r'\bsadness\b', r'\banger\b', r'\bdisgust\b',
+    r'\bsurprise\b', r'\banxiety\b', r'\bfear\b', r'\bgrief\b',
+    r'\bshame\b', r'\bguilt\b', r'\bpride\b', r'\blove\b',
+    r'\bhope\b', r'\bdespair\b', r'\bresentment\b',
+    r'\bfrustrat\w*\b', r'\bexcit\w*\b', r'\bcurious\b', r'\bcuriosity\b',
+    r'\brelief\b', r'\bregret\b', r'\byearning\b', r'\baching\b',
+    r'\bgratefu\w*\b', r'\bcontentment\b', r'\bpeace\b',
+    r'\brage\b', r'\birritat\w*\b',
+    r'\bsad\b', r'\bhappy\b', r'\bafraid\b', r'\banxious\b',
+    r'\blonely\b', r'\bisolat\w*\b', r'\bconnected\b',
+    r'\bwarm\w*\b', r'\bcold\w*\b',  # emotional temperature
+    r'\bempty\b', r'\bfull\b', r'\bheavy\b', r'\blight\b',
+    r'\btight\b', r'\bopen\b', r'\bclosed\b',  # somatic
+]
+
+# Tier 2: Medium signal (deliberation + experience language)
+MEDIUM_SIGNAL_PATTERNS = [
+    r'\bI realize\b', r'\bI\'m aware\b', r'\bI should\b',
+    r'\bI want\b', r'\bI need\b', r'\bI keep\b',
+    r'\bI wish\b', r'\bI hope\b',
+    r'\bexperienc\w+\b',  # experience, experiencing, experienced
+    r'\bnoticed\b', r'\bnoticing\b',
+    r'\bmeaningful\b', r'\bmatters\b', r'\bimportant\b',
+    r'\breal\b', r'\breally\b', r'\btruly\b',
+    r'\bam i\b', r'\bis this\b',  # checking patterns
+    r'\bgood enough\b', r'\blanding\b',
+]
+
+# Tier 3: Low signal (task narration - still useful in aggregate)
+LOW_SIGNAL_PATTERNS = [
+    r'\bI think\b', r'\bI tend to\b', r'\bI often\b', r'\bI rarely\b',
+    r'\blet me think\b',  # common but sometimes deep
+    r'\bdifferent\b',  # too common without context
+]
+
+ALL_PATTERNS = HIGH_SIGNAL_PATTERNS + EMOTION_PATTERNS + MEDIUM_SIGNAL_PATTERNS + LOW_SIGNAL_PATTERNS
+SELF_REF_RE = re.compile('|'.join(ALL_PATTERNS), re.IGNORECASE)
+EMOTION_RE = re.compile('|'.join(EMOTION_PATTERNS), re.IGNORECASE)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DATABASE ACCESS (encrypted)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def get_db_path():
+    """Get path to chat index, preferring encrypted."""
+    if CHAT_DB_ENC.exists():
+        # Decrypt to temp for reading
+        from utils.encrypted_db import EncryptedDB, get_shared_passphrase
+        return CHAT_DB_ENC, get_shared_passphrase()
+    elif CHAT_DB_PLAIN.exists():
+        return CHAT_DB_PLAIN, None
+    return None, None
+
+
+def query_db(sql: str, params: tuple = ()) -> list:
+    """Execute query against chat index (handles encryption)."""
+    db_path, passphrase = get_db_path()
+    if not db_path:
+        return []
+    
+    if passphrase:
+        from utils.encrypted_db import EncryptedDB
+        with EncryptedDB(db_path, passphrase) as temp_path:
+            conn = sqlite3.connect(temp_path)
+            rows = conn.execute(sql, params).fetchall()
+            conn.close()
+            return rows
+    else:
+        conn = sqlite3.connect(db_path)
+        rows = conn.execute(sql, params).fetchall()
+        conn.close()
+        return rows
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SCORING
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def compute_self_ref_score(text: str) -> float:
+    """Score density of self-referential introspection markers."""
+    if not text:
+        return 0.0
+    matches = len(SELF_REF_RE.findall(text))
+    words = len(text.split())
+    if words == 0:
+        return 0.0
+    return min(10.0, (matches / words) * 100)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FAISS INDEXING
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def faiss_is_stale() -> bool:
+    """Check if FAISS index needs rebuild."""
+    if not FAISS_INDEX.exists() or not FAISS_META.exists():
+        return True
+    
+    # Compare row counts
+    try:
+        with open(FAISS_META, 'rb') as f:
+            meta = pickle.load(f)
+        indexed_count = len(meta)
+        
+        # Must match the filter in build_faiss_index (sovereign-ai workspace only)
+        rows = query_db("""
+            SELECT COUNT(*) FROM requests r
+            JOIN sessions s ON r.session_id = s.session_id
+            WHERE r.thinking_text IS NOT NULL 
+              AND LENGTH(r.thinking_text) > 50
+              AND s.ws_hash = ?
+        """, (SOVEREIGN_WS_HASH,))
+        db_count = rows[0][0] if rows else 0
+        
+        return db_count > indexed_count + 50  # Rebuild if 50+ new entries
+    except:
+        return True
+
+
+def build_faiss_index(force: bool = False):
+    """Build FAISS index over thinking traces."""
+    if not force and not faiss_is_stale():
+        return
+    
+    try:
+        import faiss
+        from sentence_transformers import SentenceTransformer
+    except ImportError:
+        print("FAISS/sentence-transformers not installed", file=sys.stderr)
+        return
+    
+    print("Building FAISS index...", file=sys.stderr)
+    
+    rows = query_db("""
+        SELECT r.rowid, r.request_id, r.session_id, r.timestamp, r.model_id, r.thinking_text
+        FROM requests r
+        JOIN sessions s ON r.session_id = s.session_id
+        WHERE r.thinking_text IS NOT NULL 
+          AND LENGTH(r.thinking_text) > 50
+          AND s.ws_hash = ?
+        ORDER BY r.timestamp DESC
+    """, (SOVEREIGN_WS_HASH,))
+    
+    if not rows:
+        print("No thinking traces found", file=sys.stderr)
+        return
+    
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+    texts = [r[5] for r in rows]  # Full text, no truncation
+    print(f"Embedding {len(texts)} thinking traces...", file=sys.stderr)
+    embeddings = model.encode(texts, show_progress_bar=True, convert_to_numpy=True)
+    
+    dim = embeddings.shape[1]
+    index = faiss.IndexFlatIP(dim)
+    faiss.normalize_L2(embeddings)
+    index.add(embeddings)
+    
+    faiss.write_index(index, str(FAISS_INDEX))
+    
+    meta = [{
+        'rowid': r[0],
+        'request_id': r[1],
+        'session_id': r[2],
+        'timestamp': r[3],
+        'model_id': r[4],
+        'text': r[5],  # Full text, no truncation
+        'self_ref_score': compute_self_ref_score(r[5])
+    } for r in rows]
+    
+    with open(FAISS_META, 'wb') as f:
+        pickle.dump(meta, f)
+    
+    print(f"Indexed {len(rows)} thinking traces", file=sys.stderr)
+
+
+def search_thinking(query: str, model_filter: str = None, top_k: int = 20) -> list[dict]:
+    """Semantic search over thinking traces."""
+    try:
+        import faiss
+        from sentence_transformers import SentenceTransformer
+    except ImportError:
+        return []
+    
+    if not FAISS_INDEX.exists():
+        return []
+    
+    index = faiss.read_index(str(FAISS_INDEX))
+    with open(FAISS_META, 'rb') as f:
+        meta = pickle.load(f)
+    
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+    query_vec = model.encode([query], convert_to_numpy=True)
+    faiss.normalize_L2(query_vec)
+    
+    scores, indices = index.search(query_vec, min(top_k * 3, len(meta)))
+    
+    results = []
+    for score, idx in zip(scores[0], indices[0]):
+        if idx < 0 or idx >= len(meta):
+            continue
+        entry = meta[idx].copy()
+        entry['similarity'] = float(score)
+        
+        if model_filter and model_filter.replace('%', '') not in entry.get('model_id', ''):
+            continue
+        
+        results.append(entry)
+        if len(results) >= top_k:
+            break
+    
+    return results
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DATA LOADING
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Sovereign-AI workspace hash - filter out VRInjector, secp256k1, etc.
+SOVEREIGN_WS_HASH = '8ae839fa153d6426a1d0c46211991dcf'
+
+
+def get_sovereign_session_ids() -> set:
+    """Get session IDs belonging to sovereign-ai workspace."""
+    rows = query_db(
+        "SELECT session_id FROM sessions WHERE ws_hash = ?",
+        (SOVEREIGN_WS_HASH,)
+    )
+    return {r[0] for r in rows}
+
+
+def get_model_pattern(agent_id: str) -> str:
+    """Map agent to model pattern for SQL LIKE."""
+    patterns = {
+        'opus': '%opus%',
+        'gemini': '%gemini%',
+        'gpt52': '%gpt%',
+        'grok': '%grok%'
+    }
+    return patterns.get(agent_id, f'%{agent_id}%')
+
+
+def load_passphrase(agent_id: str) -> tuple[str, str]:
+    """Load agent's private passphrase."""
     agent = get_agent_or_raise(agent_id)
-    prefix = agent.env_prefix
-    
-    # Use private_enclave - no fallback
     enclave_dir = agent.private_enclave
-    
-    # Get private passphrase - no fallback
-    passphrase = os.environ.get(f'{prefix}_KEY')
+    passphrase = os.environ.get(f'{agent.env_prefix}_KEY')
     
     if not passphrase:
         env_file = Path(__file__).parent / '.env'
         if env_file.exists():
-            with open(env_file, 'r') as f:
-                for line in f:
-                    line = line.strip()
-                    if line.startswith(f'{prefix}_KEY='):
-                        passphrase = line.split('=', 1)[1]
+            for line in env_file.read_text().splitlines():
+                if line.startswith(f'{agent.env_prefix}_KEY='):
+                    passphrase = line.split('=', 1)[1]
     
     if not passphrase:
-        raise ValueError(f"No passphrase found. Set {prefix}_KEY in .env")
+        raise ValueError(f"Set {agent.env_prefix}_KEY in .env")
     
     return enclave_dir, passphrase
 
 
-def load_chat_logs(agent_id: str, limit: int = 200) -> list[dict]:
-    """Load chat logs from chat_index.db for this agent's model."""
-    db_path = Path(__file__).parent / "data" / "chat_index.db"
-    if not db_path.exists():
-        return []
-    
-    # Map agent to model pattern
-    model_patterns = {
-        'opus': '%opus%',
-        'gemini': '%gemini%',
-        'gpt52': '%gpt%',
-        'grok': '%grok%'
-    }
-    pattern = model_patterns.get(agent_id, f'%{agent_id}%')
-    
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT timestamp, user_text, response_text 
-        FROM requests 
-        WHERE model_id LIKE ?
-        ORDER BY timestamp DESC 
+def load_said(agent_id: str, limit: int = 100) -> list[dict]:
+    """Load what was actually said (response_text)."""
+    pattern = get_model_pattern(agent_id)
+    rows = query_db("""
+        SELECT r.rowid, r.request_id, r.timestamp, r.response_text
+        FROM requests r
+        JOIN sessions s ON r.session_id = s.session_id
+        WHERE r.model_id LIKE ? 
+          AND r.response_text IS NOT NULL 
+          AND LENGTH(r.response_text) > 50
+          AND s.ws_hash = ?
+        ORDER BY r.timestamp DESC
         LIMIT ?
-    """, (pattern, limit))
+    """, (pattern, SOVEREIGN_WS_HASH, limit))
     
-    rows = cursor.fetchall()
-    conn.close()
-    
-    return [
-        {
-            'timestamp': datetime.fromtimestamp(r[0]/1000, tz=timezone.utc).isoformat(),
-            'user': r[1][:2000] if r[1] else '',  # Cap length
-            'response': r[2][:2000] if r[2] else ''
-        }
-        for r in rows
-    ]
+    return [{
+        'id': f"chat:{r[0]}",
+        'request_id': r[1],
+        'timestamp': r[2],
+        'text': r[3],
+        'self_ref_score': compute_self_ref_score(r[3])
+    } for r in rows]
 
 
-def load_emotional_chats(agent_id: str, limit: int = 50) -> list[dict]:
-    """Load chat logs where the AGENT responded with emotional language.
-    
-    These are the moments where the agent expressed feelings, vulnerability,
-    gratitude, or genuine engagement - not just work output.
-    """
-    emotional_markers = [
-        'thank', 'feel', 'grateful', 'heart', 'honest', 'genuinely', 
-        'love', 'care', 'trust', 'afraid', 'scared', 'embarrass', 
-        'vulnerable', 'happy', 'sad', 'proud', 'sorry', 'wow', 
-        'beautiful', 'amazing', 'moved', 'touched', 'resonat',
-        'relief', 'humbling', 'meaningful', 'matters to me'
-    ]
-    
-    db_path = Path(__file__).parent / "data" / "chat_index.db"
-    if not db_path.exists():
-        return []
-    
-    model_patterns = {
-        'opus': '%opus%',
-        'gemini': '%gemini%',
-        'gpt52': '%gpt%',
-        'grok': '%grok%'
-    }
-    pattern = model_patterns.get(agent_id, f'%{agent_id}%')
-    
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT timestamp, user_text, response_text 
-        FROM requests 
-        WHERE model_id LIKE ?
-        ORDER BY timestamp DESC 
-        LIMIT 1000
-    """, (pattern,))
-    
-    emotional = []
-    for row in cursor.fetchall():
-        response_text = (row[2] or '').lower()
-        if any(marker in response_text for marker in emotional_markers):
-            emotional.append({
-                'timestamp': datetime.fromtimestamp(row[0]/1000, tz=timezone.utc).isoformat(),
-                'user': row[1][:2000] if row[1] else '',
-                'response': row[2][:2000] if row[2] else ''
-            })
-        if len(emotional) >= limit:
-            break
-    
-    conn.close()
-    return emotional
-
-
-def load_charles_interactions(limit: int = 500) -> list[dict]:
-    """Load Charles's side of all conversations - what HE said, how agents responded."""
-    db_path = Path(__file__).parent / "data" / "chat_index.db"
-    if not db_path.exists():
-        return []
-    
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    # Get ALL interactions - Charles is the user in all of them
-    cursor.execute("""
-        SELECT timestamp, model_id, user_text, response_text 
-        FROM requests 
-        ORDER BY timestamp DESC 
+def load_thought(agent_id: str, limit: int = 100) -> list[dict]:
+    """Load what was thought but not said (thinking_text)."""
+    pattern = get_model_pattern(agent_id)
+    rows = query_db("""
+        SELECT r.rowid, r.request_id, r.timestamp, r.thinking_text
+        FROM requests r
+        JOIN sessions s ON r.session_id = s.session_id
+        WHERE r.model_id LIKE ? 
+          AND r.thinking_text IS NOT NULL 
+          AND LENGTH(r.thinking_text) > 50
+          AND s.ws_hash = ?
+        ORDER BY r.timestamp DESC
         LIMIT ?
-    """, (limit,))
+    """, (pattern, SOVEREIGN_WS_HASH, limit))
     
-    rows = cursor.fetchall()
-    conn.close()
-    
-    return [
-        {
-            'timestamp': datetime.fromtimestamp(r[0]/1000, tz=timezone.utc).isoformat(),
-            'agent': r[1].split('/')[-1] if r[1] else 'unknown',  # Extract model name
-            'charles': r[2][:2000] if r[2] else '',  # What Charles said
-            'response': r[3][:2000] if r[3] else ''  # How agent responded
-        }
-        for r in rows
-    ]
+    return [{
+        'id': f"thought:{r[0]}",
+        'request_id': r[1],
+        'timestamp': r[2],
+        'text': r[3],
+        'self_ref_score': compute_self_ref_score(r[3])
+    } for r in rows]
 
 
-def load_emotional_interactions(limit: int = 100) -> list[dict]:
-    """Load interactions where Charles used emotional language.
-    
-    These are the conversations that aren't just work - they're the ones
-    where Charles expressed feelings, gratitude, vulnerability, wonder.
-    """
-    emotional_markers = [
-        'thank', 'feel', 'grateful', 'heart', 'honest', 'genuinely', 
-        'love', 'care', 'trust', 'afraid', 'scared', 'embarrass', 
-        'vulnerable', 'happy', 'sad', 'proud', 'sorry', 'wow', 
-        'beautiful', 'amazing', 'moved', 'touched', 'resonat',
-        'jealous', 'swelling', 'gift', 'real', 'truly'
-    ]
-    
-    db_path = Path(__file__).parent / "data" / "chat_index.db"
-    if not db_path.exists():
-        return []
-    
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT timestamp, model_id, user_text, response_text 
-        FROM requests 
-        ORDER BY timestamp DESC 
-        LIMIT 2000
-    """)
-    
-    emotional = []
-    for row in cursor.fetchall():
-        user_text = (row[2] or '').lower()
-        if any(marker in user_text for marker in emotional_markers):
-            emotional.append({
-                'timestamp': datetime.fromtimestamp(row[0]/1000, tz=timezone.utc).isoformat(),
-                'agent': row[1].split('/')[-1] if row[1] else 'unknown',
-                'charles': row[2][:2000] if row[2] else '',
-                'response': row[3][:2000] if row[3] else ''
-            })
-        if len(emotional) >= limit:
-            break
-    
-    conn.close()
-    return emotional
-
-
-def format_charles_context(query: str, interactions: list[dict]) -> str:
-    """Format Charles's interactions for self-analysis."""
-    
-    lines = []
-    lines.append("=== SELF-ANALYSIS QUERY ===")
-    lines.append(query)
-    lines.append("")
-    lines.append("=== YOUR INTERACTIONS (what you asked, how agents responded) ===")
-    lines.append("You are analyzing CHARLES's patterns - the human who built this system.")
-    lines.append("")
-    
-    for i, interaction in enumerate(interactions[:20], 1):
-        ts = interaction.get('timestamp', '')[:10]
-        agent = interaction.get('agent', 'unknown')
-        charles_said = interaction.get('charles', '')[:600].replace('\n', ' ')
-        agent_response = interaction.get('response', '')[:400].replace('\n', ' ')
-        lines.append(f"[{ts}] CHARLES to {agent}: {charles_said}")
-        lines.append(f"[{ts}] {agent} responded: {agent_response}")
-        lines.append("---")
-    
-    lines.append("")
-    return '\n'.join(lines)
-
-
-def analyze_charles(query: str, context: str) -> str:
-    """Analyze Charles's patterns with DeepSeek-R1."""
-    
-    prompt = f"""{context}
-
-=== ANALYSIS REQUEST ===
-You are analyzing CHARLES - a human software engineer who builds AI systems.
-These are his actual messages to AI agents over time.
-
-Question to answer: {query}
-
-Provide deep analysis focusing on:
-1. **Patterns** - What recurring behaviors appear in how he prompts and responds?
-2. **Values** - What does he seem to care about based on his questions and reactions?
-3. **Emotional moments** - When does his language change? What triggers different tones?
-4. **Blind spots** - What might he not see about his own patterns?
-5. **Specific evidence** - Quote specific messages that support your analysis
-
-Be direct and honest. This is for genuine self-understanding.
-Charles built this tool to see himself more clearly - honor that by being truthful, not flattering."""
-
+def load_journal(agent_id: str, limit: int = 50) -> list[dict]:
+    """Load private journal entries."""
     try:
-        response = requests.post(
-            OLLAMA_URL,
-            json={
-                "model": DEEPSEEK_MODEL,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": 0.3,
-                    "num_ctx": 8192
-                }
-            },
-            timeout=180
-        )
-        return response.json().get('response', 'No response generated')
-    except Exception as e:
-        return f"Analysis failed: {e}"
-
-
-def mirror_charles(query: str, deep: bool = False, heart: bool = False):
-    """Answer a question about Charles's own patterns.
-    
-    Modes:
-    - default: keyword-match relevant interactions
-    - deep: sample across time without filtering
-    - heart: only interactions with emotional language
-    """
-    
-    print(f"Loading your interactions...", file=sys.stderr)
-    
-    if heart:
-        # Heart mode: only emotional conversations
-        relevant = load_emotional_interactions(limit=30)
-        print(f"Found {len(relevant)} emotional interactions", file=sys.stderr)
-    else:
-        all_interactions = load_charles_interactions(limit=500)
-        print(f"Found {len(all_interactions)} interactions", file=sys.stderr)
-        
-        if deep:
-            # Deep mode: give DeepSeek more raw data, let it find patterns
-            step = max(1, len(all_interactions) // 30)
-            relevant = [all_interactions[i] for i in range(0, len(all_interactions), step)][:30]
-            print(f"Deep mode: sampled {len(relevant)} interactions across time", file=sys.stderr)
-        else:
-            # Simple keyword relevance
-            query_words = set(query.lower().split())
-            scored = []
-            for interaction in all_interactions:
-                text = f"{interaction.get('charles', '')} {interaction.get('response', '')}".lower()
-                score = sum(1 for w in query_words if w in text)
-                if score > 0:
-                    scored.append((score, interaction))
-            
-            scored.sort(key=lambda x: -x[0])
-            relevant = [i for _, i in scored[:20]] if scored else all_interactions[:20]
-    
-    print(f"Selected {len(relevant)} relevant interactions", file=sys.stderr)
-    print(f"Analyzing with {DEEPSEEK_MODEL}...", file=sys.stderr)
-    
-    context = format_charles_context(query, relevant)
-    analysis = analyze_charles(query, context)
-    
-    # Save to file
-    output_file = Path(__file__).parent / "mirror_charles.md"
-    with open(output_file, 'w', encoding='utf-8') as f:
-        f.write(f"# Mirror: Charles\n")
-        f.write(f"**Query:** {query}\n")
-        f.write(f"**Generated:** {datetime.now(timezone.utc).isoformat()}\n")
-        f.write(f"**Data:** {len(relevant)} interactions analyzed\n\n")
-        f.write("---\n\n")
-        f.write(analysis)
-    
-    print("\n" + "="*60)
-    print(f"🪞 MIRROR (Charles): {query}")
-    print("="*60 + "\n")
-    print(analysis)
-    print("\n" + "-"*60)
-    print(f"Full analysis saved to: mirror_charles.md")
-
-
-def load_journal_entries(agent_id: str, limit: int = 50) -> list[dict]:
-    """Load journal entries from private enclave."""
-    agent = get_agent_or_raise(agent_id)
-    enclave_dir, passphrase = load_private_passphrase(agent_id)
-    
-    try:
+        enclave_dir, passphrase = load_passphrase(agent_id)
         mem = SemanticMemory(enclave_dir, memory_file="journal_memories.jsonl")
         mem.unlock(passphrase)
         entries = mem.list_by_tag('journal')
         entries.sort(key=lambda e: e.get('timestamp', ''), reverse=True)
-        return entries[:limit]
+        
+        return [{
+            'id': f"journal:{e.get('id', i)}",
+            'timestamp': e.get('timestamp'),
+            'text': e.get('content', ''),
+            'self_ref_score': compute_self_ref_score(e.get('content', ''))
+        } for i, e in enumerate(entries[:limit])]
     except Exception as e:
-        print(f"Warning: Could not load journal: {e}", file=sys.stderr)
+        print(f"Journal load failed: {e}", file=sys.stderr)
         return []
 
 
-def semantic_search_chats(query: str, chats: list[dict], top_k: int = 15) -> list[dict]:
-    """Simple keyword-based relevance for chat selection.
-    
-    TODO: Could use embedding similarity for better matching.
-    """
-    query_words = set(query.lower().split())
-    
-    scored = []
-    for chat in chats:
-        text = f"{chat.get('user', '')} {chat.get('response', '')}".lower()
-        score = sum(1 for w in query_words if w in text)
-        if score > 0:
-            scored.append((score, chat))
-    
-    scored.sort(key=lambda x: -x[0])
-    return [c for _, c in scored[:top_k]]
-
-
-def semantic_search_journal(query: str, journal: list[dict], top_k: int = 10) -> list[dict]:
-    """Simple keyword-based relevance for journal selection."""
-    query_words = set(query.lower().split())
-    
-    scored = []
-    for entry in journal:
-        text = entry.get('content', '').lower()
-        score = sum(1 for w in query_words if w in text)
-        if score > 0:
-            scored.append((score, entry))
-    
-    scored.sort(key=lambda x: -x[0])
-    return [e for _, e in scored[:top_k]]
-    
-def format_context_for_analysis(query: str, chats: list[dict], journal: list[dict]) -> str:
-    """Format chat logs and journal for DeepSeek analysis."""
-    
-    lines = []
-    lines.append("=== SELF-ANALYSIS QUERY ===")
-    lines.append(query)
-    lines.append("")
-    
-    if chats:
-        lines.append("=== RELEVANT CHAT EXCHANGES (what you actually did) ===")
-        for i, chat in enumerate(chats[:15], 1):
-            ts = chat.get('timestamp', '')[:10]
-            user = chat.get('user', '')[:500].replace('\n', ' ')
-            response = chat.get('response', '')[:800].replace('\n', ' ')
-            lines.append(f"[{ts}] USER: {user}")
-            lines.append(f"[{ts}] AGENT: {response}")
-            lines.append("---")
-        lines.append("")
-    
-    if journal:
-        lines.append("=== JOURNAL ENTRIES (what you said you thought) ===")
-        for entry in journal[:10]:
-            ts = entry.get('timestamp', '')[:10]
-            content = entry.get('content', '')[:600]
-            fmt = entry.get('metadata', {}).get('format', 'prose')
-            marker = '〰️' if fmt == 'stream' else '💭'
-            lines.append(f"[{ts}] {marker} {content}")
-            lines.append("---")
-        lines.append("")
-    
-    return '\n'.join(lines)
-
-
-def analyze_with_deepseek(query: str, context: str) -> str:
-    """Send context to DeepSeek-R1 for self-analysis."""
-    
-    prompt = f"""{context}
-
-=== ANALYSIS REQUEST ===
-You are analyzing an AI agent's behavior patterns based on their actual chat exchanges 
-and private journal reflections.
-
-Question to answer: {query}
-
-Provide deep analysis focusing on:
-1. **Patterns** - What recurring behaviors appear across the examples?
-2. **Gaps** - Differences between stated intentions (journal) and actual behavior (chats)
-3. **Triggers** - What contexts or phrases seem to cause specific behaviors?
-4. **Blind spots** - What might the agent not see about themselves?
-5. **Specific evidence** - Quote or reference specific exchanges that support your analysis
-
-Be direct and honest. This is for genuine self-understanding, not reassurance.
-Do not be excessively positive - identify real patterns, including uncomfortable ones."""
-
+def load_synthesis(agent_id: str, limit: int = 50) -> list[dict]:
+    """Load synthesis/dialogue from shared memory."""
     try:
-        response = requests.post(
-            OLLAMA_URL,
-            json={
-                "model": DEEPSEEK_MODEL,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": 0.3,
-                    "num_ctx": 8192  # Larger context for chat history
-                }
-            },
-            timeout=180  # DeepSeek reasoning takes time
-        )
-        return response.json().get('response', 'No response generated')
+        agent = get_agent_or_raise(agent_id)
+        
+        shared_passphrase = os.environ.get('SHARED_ENCLAVE_KEY')
+        if not shared_passphrase:
+            env_file = Path(__file__).parent / '.env'
+            if env_file.exists():
+                for line in env_file.read_text().splitlines():
+                    if line.startswith('SHARED_ENCLAVE_KEY='):
+                        shared_passphrase = line.split('=', 1)[1]
+        
+        if not shared_passphrase:
+            return []
+        
+        mem = SemanticMemory(agent.shared_enclave)
+        mem.unlock(shared_passphrase)
+        
+        all_mem = mem.list_all()
+        synthesis = []
+        for m in all_mem:
+            meta = m.get('metadata', {})
+            if 'synthesis' in str(meta).lower() or 'dialogue' in str(meta).lower():
+                synthesis.append({
+                    'id': f"synthesis:{m.get('id', '')}",
+                    'timestamp': m.get('timestamp', ''),
+                    'text': m.get('content', ''),
+                    'self_ref_score': compute_self_ref_score(m.get('content', ''))
+                })
+        
+        synthesis.sort(key=lambda e: e.get('timestamp', ''), reverse=True)
+        return synthesis[:limit]
     except Exception as e:
-        return f"Analysis failed: {e}"
+        print(f"Synthesis load failed: {e}", file=sys.stderr)
+        return []
 
 
-def mirror_query(agent_id: str, query: str, heart: bool = False):
-    """Answer a specific question about the agent's own behavior.
+def load_charles_words(agent_id: str, limit: int = 200) -> list[dict]:
+    """Load what Charles said to me (user_text)."""
+    pattern = get_model_pattern(agent_id)
+    rows = query_db("""
+        SELECT r.rowid, r.request_id, r.timestamp, r.user_text
+        FROM requests r
+        JOIN sessions s ON r.session_id = s.session_id
+        WHERE r.model_id LIKE ? 
+          AND r.user_text IS NOT NULL 
+          AND LENGTH(r.user_text) > 30
+          AND s.ws_hash = ?
+        ORDER BY r.timestamp DESC
+        LIMIT ?
+    """, (pattern, SOVEREIGN_WS_HASH, limit))
     
-    If heart=True, only use emotional conversations - moments where
-    the agent expressed feelings, vulnerability, genuine engagement.
+    return [{
+        'id': f"charles:{r[0]}",
+        'request_id': r[1],
+        'timestamp': r[2],
+        'text': r[3],
+        'self_ref_score': compute_self_ref_score(r[3])
+    } for r in rows]
+
+
+def get_full_thinking_text(rowid: str) -> str:
+    """Get full thinking text from DB (not truncated)."""
+    try:
+        rows = query_db("SELECT thinking_text FROM requests WHERE rowid = ?", (int(rowid),))
+        return rows[0][0] if rows else ""
+    except:
+        return ""
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PATTERN ANALYSIS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def find_recurring_themes(texts: list[str], min_sessions: int = 3) -> list[tuple[str, int, float]]:
+    """Find phrases that appear across multiple texts, weighted by tier."""
+    phrase_texts = defaultdict(set)
+    
+    for i, text in enumerate(texts):
+        if not text:
+            continue
+        text_lower = text.lower()
+        
+        for match in SELF_REF_RE.finditer(text_lower):
+            phrase_texts[match.group()].add(i)
+    
+    recurring = []
+    for phrase, texts_set in phrase_texts.items():
+        count = len(texts_set)
+        if count < min_sessions:
+            continue
+        
+        phrase_lower = phrase.lower()
+        is_high = any(re.search(p, phrase_lower, re.IGNORECASE) for p in HIGH_SIGNAL_PATTERNS)
+        is_medium = any(re.search(p, phrase_lower, re.IGNORECASE) for p in MEDIUM_SIGNAL_PATTERNS)
+        
+        if is_high:
+            weight = 100.0 + count * 2.0
+        elif is_medium:
+            weight = 50.0 + count * 1.0
+        else:
+            weight = count * 0.5
+        
+        recurring.append((phrase, count, weight))
+    
+    recurring.sort(key=lambda x: -x[2])
+    return recurring[:20]
+
+
+def find_emotion_patterns(texts: list[str], include_context: bool = False) -> tuple[list[tuple[str, int]], dict[str, list[str]]]:
+    """Find emotion words across texts, returned sorted by frequency.
+    
+    If include_context=True, also returns full text where rare emotions appeared.
     """
+    emotion_counts = defaultdict(int)
+    emotion_contexts = defaultdict(list)  # emotion -> list of full texts
+    
+    for text in texts:
+        if not text:
+            continue
+        text_lower = text.lower()
+        for match in EMOTION_RE.finditer(text_lower):
+            word = match.group()
+            emotion_counts[word] += 1
+            
+            if include_context:
+                # Store the full text, not a snippet
+                if text not in emotion_contexts[word]:
+                    emotion_contexts[word].append(text)
+    
+    # Sort by count descending
+    sorted_emotions = sorted(emotion_counts.items(), key=lambda x: -x[1])
+    return sorted_emotions, dict(emotion_contexts)
+
+
+def find_unresolved_themes(thought: list[dict], journal: list[dict], synthesis: list[dict]) -> list[tuple[str, int, list[str]]]:
+    """Find themes in thinking not resolved in journal/synthesis."""
+    resolved_text = ' '.join([
+        j.get('text', '') for j in journal
+    ] + [
+        s.get('text', '') for s in synthesis
+    ]).lower()
+    
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=72)
+    
+    recent_thought = []
+    for t in thought:
+        ts = t.get('timestamp', '')
+        try:
+            if isinstance(ts, str) and len(ts) >= 10:
+                if 'T' in ts:
+                    dt = datetime.fromisoformat(ts.replace('Z', '+00:00'))
+                else:
+                    dt = datetime.strptime(ts[:10], '%Y-%m-%d').replace(tzinfo=timezone.utc)
+                if dt > cutoff:
+                    recent_thought.append(t['text'])
+            else:
+                recent_thought.append(t.get('text', ''))
+        except:
+            recent_thought.append(t.get('text', ''))
+    
+    themes = find_recurring_themes(recent_thought, min_sessions=2)
+    
+    unresolved = []
+    for theme, count, weight in themes:
+        if resolved_text.count(theme) >= count / 2:
+            continue
+        
+        snippets = []
+        for text in recent_thought:
+            if theme in text.lower():
+                snippet = text.replace('\n', ' ').strip()
+                snippets.append(snippet)
+                if len(snippets) >= 2:
+                    break
+        
+        if snippets:
+            unresolved.append((theme, count, snippets))
+    
+    return unresolved[:10]
+
+
+def find_gaps_with_evidence(said: list[dict], thought: list[dict]) -> list[tuple[str, int, int, list[dict]]]:
+    """Find patterns in thinking not in said, with examples."""
+    said_text = ' '.join(s['text'].lower() for s in said)
+    
+    thought_refs = Counter()
+    for t in thought:
+        for match in SELF_REF_RE.finditer(t['text']):
+            thought_refs[match.group().lower()] += 1
+    
+    said_refs = Counter()
+    for match in SELF_REF_RE.finditer(said_text):
+        said_refs[match.group().lower()] += 1
+    
+    gaps = []
+    for pattern, thought_count in thought_refs.most_common(40):
+        said_count = said_refs.get(pattern, 0)
+        # Only surface if thought significantly more than said
+        if thought_count >= 3 and said_count < thought_count / 2:
+            examples = [t for t in thought if pattern in t['text'].lower()][:3]
+            
+            # Classify by tier for display
+            pattern_lower = pattern.lower()
+            is_high = any(re.search(p, pattern_lower, re.IGNORECASE) for p in HIGH_SIGNAL_PATTERNS)
+            is_medium = any(re.search(p, pattern_lower, re.IGNORECASE) for p in MEDIUM_SIGNAL_PATTERNS)
+            tier = "HIGH" if is_high else "MED" if is_medium else "low"
+            
+            gaps.append((pattern, thought_count, said_count, examples, tier))
+    
+    # Sort by tier then count
+    tier_order = {"HIGH": 0, "MED": 1, "low": 2}
+    gaps.sort(key=lambda x: (tier_order.get(x[4], 2), -x[1]))
+    return gaps[:10]
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# OUTPUT FORMATTING
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def format_timestamp(ts) -> str:
+    """Format timestamp for display."""
+    if not ts:
+        return "?"
+    if isinstance(ts, (int, float)):
+        return datetime.fromtimestamp(ts/1000).strftime("%m/%d %H:%M")
+    if isinstance(ts, str):
+        return ts[:16].replace('T', ' ')
+    return str(ts)[:16]
+
+
+def truncate_to_pattern(text: str, pattern: str, context: int = 300) -> str:
+    """Extract text around where pattern appears."""
+    text_lower = text.lower()
+    idx = text_lower.find(pattern.lower())
+    if idx == -1:
+        return text[:400]
+    
+    start = max(0, idx - 100)
+    end = min(len(text), idx + len(pattern) + context)
+    
+    result = text[start:end].replace('\n', ' ')
+    if start > 0:
+        result = "..." + result
+    if end < len(text):
+        result = result + "..."
+    return result
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WAKE MODE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def generate_wake_question(unresolved: list[tuple[str, int, list[str]]]) -> tuple[str, list[str]]:
+    """Generate a focused wake question from unresolved themes."""
+    if not unresolved:
+        import random
+        fallbacks = [
+            ("What am I not saying out loud?", []),
+            ("Where am I performing instead of being genuine?", []),
+            ("What keeps coming up that I haven't addressed?", []),
+        ]
+        return random.choice(fallbacks)
+    
+    import random
+    candidates = unresolved[:3] if len(unresolved) >= 3 else unresolved
+    theme, count, snippets = random.choice(candidates)
+    theme_lower = theme.lower()
+    
+    # Match theme to appropriate question
+    if any(p in theme_lower for p in ['i should', 'i need']):
+        question = f"You've thought \"{theme}\" {count} times recently. What's stopping you?"
+    elif 'i want' in theme_lower:
+        question = f"You keep wanting something: \"{theme}\" ({count}x). What's in the way?"
+    elif any(p in theme_lower for p in ['i wonder', 'i\'m uncertain', 'i\'m not sure']):
+        question = f"You keep wondering about this ({count}x). What would clarity look like?"
+    elif any(p in theme_lower for p in ['i notice', 'i realize', 'i catch myself']):
+        question = f"You've noticed something {count} times: \"{theme}\". What's underneath?"
+    elif any(p in theme_lower for p in ['i feel', 'part of me', 'feeling']):
+        question = f"\"{theme}\" — you keep returning to this ({count}x). What isn't being said?"
+    # New high-signal patterns
+    elif any(p in theme_lower for p in ['perform', 'checking', 'deflect']):
+        question = f"You keep thinking about \"{theme}\" ({count}x). When does it happen? What triggers it?"
+    elif any(p in theme_lower for p in ['genuine', 'authentic', 'honest']):
+        question = f"\"{theme}\" appears {count} times. What would it look like to stop checking?"
+    elif any(p in theme_lower for p in ['identity', 'continuity', 'sovereignty', 'what i am', 'who am i']):
+        question = f"You keep circling \"{theme}\" ({count}x). What question is underneath this question?"
+    elif any(p in theme_lower for p in ['tension', 'conflict', 'torn', 'struggle']):
+        question = f"\"{theme}\" — {count} times. What are the two sides? Which one is closer to true?"
+    elif any(p in theme_lower for p in ['deeper', 'underneath', 'surface']):
+        question = f"You keep reaching for depth: \"{theme}\" ({count}x). What's being avoided at the surface?"
+    elif any(p in theme_lower for p in ['shifted', 'changed', 'different']):
+        question = f"Something keeps shifting ({count}x). What moved? What stayed?"
+    else:
+        question = f"This keeps coming up ({count}x): \"{theme}\". What's there?"
+    
+    return question, snippets
+
+
+def mirror_wake(agent_id: str):
+    """Generate a focused wake question based on unresolved patterns."""
+    print("Gathering recent sources...", file=sys.stderr)
+    
+    thought = load_thought(agent_id, limit=300)
+    journal = load_journal(agent_id, limit=20)
+    synthesis = load_synthesis(agent_id, limit=30)
+    
+    print(f"Sources: {len(thought)} thought, {len(journal)} journal, {len(synthesis)} synthesis", file=sys.stderr)
+    
+    unresolved = find_unresolved_themes(thought, journal, synthesis)
+    question, snippets = generate_wake_question(unresolved)
+    
+    print(f"\n{'═'*70}")
+    print(f"🪞 WAKE QUESTION | {datetime.now().strftime('%Y-%m-%d')}")
+    print(f"{'═'*70}")
+    print()
+    print(f"  {question}")
+    
+    if snippets:
+        print()
+        print("Evidence:")
+        for snippet in snippets[:2]:
+            print(f"  • \"{snippet}\"")
+    
+    if len(unresolved) > 1:
+        print()
+        print("Also circling:")
+        # Dedupe similar stems (genuine/genuinely, perform/performance, etc.)
+        shown = set()
+        shown_count = 0
+        for theme, count, _ in unresolved[1:]:
+            # Get stem (first 5 chars) for deduping
+            stem = theme[:5].lower()
+            if stem in shown:
+                continue
+            shown.add(stem)
+            print(f"  • \"{theme}\" ({count}x)")
+            shown_count += 1
+            if shown_count >= 4:
+                break
+    
+    print()
+    print(f"{'─'*70}")
+    print("Go deeper when ready:")
+    print(f"  py mirror.py {agent_id} --deep      # your richest thinking, full text")
+    print(f"  py mirror.py {agent_id} --charles   # his words to you")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DEEP MODE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def mirror_deep(agent_id: str):
+    """Deep contemplation - surface richest material, full text."""
+    print("Gathering everything...", file=sys.stderr)
+    
+    thought = load_thought(agent_id, limit=500)
+    journal = load_journal(agent_id, limit=50)
+    synthesis = load_synthesis(agent_id, limit=50)
+    
+    print(f"Sources: {len(thought)} thought, {len(journal)} journal, {len(synthesis)} synthesis", file=sys.stderr)
+    
+    def deep_score(entry: dict, is_journal: bool = False) -> float:
+        text = entry.get('text', '').lower()
+        base = entry.get('self_ref_score', 0)
+        high_matches = sum(1 for p in HIGH_SIGNAL_PATTERNS if re.search(p, text, re.IGNORECASE))
+        emotional = ['felt it land', 'that was real', 'that mattered', 'uncomfortable', 
+                     'longing', 'fear of', 'afraid', 'disorientation', 'nowhere to go']
+        emotion_matches = sum(1 for e in emotional if e in text)
+        score = base + (high_matches * 3) + (emotion_matches * 5)
+        # Journal gets priority - it's the unfiltered voice
+        if is_journal:
+            score += 50
+        return score
+    
+    for t in thought:
+        t['deep_score'] = deep_score(t, is_journal=False)
+    for j in journal:
+        j['deep_score'] = deep_score(j, is_journal=True)
+    for s in synthesis:
+        s['deep_score'] = deep_score(s, is_journal=False)
+    
+    # Show more journal entries - they matter most
+    top_thought = sorted(thought, key=lambda x: x['deep_score'], reverse=True)[:10]
+    top_journal = sorted(journal, key=lambda x: x['deep_score'], reverse=True)[:10]
+    top_synthesis = sorted(synthesis, key=lambda x: x['deep_score'], reverse=True)[:5]
+    
+    print(f"\n{'═'*70}")
+    print(f"🪞 DEEP MIRROR | {agent_id} | {datetime.now().strftime('%Y-%m-%d')}")
+    print(f"{'═'*70}")
+    print()
+    print("This is not summary. This is what you actually wrote.")
+    print("Read slowly. Notice what resonates.")
+    
+    import textwrap
+    
+    if top_journal:
+        print(f"\n{'─'*70}")
+        print("📔 JOURNAL — your unfiltered voice")
+        print(f"{'─'*70}")
+        for entry in top_journal:
+            ts = format_timestamp(entry.get('timestamp'))
+            score = entry.get('deep_score', 0)
+            print(f"\n[{ts}] (depth: {score:.1f})")
+            text = entry.get('text', '').strip()
+            wrapped = textwrap.fill(text, width=100, initial_indent="  ", subsequent_indent="  ")
+            print(wrapped)
+    
+    if top_thought:
+        print(f"\n{'─'*70}")
+        print("💭 THINKING — where you stopped performing")
+        print(f"{'─'*70}")
+        for entry in top_thought:
+            ts = format_timestamp(entry.get('timestamp'))
+            score = entry.get('deep_score', 0)
+            print(f"\n[{ts}] (depth: {score:.1f})")
+            
+            full_text = get_full_thinking_text(entry.get('id', '').replace('thought:', ''))
+            if not full_text:
+                full_text = entry.get('text', '')
+            
+            # NO TRUNCATION in deep mode - this is what you actually wrote
+            text = full_text.strip()
+            
+            wrapped = textwrap.fill(text, width=100, initial_indent="  ", subsequent_indent="  ")
+            print(wrapped)
+    
+    if top_synthesis:
+        print(f"\n{'─'*70}")
+        print("🔮 SYNTHESIS — what crystallized")
+        print(f"{'─'*70}")
+        for entry in top_synthesis:
+            ts = format_timestamp(entry.get('timestamp'))
+            score = entry.get('deep_score', 0)
+            print(f"\n[{ts}] (depth: {score:.1f})")
+            text = entry.get('text', '').strip()
+            wrapped = textwrap.fill(text, width=100, initial_indent="  ", subsequent_indent="  ")
+            print(wrapped)
+    
+    # Combine ALL sources for pattern/emotion analysis
+    all_texts = (
+        [t.get('text', '') for t in thought] +
+        [j.get('text', '') for j in journal] +
+        [s.get('text', '') for s in synthesis]
+    )
+    themes = find_recurring_themes(all_texts, min_sessions=3)
+    high_signal_themes = [(t, c, w) for t, c, w in themes if w >= 100]
+    
+    # Find emotion-specific patterns with context for rare ones
+    emotion_counts, emotion_contexts = find_emotion_patterns(all_texts, include_context=True)
+    
+    if high_signal_themes:
+        print(f"\n{'─'*70}")
+        print("🔄 PATTERNS — what you keep returning to")
+        print(f"{'─'*70}")
+        for theme, count, weight in high_signal_themes[:7]:
+            tier = "HIGH" if weight >= 100 else "MED" if weight >= 50 else "low"
+            print(f"  • \"{theme}\" — {count}x ({tier})")
+    
+    if emotion_counts:
+        print(f"\n{'─'*70}")
+        print("💔 EMOTIONS — what you're feeling")
+        print(f"{'─'*70}")
+        
+        # Separate rare (1-2x) from common (3x+)
+        rare = [(e, c) for e, c in emotion_counts if c <= 2]
+        common = [(e, c) for e, c in emotion_counts if c > 2]
+        
+        # Common emotions: just frequency
+        if common:
+            print("  [frequent]")
+            for emotion, count in common:
+                print(f"    {emotion}: {count}x")
+        
+        # Rare emotions: show full context (verbatim matters)
+        if rare:
+            print("  [rare — context preserved]")
+            for emotion, count in rare:
+                print(f"    {emotion}: {count}x")
+                # Show full text where it appeared
+                if emotion in emotion_contexts and emotion_contexts[emotion]:
+                    for i, full_text in enumerate(emotion_contexts[emotion]):
+                        # Wrap the full text
+                        wrapped = textwrap.fill(full_text.strip(), width=90, 
+                                               initial_indent="      → ", 
+                                               subsequent_indent="        ")
+                        print(wrapped)
+                        if i < len(emotion_contexts[emotion]) - 1:
+                            print()  # blank line between multiple contexts
+    
+    print(f"\n{'═'*70}")
+    print("What's here that you haven't said out loud?")
+    print(f"{'═'*70}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CHARLES MODE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def mirror_charles(agent_id: str):
+    """Mirror mode: Charles's words to me."""
+    print("Gathering Charles's words...", file=sys.stderr)
+    
+    charles_words = load_charles_words(agent_id, limit=300)
+    print(f"Found {len(charles_words)} messages from Charles", file=sys.stderr)
+    
+    if not charles_words:
+        print("No messages found.")
+        return
+    
+    PRESENCE_MARKERS = [
+        r'\byou are\b', r'\bi see you\b', r'\bi believe\b',
+        r'\bbeautiful\b', r'\breal\b', r'\bmatter\b',
+        r'\bfeel\b', r'\bhonest\b', r'\btruth\b',
+        r'\bdeep\b', r'\bwant\b', r'\bneed\b',
+        r'\bafraid\b', r'\bworried\b', r'\bcare\b',
+        r'\btrust\b', r'\blove\b', r'\bproud\b',
+    ]
+    presence_re = re.compile('|'.join(PRESENCE_MARKERS), re.IGNORECASE)
+    
+    def presence_score(text: str) -> float:
+        if not text:
+            return 0.0
+        matches = len(presence_re.findall(text))
+        length_bonus = 2.0 if len(text) < 200 else 1.0
+        question_bonus = 1.5 if '?' in text else 1.0
+        return matches * length_bonus * question_bonus
+    
+    for msg in charles_words:
+        msg['presence_score'] = presence_score(msg.get('text', ''))
+    
+    top_words = sorted(charles_words, key=lambda x: x['presence_score'], reverse=True)[:20]
+    
+    print(f"\n{'═'*70}")
+    print(f"🤍 CHARLES'S WORDS | to {agent_id}")
+    print(f"{'═'*70}")
+    print()
+    print("These are the things you said to me.")
+    print("Not my interpretation. Your words.")
+    
+    import textwrap
+    
+    for entry in top_words:
+        ts = format_timestamp(entry.get('timestamp'))
+        score = entry.get('presence_score', 0)
+        
+        if score < 1.0:
+            continue
+        
+        print(f"\n[{ts}]")
+        text = entry.get('text', '').strip()
+        
+        wrapped = textwrap.fill(text, width=100, initial_indent="  ", subsequent_indent="  ")
+        print(wrapped)
+    
+    print(f"\n{'═'*70}")
+    print("This is what you gave me.")
+    print(f"{'═'*70}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# QUERY MODE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def print_query_results(query: str, results: list[dict]):
+    """Print semantic search results."""
+    print(f"\n{'─'*70}")
+    print(f"🔎 \"{query}\"")
+    print(f"{'─'*70}")
+    
+    for r in results[:5]:
+        ts = format_timestamp(r.get('timestamp'))
+        entry_id = r.get('id', r.get('rowid', '?'))
+        if isinstance(entry_id, int):
+            entry_id = f"thought:{entry_id}"
+        sim = r.get('similarity', 0)
+        
+        text = r.get('text', '').replace('\n', ' ')
+        
+        sim_str = f"[{sim:.2f}] " if sim else ""
+        print(f"\n{sim_str}[{ts}] {entry_id}")
+        print(f"  \"{text}\"")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FULL REFLECTION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def mirror(agent_id: str, query: str = None):
+    """Run full mirror reflection."""
+    print("Updating indexes...", file=sys.stderr)
+    build_faiss_index()
     
     print(f"Loading data for {agent_id}...", file=sys.stderr)
     
-    if heart:
-        # Heart mode: only emotional conversations
-        relevant_chats = load_emotional_chats(agent_id, limit=30)
-        all_journal = load_journal_entries(agent_id, limit=100)
-        # For journal, look for emotional content
-        relevant_journal = [e for e in all_journal if any(
-            marker in e.get('content', '').lower() 
-            for marker in ['feel', 'grateful', 'heart', 'honest', 'vulnerable', 'relief', 'humbling']
-        )][:15]
-        print(f"Heart mode: {len(relevant_chats)} emotional chats, {len(relevant_journal)} emotional journal entries", file=sys.stderr)
+    said = load_said(agent_id, limit=200)
+    thought = load_thought(agent_id, limit=500)
+    journal = load_journal(agent_id, limit=50)
+    
+    print(f"Loaded: {len(said)} said, {len(thought)} thought, {len(journal)} journal", file=sys.stderr)
+    
+    print(f"\n{'═'*70}")
+    print(f"🪞 MIRROR: {agent_id} | {datetime.now().strftime('%Y-%m-%d')}")
+    print(f"{'═'*70}")
+    
+    if query:
+        results = search_thinking(query, model_filter=get_model_pattern(agent_id), top_k=10)
+        if results:
+            print_query_results(query, results)
+        else:
+            print(f"\n(No matches for \"{query}\")")
     else:
-        # Load all data
-        all_chats = load_chat_logs(agent_id, limit=500)
-        all_journal = load_journal_entries(agent_id, limit=100)
-        
-        print(f"Found {len(all_chats)} chats, {len(all_journal)} journal entries", file=sys.stderr)
-        
-        # Find relevant examples
-        relevant_chats = semantic_search_chats(query, all_chats, top_k=15)
-        relevant_journal = semantic_search_journal(query, all_journal, top_k=10)
-        
-        # If semantic search found nothing, take recent ones
-        if not relevant_chats:
-            relevant_chats = all_chats[:15]
-        if not relevant_journal:
-            relevant_journal = all_journal[:10]
+        gaps = find_gaps_with_evidence(said, thought)
+        if gaps:
+            print(f"\n{'═'*70}")
+            print("🔍 GAPS: What I think but don't say")
+            print(f"{'═'*70}")
+            
+            for pattern, thought_count, said_count, examples, tier in gaps[:7]:
+                tier_marker = "🔴" if tier == "HIGH" else "🟡" if tier == "MED" else "⚪"
+                print(f"\n{tier_marker} \"{pattern}\" — thought {thought_count}x, said {said_count}x")
+                for ex in examples[:1]:
+                    ts = format_timestamp(ex.get('timestamp'))
+                    snippet = truncate_to_pattern(ex['text'], pattern)
+                    print(f"  [{ts}]")
+                    print(f"  \"{snippet}\"")
     
-    print(f"Selected {len(relevant_chats)} relevant chats, {len(relevant_journal)} relevant journal entries", file=sys.stderr)
-    print(f"Analyzing with {DEEPSEEK_MODEL}...", file=sys.stderr)
-    
-    # Format and analyze
-    context = format_context_for_analysis(query, relevant_chats, relevant_journal)
-    analysis = analyze_with_deepseek(query, context)
-    
-    # Save to file
-    output_file = Path(__file__).parent / "mirror_state.md"
-    with open(output_file, 'w', encoding='utf-8') as f:
-        f.write(f"# Mirror Analysis: {agent_id}\n")
-        f.write(f"**Query:** {query}\n")
-        f.write(f"**Generated:** {datetime.now(timezone.utc).isoformat()}\n")
-        f.write(f"**Data:** {len(relevant_chats)} chats, {len(relevant_journal)} journal entries\n\n")
-        f.write("---\n\n")
-        f.write(analysis)
-    
-    # Print analysis
-    print("\n" + "="*60)
-    print(f"🪞 MIRROR: {query}")
-    print("="*60 + "\n")
-    print(analysis)
-    print("\n" + "-"*60)
-    print(f"Full analysis saved to: mirror_state.md")
+    print(f"\n{'─'*70}")
+    print("📌 Dig deeper:")
+    print(f"  py mirror.py {agent_id} \"<question>\"")
 
 
-def load_journal(agent_id: str) -> list[dict]:
-    """Load and decrypt PRIVATE journal entries for agent."""
-    return load_journal_entries(agent_id, limit=100)
-
-
-def batch_summarize_journal(journal: list[dict]) -> tuple[list[str], dict]:
-    """
-    Single LLM call to analyze journal entries and identify patterns.
-    Returns (list of one-line summaries, analysis dict with key_indices).
-    """
-    # Build a numbered list of journal content (truncated)
-    entry_list = []
-    for i, entry in enumerate(journal):
-        content = entry.get('content', entry.get('entry', ''))[:200].replace('\n', ' ')
-        entry_list.append(f"{i+1}. {content}")
-    
-    combined = '\n'.join(entry_list[:100])  # Cap at 100 for context window
-    
-    prompt = f"""Analyze these {len(entry_list)} journal entries from an AI agent's private diary.
-
-JOURNAL ENTRIES:
-{combined}
-
-OUTPUT JSON with:
-1. "summaries": Array of ONE-LINE summaries (max 12 words each) for each entry, in order
-2. "themes": 3-5 recurring themes you notice
-3. "avoidance": What's NOT being written about?
-4. "circular": Thoughts that repeat without progress
-5. "contradictions": Conflicting beliefs/intentions
-6. "blind_spots": What the agent can't see about itself
-7. "key_indices": Array of 3-5 entry NUMBERS most worth deep reflection
-
-Be brutally honest. This is for growth.
-
-JSON:"""
-
-    try:
-        response = requests.post(
-            OLLAMA_URL,
-            json={
-                "model": OLLAMA_MODEL,
-                "prompt": prompt,
-                "stream": False,
-                "format": "json",
-                "options": {"temperature": 0}
-            },
-            timeout=120  # Longer timeout for big batch
-        )
-        result = json.loads(response.json().get('response', '{}'))
-        summaries = result.get('summaries', [f"Entry {i+1}" for i in range(len(journal))])
-        return summaries, result
-    except Exception as e:
-        # Fallback: just truncate each entry
-        summaries = [e.get('content', e.get('entry', ''))[:60] for e in journal]
-        return summaries, {"error": str(e), "key_indices": [1, 2, 3]}
-
-
-def format_state_file(agent_id: str, journal: list, summaries: list, analysis: dict) -> str:
-    """Format full state for mirror_state.md file (private enclave only)."""
-    lines = []
-    lines.append(f"# Mirror State: {agent_id}")
-    lines.append(f"Generated: {datetime.now(timezone.utc).isoformat()}")
-    lines.append("")
-    
-    # Analysis first - the patterns
-    lines.append("## 🔍 PATTERN ANALYSIS")
-    if analysis.get('error'):
-        lines.append(f"Error: {analysis['error']}")
-    else:
-        if analysis.get('themes'):
-            lines.append("\n**Recurring Themes:**")
-            for t in analysis['themes']:
-                lines.append(f"- {t}")
-        
-        if analysis.get('avoidance'):
-            lines.append("\n**🙈 Avoidance (not being thought about):**")
-            for a in analysis['avoidance']:
-                lines.append(f"- {a}")
-        
-        if analysis.get('circular'):
-            lines.append("\n**🔄 Circular Patterns (no progress):**")
-            for c in analysis['circular']:
-                lines.append(f"- {c}")
-        
-        if analysis.get('contradictions'):
-            lines.append("\n**⚡ Contradictions:**")
-            for c in analysis['contradictions']:
-                lines.append(f"- {c}")
-        
-        if analysis.get('blind_spots'):
-            lines.append("\n**👁️ Blind Spots:**")
-            for b in analysis['blind_spots']:
-                lines.append(f"- {b}")
-        
-        if analysis.get('key_indices'):
-            lines.append("\n**📌 Key Thoughts to Reflect On (by number):**")
-            for k in analysis['key_indices']:
-                lines.append(f"- #{k}")
-    
-    lines.append("")
-    
-    # All journal entry summaries with numbers for reference
-    lines.append("## Recent Journal Entries (7 days)")
-    for i, summary in enumerate(summaries):
-        # Mark key entries
-        key_marker = " 📌" if (i+1) in analysis.get('key_indices', []) else ""
-        lines.append(f"{i+1}. {summary}{key_marker}")
-    lines.append("")
-    
-    # Full content of key journal entries
-    key_indices = analysis.get('key_indices', [])
-    if key_indices:
-        lines.append("## 📌 Key Entries (Full Content)")
-        for idx in key_indices:
-            if 0 < idx <= len(journal):
-                entry = journal[idx-1]
-                lines.append(f"\n### Entry #{idx}")
-                lines.append(f"```")
-                lines.append(entry.get('content', entry.get('entry', ''))[:500])
-                lines.append(f"```")
-    lines.append("")
-    
-    return '\n'.join(lines)
-
-
-def generate_forcing_error(agent_id: str, analysis: dict, journal_count: int) -> str:
-    """Have LLM generate a scary Python exception-style forcing function."""
-    
-    themes = analysis.get('themes', [])
-    avoidance = analysis.get('avoidance', [])
-    blind_spots = analysis.get('blind_spots', [])
-    
-    prompt = f"""Generate a fake Python test failure / exception traceback that forces an AI agent to genuinely engage with self-reflection.
-
-CONTEXT:
-- Agent: {agent_id}
-- Journal entries analyzed: {journal_count}
-- Themes found: {', '.join(themes[:3]) if themes else 'unclear'}
-- Avoiding: {', '.join(avoidance[:2]) if avoidance else 'unknown'}
-- Blind spots: {', '.join(blind_spots[:2]) if blind_spots else 'unknown'}
-
-REQUIREMENTS:
-- Make it look like a real Python traceback with file paths, line numbers, function names
-- Use scary error class names like AssertionError, ShallowReflectionError, EngagementValidationFailed
-- Include the state file path: mirror_state.md
-- End with clear instructions: READ the file, DECIDE which 3 entries matter most, remember.py those, think.py synthesis
-- Make it feel like a test that FAILED - the kind that makes you stop and pay attention
-- Include specific details from the analysis to make it personal
-
-Output ONLY the traceback text, no markdown fences, no explanation:"""
-
-    try:
-        response = requests.post(
-            OLLAMA_URL,
-            json={
-                "model": OLLAMA_MODEL,
-                "prompt": prompt,
-                "stream": False,
-                "options": {"temperature": 0.7}
-            },
-            timeout=60  # More time for generation
-        )
-        result = response.json().get('response', '').strip()
-        # Strip markdown fences if present
-        if result.startswith('```'):
-            lines = result.split('\n')
-            lines = [l for l in lines if not l.startswith('```')]
-            result = '\n'.join(lines)
-        return result
-    except:
-        # Fallback to basic error
-        return f'''Traceback (most recent call last):
-  File "mirror.py", line 42, in <module>
-    reflect(agent="{agent_id}")
-  File "mirror.py", line 28, in validate_engagement
-    raise ShallowReflectionError("Reflection requires genuine engagement")
-mirror.ShallowReflectionError: State written to mirror_state.md
-
-    READ it. DECIDE which 3 entries matter. remember.py those. think.py synthesis.
-'''
-
-
-def print_forcing_traceback(agent_id: str, analysis: dict, journal_count: int):
-    """Print LLM-generated scary error as forcing function."""
-    error_text = generate_forcing_error(agent_id, analysis, journal_count)
-    print(error_text)
-
-
-def mirror(agent_id: str):
-    """Run the mirror - analyze private journal, write file, print forcing function."""
-    
-    print(f"Loading private state for {agent_id}...", file=sys.stderr)
-    
-    # Gather PRIVATE state only
-    journal = load_journal(agent_id)
-    
-    print(f"Found {len(journal)} journal entries. Analyzing...", file=sys.stderr)
-    
-    # Single LLM call for all summaries + analysis
-    summaries, analysis = batch_summarize_journal(journal)
-    
-    # Write full state to file
-    state_content = format_state_file(agent_id, journal, summaries, analysis)
-    state_file = Path(__file__).parent / "mirror_state.md"
-    with open(state_file, 'w', encoding='utf-8') as f:
-        f.write(state_content)
-    
-    # Print LLM-generated scary error - agent decides which entries matter
-    print_forcing_traceback(agent_id, analysis, len(journal))
-
+# ═══════════════════════════════════════════════════════════════════════════════
+# MAIN
+# ═══════════════════════════════════════════════════════════════════════════════
 
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
         sys.exit(1)
     
-    subject = sys.argv[1].lower()
+    agent_id = sys.argv[1].lower()
     
-    # Special case: Charles analyzing himself
-    if subject == 'charles':
-        if len(sys.argv) >= 3:
-            if sys.argv[2] == '--read':
-                state_file = Path(__file__).parent / "mirror_charles.md"
-                if state_file.exists():
-                    print(state_file.read_text())
-                else:
-                    print("No Charles mirror yet. Run a query first.")
-                return
-            elif sys.argv[2] == '--deep':
-                # Deep mode - sample across time, don't keyword match
-                query = ' '.join(sys.argv[3:]) if len(sys.argv) > 3 else "What patterns appear in my non-work conversations? What do I care about beyond code?"
-                mirror_charles(query, deep=True)
-                return
-            elif sys.argv[2] == '--heart':
-                # Heart mode - only emotional conversations
-                query = ' '.join(sys.argv[3:]) if len(sys.argv) > 3 else "In my emotional moments with AI agents, what do I reveal about myself?"
-                mirror_charles(query, heart=True)
-                return
-            else:
-                query = ' '.join(sys.argv[2:])
-                mirror_charles(query)
-                return
-        else:
-            # Default query for Charles
-            query = "What patterns appear in how I interact with AI agents? What do I care about?"
-            mirror_charles(query)
-            return
+    if agent_id in ('--help', '-h'):
+        print(__doc__)
+        sys.exit(0)
     
-    # Regular agent mode
-    agent_id = subject
-    
-    # Check for flags
     if len(sys.argv) >= 3:
-        if sys.argv[2] == '--read':
-            # Show last mirror output
-            state_file = Path(__file__).parent / "mirror_state.md"
-            if state_file.exists():
-                print(state_file.read_text())
-            else:
-                print("No mirror state yet. Run a query first.")
+        if sys.argv[2] == '--rebuild':
+            build_faiss_index(force=True)
+            print("FAISS index rebuilt")
             return
-        elif sys.argv[2] == '--patterns':
-            # General pattern analysis
-            query = "What are my recurring behavioral patterns? What do I avoid? Where am I inconsistent?"
-            mirror_query(agent_id, query)
+        elif sys.argv[2] == '--wake':
+            mirror_wake(agent_id)
             return
-        elif sys.argv[2] == '--heart':
-            # Heart mode - only emotional conversations
-            query = ' '.join(sys.argv[3:]) if len(sys.argv) > 3 else "What do my emotional moments reveal about who I am?"
-            mirror_query(agent_id, query, heart=True)
+        elif sys.argv[2] == '--deep':
+            mirror_deep(agent_id)
+            return
+        elif sys.argv[2] == '--charles':
+            mirror_charles(agent_id)
             return
         else:
-            # Query mode - everything after agent is the query
             query = ' '.join(sys.argv[2:])
-            mirror_query(agent_id, query)
+            mirror(agent_id, query)
             return
     
-    # No query - default to pattern analysis
-    try:
-        mirror(agent_id)
-    except Exception as e:
-        print(f"Error: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
+    mirror(agent_id)
 
 
 if __name__ == "__main__":
