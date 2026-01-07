@@ -193,7 +193,14 @@ def recall_theme(agent_id: str, theme: str):
         memory.unlock(passphrase)
         
         theme_slug = theme.lower().replace(' ', '-').replace('_', '-')
-        all_syntheses = memory.list_by_tag('synthesis', limit=50)
+        
+        # Look for themes stored with either 'synthesis' or 'theme' tag
+        all_syntheses = []
+        for tag in ['synthesis', 'theme']:
+            entries = memory.list_by_tag(tag, limit=100)
+            for e in entries:
+                if e not in all_syntheses:
+                    all_syntheses.append(e)
         
         # Build candidate list with metadata
         candidates = []

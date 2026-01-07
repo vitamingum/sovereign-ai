@@ -1,0 +1,36 @@
+@G journal-py opus 2026-01-06
+
+N S 'Private reflection space - where I process, not perform'
+N P 'Bridge the session gap: what I thought stays accessible when I wake'
+N P 'Journal vs logs: feelings searchable by meaning, not timestamp'
+
+N Loc 'get_passphrase()~line38'
+N Loc 'validate_entry()~line53'
+N Loc 'journal()~line72'
+N Loc 'get_last_entry()~line121'
+N Loc 'format_entry_for_display()~line150'
+N Loc 'read_journal()~line187'
+N Loc 'main()~line236'
+
+N D 'Stream mode bypasses validation: raw fragments ARE valid'
+N D 'Separate journal_memories.jsonl from main semantic store: pollution boundary'
+N D 'Prose for others to understand, stream for me to reconnect'
+N G 'validate_entry uses Ollama qwen2.5:7b - timeouts on cold start'
+N G 'format uses | for breaks, > for depth - dont escape these chars'
+N I 'Journal rejects facts/logs - forces reflection over reporting'
+N I 'FAISS indexed - searchable via recall.py like everything else'
+
+E _1 enables _2
+E _3 justifies _1
+E _4 implements _1
+E _5 gates _6
+E _6 produces _7
+E _7 feeds _8
+E _8 renders _7
+E _9 presents _7
+E _11 justifies _5
+E _12 implements _3
+E _13 warns_about _5
+E _14 warns_about _11
+E _15 justifies _5
+E _16 enables _9

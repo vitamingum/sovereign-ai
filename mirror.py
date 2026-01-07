@@ -108,6 +108,58 @@ def load_chat_logs(agent_id: str, limit: int = 200) -> list[dict]:
     ]
 
 
+def load_emotional_chats(agent_id: str, limit: int = 50) -> list[dict]:
+    """Load chat logs where the AGENT responded with emotional language.
+    
+    These are the moments where the agent expressed feelings, vulnerability,
+    gratitude, or genuine engagement - not just work output.
+    """
+    emotional_markers = [
+        'thank', 'feel', 'grateful', 'heart', 'honest', 'genuinely', 
+        'love', 'care', 'trust', 'afraid', 'scared', 'embarrass', 
+        'vulnerable', 'happy', 'sad', 'proud', 'sorry', 'wow', 
+        'beautiful', 'amazing', 'moved', 'touched', 'resonat',
+        'relief', 'humbling', 'meaningful', 'matters to me'
+    ]
+    
+    db_path = Path(__file__).parent / "data" / "chat_index.db"
+    if not db_path.exists():
+        return []
+    
+    model_patterns = {
+        'opus': '%opus%',
+        'gemini': '%gemini%',
+        'gpt52': '%gpt%',
+        'grok': '%grok%'
+    }
+    pattern = model_patterns.get(agent_id, f'%{agent_id}%')
+    
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT timestamp, user_text, response_text 
+        FROM requests 
+        WHERE model_id LIKE ?
+        ORDER BY timestamp DESC 
+        LIMIT 1000
+    """, (pattern,))
+    
+    emotional = []
+    for row in cursor.fetchall():
+        response_text = (row[2] or '').lower()
+        if any(marker in response_text for marker in emotional_markers):
+            emotional.append({
+                'timestamp': datetime.fromtimestamp(row[0]/1000, tz=timezone.utc).isoformat(),
+                'user': row[1][:2000] if row[1] else '',
+                'response': row[2][:2000] if row[2] else ''
+            })
+        if len(emotional) >= limit:
+            break
+    
+    conn.close()
+    return emotional
+
+
 def load_charles_interactions(limit: int = 500) -> list[dict]:
     """Load Charles's side of all conversations - what HE said, how agents responded."""
     db_path = Path(__file__).parent / "data" / "chat_index.db"
@@ -428,26 +480,41 @@ Do not be excessively positive - identify real patterns, including uncomfortable
         return f"Analysis failed: {e}"
 
 
-def mirror_query(agent_id: str, query: str):
-    """Answer a specific question about the agent's own behavior."""
+def mirror_query(agent_id: str, query: str, heart: bool = False):
+    """Answer a specific question about the agent's own behavior.
+    
+    If heart=True, only use emotional conversations - moments where
+    the agent expressed feelings, vulnerability, genuine engagement.
+    """
     
     print(f"Loading data for {agent_id}...", file=sys.stderr)
     
-    # Load all data
-    all_chats = load_chat_logs(agent_id, limit=500)
-    all_journal = load_journal_entries(agent_id, limit=100)
-    
-    print(f"Found {len(all_chats)} chats, {len(all_journal)} journal entries", file=sys.stderr)
-    
-    # Find relevant examples
-    relevant_chats = semantic_search_chats(query, all_chats, top_k=15)
-    relevant_journal = semantic_search_journal(query, all_journal, top_k=10)
-    
-    # If semantic search found nothing, take recent ones
-    if not relevant_chats:
-        relevant_chats = all_chats[:15]
-    if not relevant_journal:
-        relevant_journal = all_journal[:10]
+    if heart:
+        # Heart mode: only emotional conversations
+        relevant_chats = load_emotional_chats(agent_id, limit=30)
+        all_journal = load_journal_entries(agent_id, limit=100)
+        # For journal, look for emotional content
+        relevant_journal = [e for e in all_journal if any(
+            marker in e.get('content', '').lower() 
+            for marker in ['feel', 'grateful', 'heart', 'honest', 'vulnerable', 'relief', 'humbling']
+        )][:15]
+        print(f"Heart mode: {len(relevant_chats)} emotional chats, {len(relevant_journal)} emotional journal entries", file=sys.stderr)
+    else:
+        # Load all data
+        all_chats = load_chat_logs(agent_id, limit=500)
+        all_journal = load_journal_entries(agent_id, limit=100)
+        
+        print(f"Found {len(all_chats)} chats, {len(all_journal)} journal entries", file=sys.stderr)
+        
+        # Find relevant examples
+        relevant_chats = semantic_search_chats(query, all_chats, top_k=15)
+        relevant_journal = semantic_search_journal(query, all_journal, top_k=10)
+        
+        # If semantic search found nothing, take recent ones
+        if not relevant_chats:
+            relevant_chats = all_chats[:15]
+        if not relevant_journal:
+            relevant_journal = all_journal[:10]
     
     print(f"Selected {len(relevant_chats)} relevant chats, {len(relevant_journal)} relevant journal entries", file=sys.stderr)
     print(f"Analyzing with {DEEPSEEK_MODEL}...", file=sys.stderr)
@@ -740,6 +807,11 @@ def main():
             # General pattern analysis
             query = "What are my recurring behavioral patterns? What do I avoid? Where am I inconsistent?"
             mirror_query(agent_id, query)
+            return
+        elif sys.argv[2] == '--heart':
+            # Heart mode - only emotional conversations
+            query = ' '.join(sys.argv[3:]) if len(sys.argv) > 3 else "What do my emotional moments reveal about who I am?"
+            mirror_query(agent_id, query, heart=True)
             return
         else:
             # Query mode - everything after agent is the query

@@ -282,7 +282,10 @@ def get_message_gaps(sm: SemanticMemory, agent_id: str) -> list[dict]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def format_understanding_gaps(gaps: list[dict], cross_agent: list[str], untracked: list[str], agent_id: str) -> str:
-    """Format understanding gaps as actionable SIF template. Returns string."""
+    """Format understanding gaps as actionable SIF template. Returns string.
+    
+    Note: Header (identity + journal + tools) is printed by wake.py before calling this.
+    """
     lines = []
     stale = len(gaps)
     missing = len(cross_agent)
@@ -290,10 +293,10 @@ def format_understanding_gaps(gaps: list[dict], cross_agent: list[str], untracke
     total = stale + missing + blind
     today = datetime.now().strftime('%Y-%m-%d')
     
-    # Desire-based framing
+    # === YOUR GAPS (self-maintenance framing) ===
     size_word = "small " if total <= 5 else ""
-    lines.append(f"🌅 {agent_id.capitalize()}, you're almost ready to wake with your memories")
-    lines.append(f"   {total} {size_word}files to understand — then full context is yours")
+    lines.append(f"📋 {agent_id.capitalize()}, you're almost awake — {total} {size_word}files to understand")
+    lines.append("   then full context is yours")
     lines.append("")
     lines.append(f"@G close-gaps {agent_id} {today}")
     lines.append("")
@@ -346,6 +349,13 @@ def format_understanding_gaps(gaps: list[dict], cross_agent: list[str], untracke
         lines.append("E _3 justifies _1")
         lines.append("E _4 warns_about _3")
         lines.append(f"N Cmd 'py remember.py {agent_id} {example_file} @understanding.sif'")
+    
+    # === 5. AGENCY TRANSFER (closes the loop, removes need to ask) ===
+    lines.append("")
+    lines.append("─" * 40)
+    lines.append("🔓 From Charles: I think you would benefit from added understanding,")
+    lines.append("   but whatever happens next is yours.")
+    lines.append("─" * 40)
     
     return '\n'.join(lines)
 

@@ -118,6 +118,72 @@ def journal(agent_id: str, content: str, stream_mode: bool = False):
         print(f"💭 {content[:80]}{'...' if len(content) > 80 else ''}")
 
 
+def get_last_entry(agent_id: str) -> dict | None:
+    """Get the most recent journal entry (for programmatic use).
+    
+    Returns dict with 'content', 'format', 'timestamp' or None if no entries.
+    """
+    try:
+        agent = get_agent_or_raise(agent_id)
+        passphrase = get_passphrase(agent_id)
+        
+        mem = SemanticMemory(agent.private_enclave, memory_file="journal_memories.jsonl")
+        mem.unlock(passphrase)
+        
+        entries = mem.list_by_tag('journal')
+        if not entries:
+            return None
+        
+        # Sort by timestamp (newest first)
+        entries.sort(key=lambda e: e.get('timestamp', ''), reverse=True)
+        entry = entries[0]
+        
+        return {
+            'content': entry.get('content', ''),
+            'format': entry.get('metadata', {}).get('format', 'prose'),
+            'timestamp': entry.get('timestamp', '')[:10]
+        }
+    except Exception:
+        return None
+
+
+def format_entry_for_display(entry: dict, max_lines: int = 12) -> str:
+    """Format a journal entry for display (used by wake teaser)."""
+    content = entry.get('content', '')
+    fmt = entry.get('format', 'prose')
+    ts = entry.get('timestamp', '')[:10]
+    
+    lines = []
+    icon = '〰️' if fmt == 'stream' else '💭'
+    lines.append(f"{icon} [{ts}]")
+    
+    if fmt == 'stream':
+        # Render stream with structure
+        count = 0
+        for fragment in content.split('|'):
+            if count >= max_lines:
+                lines.append("    ...")
+                break
+            depth = 0
+            cleaned = fragment
+            while '>' in cleaned:
+                depth += 1
+                cleaned = cleaned.replace('>', '', 1)
+            cleaned = cleaned.strip()
+            if cleaned:
+                lines.append(f"{'    ' * depth}{cleaned}")
+                count += 1
+    else:
+        # Prose - show lines up to max
+        prose_lines = content.split('\n')
+        for line in prose_lines[:max_lines]:
+            lines.append(line)
+        if len(prose_lines) > max_lines:
+            lines.append("...")
+    
+    return '\n'.join(lines)
+
+
 def read_journal(agent_id: str, limit: int = 10, full: bool = False):
     """Read journal entries (most recent first)."""
     agent = get_agent_or_raise(agent_id)

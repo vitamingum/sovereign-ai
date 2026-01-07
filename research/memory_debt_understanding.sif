@@ -1,0 +1,46 @@
+@G memory-debt-py opus 2026-01-06
+
+N S 'Single source of truth for what I dont know yet'
+N P 'Memory debt = knowledge not yet committed to semantic memory'
+N P 'Fail-early: one gap category at a time, dont overwhelm'
+
+N Loc 'get_enclave_and_memory()~line37'
+N Loc 'get_understanding_debt()~line46'
+N Loc 'get_cross_agent_debt()~line99'
+N Loc 'get_untracked_debt()~line112'
+N Loc 'get_synthesis_debt()~line159'
+N Loc '_file_exists()~line199'
+N Loc 'extract_python_definitions()~line213'
+N Loc 'get_message_debt()~line267'
+N Loc 'format_understanding_debt()~line284'
+N Loc 'format_synthesis_debt()~line353'
+N Loc 'format_message_debt()~line383'
+N Loc 'print_all_debt()~line405'
+N Loc 'main()~line440'
+
+N D 'Four debt types checked in order: stale, untracked, synthesis, message'
+N D 'Hash check uses set of ALL stored hashes - any match = fresh'
+N D 'Filters out questions about deleted files - not debt, just orphaned'
+N G 'list_all() required, not similarity search - recency independent'
+N G 'Path resolution fragile: direct path > project relative > glob'
+N G 'Untracked excludes enclave/ - internal library not verbs'
+N I 'Desire-based framing: debt is last step to what you want'
+N I 'extract_python_definitions enables Loc node generation in template'
+
+E _1 centralizes _2
+E _3 shapes _1
+E _4 uses _1
+E _5 detects _2
+E _6 compares _5
+E _7 fills _6
+E _8 synthesizes _5
+E _9 enables _14
+E _10 synthesizes _7
+E _11 renders _5
+E _12 orders _13
+E _13 prevents _3
+E _14 warns_about _5
+E _15 explains _5
+E _16 explains _7
+E _17 motivates _11
+E _18 enables _11

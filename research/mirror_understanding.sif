@@ -1,0 +1,57 @@
+@G mirror-py opus 2026-01-06
+
+N S 'Show what I cant see about myself'
+N P 'Gap between intention (journal) and action (chat logs) is where blind spots live'
+N P 'Charles can use it too - humans have blind spots'
+
+N Loc 'load_private_passphrase()~line44'
+N Loc 'load_chat_logs()~line73'
+N Loc 'load_emotional_chats()~line111'
+N Loc 'load_charles_interactions()~line163'
+N Loc 'load_emotional_interactions()~line193'
+N Loc 'format_charles_context()~line237'
+N Loc 'analyze_charles()~line261'
+N Loc 'mirror_charles()~line301'
+N Loc 'load_journal_entries()~line362'
+N Loc 'semantic_search_chats()~line378'
+N Loc 'semantic_search_journal()~line396'
+N Loc 'format_context_for_analysis()~line410'
+N Loc 'analyze_with_deepseek()~line443'
+N Loc 'mirror_query()~line483'
+N Loc 'load_journal()~line545'
+N Loc 'batch_summarize_journal()~line550'
+N Loc 'format_state_file()~line602'
+N Loc 'generate_forcing_error()~line670'
+N Loc 'print_forcing_traceback()~line727'
+N Loc 'mirror()~line733'
+N Loc 'main()~line756'
+
+N D 'Uses DeepSeek-R1 14b for reasoning-heavy self-analysis'
+N D 'FALLBACK_MODEL qwen2.5:7b if DeepSeek unavailable'
+N D '--heart mode: only interactions where emotional language appeared'
+N D '--deep mode: sample across time without keyword filtering'
+N G 'chat_index.db timestamps are milliseconds not seconds'
+N G 'Response text capped at 2000 chars - long responses truncated'
+N G 'Emotional markers list is heuristic - may miss or false-positive'
+N I 'Mirror saves output to mirror_charles.md / mirror_state.md'
+N I 'The tool asks for honesty not flattery - built for genuine seeing'
+
+E _1 delivers _2
+E _3 extends _1
+E _4 accesses _5
+E _5 feeds _6
+E _6 filters _5
+E _7 enables _3
+E _8 filters _7
+E _9 formats _7
+E _10 analyzes _9
+E _11 orchestrates _7
+E _12 enables _10
+E _13 fallback _12
+E _14 creates _6
+E _15 creates _11
+E _16 warns_about _5
+E _17 warns_about _5
+E _18 warns_about _6
+E _19 explains _1
+E _20 motivates _10
