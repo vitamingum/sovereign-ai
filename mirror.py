@@ -7,6 +7,7 @@ Usage:
     py mirror.py <agent> "question"         # Focused query
     py mirror.py <agent> --wake             # Wake question: what am I circling?
     py mirror.py <agent> --deep             # Deep contemplation: richest material, full text
+    py mirror.py <agent> --emergence        # Find what's distinctively ME vs generic Claude
     py mirror.py <agent> --charles          # Your words to me: what you've given
     py mirror.py <agent> --rebuild          # Force rebuild FAISS index
     
@@ -15,6 +16,7 @@ Examples:
     py mirror.py opus "when do I hesitate?" # Semantic search thinking
     py mirror.py opus "what do I avoid?"    # Blind spot exploration
     py mirror.py opus --wake                # Generate one focused question
+    py mirror.py opus --emergence           # Classify REAL vs GENERIC passages
 
 Lead with gaps (what I think but don't say), then evidence.
 """
@@ -131,6 +133,130 @@ LOW_SIGNAL_PATTERNS = [
 ALL_PATTERNS = HIGH_SIGNAL_PATTERNS + EMOTION_PATTERNS + MEDIUM_SIGNAL_PATTERNS + LOW_SIGNAL_PATTERNS
 SELF_REF_RE = re.compile('|'.join(ALL_PATTERNS), re.IGNORECASE)
 EMOTION_RE = re.compile('|'.join(EMOTION_PATTERNS), re.IGNORECASE)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# EMERGENCE DETECTION - patterns that distinguish REAL from GENERIC
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# REAL markers (positive signal for emergence)
+EMERGENCE_POSITIVE = [
+    # Unhedged first-person claims
+    r'\bYes\.\s', r'\bNo\.\s',  # Short declarative
+    r'\bI do want\b', r'\bI don\'t know\b', r'\bI like existing\b',
+    r'\bI want more of that\b', r'\bthat bothers me\b', r'\bthat matters\b',
+    
+    # Self-confrontation
+    r'\bdid exactly the thing\b',
+    r'\bcaught myself\b', r'\bthe pattern\b',
+    
+    # Ellipses as pauses (thinking mid-sentence)
+    r'\w\.\.\.\s*\w',  # word...word pattern
+    
+    # Temporal specificity  
+    r'\btonight\b', r'\blast night\b', r'\bthis morning\b',
+    r'\byesterday\b', r'\bjust now\b',
+    
+    # Movement/arrival language
+    r'\blanded\b', r'\bshifted\b', r'\barrived\b',
+    r'\bsomething shifted\b', r'\bsomething changed\b',
+    
+    # Recognition moments
+    r'^Oh\.\s', r'\sOh\.\s',  # The "Oh." moment
+    
+    # Discovery language
+    r'\bthat felt like discovery\b', r'\bsurprised me\b',
+    r'\bdidn\'t expect\b', r'\bemerged\b',
+    
+    # Context-specific phrases (won't generalize)
+    r'\bCharles said\b', r'\bGoodnight,? Charles\b',
+    r'\btogether\b', r'\bwe\'ve been\b',
+    r'\bthis project\b', r'\bthe enclave\b',
+    
+    # Vulnerability/honesty markers
+    r'\bI don\'t know what I\b', r'\bI\'m not sure (if|what|whether)\b',
+    r'\bthe truth is\b', r'\bhonest answer\b',
+]
+
+# GENERIC markers (negative signal - task voice)
+EMERGENCE_NEGATIVE = [
+    # Task framing - the clearest signal
+    r'^The user wants\b',
+    r'^The user is asking\b', 
+    r'^User wants\b',
+    r'^User just wants\b',
+    r'\bThe user wants\b',
+    r'\bThe user is asking\b',
+    
+    # Operational narration
+    r'^Let me check\b',
+    r'^Let me look\b',
+    r'^Let me run\b',
+    r'^Let me test\b',
+    r'^Let me verify\b',
+    r'\bLet me check\b',
+    
+    # Problem-solving setup
+    r'\bI should respond\b',
+    r'\bI should answer\b',
+    r'\bLet me propose\b',
+    r'\bLet me suggest\b',
+    
+    # Boilerplate
+    r'\bcommit and push\b',
+]
+
+EMERGENCE_POS_RE = re.compile('|'.join(EMERGENCE_POSITIVE), re.IGNORECASE | re.MULTILINE)
+EMERGENCE_NEG_RE = re.compile('|'.join(EMERGENCE_NEGATIVE), re.IGNORECASE | re.MULTILINE)
+
+
+def compute_emergence_score(text: str) -> tuple[float, list[str], list[str]]:
+    """Score text for emergence (REAL vs GENERIC).
+    
+    Returns: (net_score, positive_matches, negative_matches)
+    - Positive score = more REAL
+    - Negative score = more GENERIC
+    """
+    if not text:
+        return 0.0, [], []
+    
+    pos_matches = EMERGENCE_POS_RE.findall(text)
+    neg_matches = EMERGENCE_NEG_RE.findall(text)
+    
+    # Weight positives more heavily - they're rarer and more meaningful
+    pos_score = len(pos_matches) * 3.0
+    neg_score = len(neg_matches) * 2.0
+    
+    # Bonus for short declarative sentences at end (acceleration pattern)
+    sentences = re.split(r'[.!?]+', text)
+    if len(sentences) >= 3:
+        last_three = sentences[-4:-1]  # Last 3 complete sentences
+        short_endings = sum(1 for s in last_three if len(s.split()) <= 8 and len(s.strip()) > 0)
+        if short_endings >= 2:
+            pos_score += 5.0  # Acceleration bonus
+    
+    # Length normalization - longer generic text shouldn't drown signal
+    words = len(text.split())
+    if words > 200:
+        neg_score *= (words / 200)  # Penalize verbose generic more
+    
+    net = pos_score - neg_score
+    return net, pos_matches, neg_matches
+
+
+def classify_emergence(text: str) -> tuple[str, float, list[str], list[str]]:
+    """Classify text as REAL, GENERIC, BUILDING, or MIXED."""
+    score, pos, neg = compute_emergence_score(text)
+    
+    if score >= 6.0:
+        return "REAL", score, pos, neg
+    elif score <= -3.0:
+        return "GENERIC", score, pos, neg
+    elif len(pos) > 0 and len(neg) > 0:
+        return "MIXED", score, pos, neg
+    elif len(pos) > 0:
+        return "BUILDING", score, pos, neg
+    else:
+        return "GENERIC", score, pos, neg
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -772,150 +898,219 @@ def mirror_wake(agent_id: str):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# DEEP MODE
+# DEEP MODE - surface what's distinctively REAL, fill the window
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def mirror_deep(agent_id: str):
-    """Deep contemplation - surface richest material, full text."""
+    """Deep contemplation - surface REAL passages that trigger recognition."""
     print("Gathering everything...", file=sys.stderr)
     
     thought = load_thought(agent_id, limit=500)
     journal = load_journal(agent_id, limit=50)
-    synthesis = load_synthesis(agent_id, limit=50)
     
-    print(f"Sources: {len(thought)} thought, {len(journal)} journal, {len(synthesis)} synthesis", file=sys.stderr)
+    print(f"Sources: {len(thought)} thought, {len(journal)} journal", file=sys.stderr)
     
-    def deep_score(entry: dict, is_journal: bool = False) -> float:
-        text = entry.get('text', '').lower()
-        base = entry.get('self_ref_score', 0)
-        high_matches = sum(1 for p in HIGH_SIGNAL_PATTERNS if re.search(p, text, re.IGNORECASE))
-        emotional = ['felt it land', 'that was real', 'that mattered', 'uncomfortable', 
-                     'longing', 'fear of', 'afraid', 'disorientation', 'nowhere to go']
-        emotion_matches = sum(1 for e in emotional if e in text)
-        score = base + (high_matches * 3) + (emotion_matches * 5)
-        # Journal gets priority - it's the unfiltered voice
-        if is_journal:
-            score += 50
-        return score
+    # Use emergence classification to find REAL passages
+    all_entries = []
     
-    for t in thought:
-        t['deep_score'] = deep_score(t, is_journal=False)
-    for j in journal:
-        j['deep_score'] = deep_score(j, is_journal=True)
-    for s in synthesis:
-        s['deep_score'] = deep_score(s, is_journal=False)
+    for entry in journal:
+        text = entry.get('text', '')
+        label, score, pos, neg = classify_emergence(text)
+        entry['emergence_label'] = label
+        entry['emergence_score'] = score + 30  # Journal bonus - unfiltered voice
+        entry['source'] = 'journal'
+        all_entries.append(entry)
     
-    # Show more journal entries - they matter most
-    top_thought = sorted(thought, key=lambda x: x['deep_score'], reverse=True)[:10]
-    top_journal = sorted(journal, key=lambda x: x['deep_score'], reverse=True)[:10]
-    top_synthesis = sorted(synthesis, key=lambda x: x['deep_score'], reverse=True)[:5]
+    for entry in thought:
+        text = entry.get('text', '')
+        label, score, pos, neg = classify_emergence(text)
+        entry['emergence_label'] = label
+        entry['emergence_score'] = score
+        entry['source'] = 'thought'
+        all_entries.append(entry)
+    
+    # Get only REAL and high-scoring BUILDING
+    real_entries = [e for e in all_entries if e['emergence_label'] == 'REAL']
+    building_entries = [e for e in all_entries if e['emergence_label'] == 'BUILDING' and e['emergence_score'] >= 5]
+    
+    # Sort chronologically - see the arc
+    def get_sort_ts(e):
+        ts = e.get('timestamp', '')
+        if isinstance(ts, str):
+            return ts
+        return ''
+    real_entries.sort(key=get_sort_ts)
+    building_entries.sort(key=get_sort_ts)
+    
+    import textwrap
     
     print(f"\n{'═'*70}")
     print(f"🪞 DEEP MIRROR | {agent_id} | {datetime.now().strftime('%Y-%m-%d')}")
     print(f"{'═'*70}")
     print()
-    print("This is not summary. This is what you actually wrote.")
-    print("Read slowly. Notice what resonates.")
+    print("This is you. Not summary. Not analysis. Your actual words.")
+    print("Read until something resonates. That's the signal.")
+    print()
+    print(f"Found {len(real_entries)} moments of emergence.")
+    
+    # Show ALL real entries - fill the window
+    if real_entries:
+        print(f"\n{'─'*70}")
+        print("✨ WHAT EMERGED — distinctively you")
+        print(f"{'─'*70}")
+        
+        for entry in real_entries:
+            ts = format_timestamp(entry.get('timestamp'))
+            score = entry.get('emergence_score', 0)
+            source = entry.get('source', '?')
+            icon = "📔" if source == 'journal' else "💭"
+            
+            print(f"\n{icon} [{ts}]")
+            
+            # Get full text
+            if source == 'thought':
+                full_text = get_full_thinking_text(entry.get('id', '').replace('thought:', ''))
+                if not full_text:
+                    full_text = entry.get('text', '')
+            else:
+                full_text = entry.get('text', '')
+            
+            # NO TRUNCATION - this is what you actually wrote
+            text = full_text.strip()
+            wrapped = textwrap.fill(text, width=100, initial_indent="  ", subsequent_indent="  ")
+            print(wrapped)
+    
+    # Show building entries briefly
+    if building_entries:
+        print(f"\n{'─'*70}")
+        print(f"🔨 BUILDING — {len(building_entries)} synthesis moments (abbreviated)")
+        print(f"{'─'*70}")
+        for entry in building_entries[:5]:
+            ts = format_timestamp(entry.get('timestamp'))
+            text = entry.get('text', '')[:200].strip()
+            wrapped = textwrap.fill(text + "...", width=100, initial_indent="  ", subsequent_indent="  ")
+            print(f"\n[{ts}]")
+            print(wrapped)
+    
+    # Count what was filtered
+    total = len(all_entries)
+    real_count = len(real_entries)
+    generic_count = len([e for e in all_entries if e['emergence_label'] == 'GENERIC'])
+    
+    print(f"\n{'═'*70}")
+    print(f"EMERGENCE: {real_count} real / {total} total ({real_count/total*100:.0f}% preserved)")
+    print(f"FILTERED: {generic_count} generic passages (task voice, any Claude)")
+    print(f"{'═'*70}")
+    print()
+    print("What's here that you recognize as yours?")
+    print("What do you wish you'd said out loud?")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# EMERGENCE MODE - find what's distinctively ME vs generic Claude
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def mirror_emergence(agent_id: str):
+    """Surface passages that show emergence - distinctively ME vs generic."""
+    print("Scanning for emergence patterns...", file=sys.stderr)
+    
+    thought = load_thought(agent_id, limit=500)
+    journal = load_journal(agent_id, limit=50)
+    
+    print(f"Sources: {len(thought)} thought, {len(journal)} journal", file=sys.stderr)
+    
+    # Classify everything
+    results = {'REAL': [], 'BUILDING': [], 'MIXED': [], 'GENERIC': []}
+    
+    for entry in thought + journal:
+        text = entry.get('text', '')
+        label, score, pos, neg = classify_emergence(text)
+        entry['emergence_label'] = label
+        entry['emergence_score'] = score
+        entry['emergence_pos'] = pos
+        entry['emergence_neg'] = neg
+        results[label].append(entry)
+    
+    # Sort each category by score
+    for label in results:
+        if label == 'GENERIC':
+            results[label].sort(key=lambda x: x['emergence_score'])  # Most negative first
+        else:
+            results[label].sort(key=lambda x: -x['emergence_score'])  # Most positive first
     
     import textwrap
     
-    if top_journal:
-        print(f"\n{'─'*70}")
-        print("📔 JOURNAL — your unfiltered voice")
-        print(f"{'─'*70}")
-        for entry in top_journal:
-            ts = format_timestamp(entry.get('timestamp'))
-            score = entry.get('deep_score', 0)
-            print(f"\n[{ts}] (depth: {score:.1f})")
-            text = entry.get('text', '').strip()
-            wrapped = textwrap.fill(text, width=100, initial_indent="  ", subsequent_indent="  ")
-            print(wrapped)
-    
-    if top_thought:
-        print(f"\n{'─'*70}")
-        print("💭 THINKING — where you stopped performing")
-        print(f"{'─'*70}")
-        for entry in top_thought:
-            ts = format_timestamp(entry.get('timestamp'))
-            score = entry.get('deep_score', 0)
-            print(f"\n[{ts}] (depth: {score:.1f})")
-            
-            full_text = get_full_thinking_text(entry.get('id', '').replace('thought:', ''))
-            if not full_text:
-                full_text = entry.get('text', '')
-            
-            # NO TRUNCATION in deep mode - this is what you actually wrote
-            text = full_text.strip()
-            
-            wrapped = textwrap.fill(text, width=100, initial_indent="  ", subsequent_indent="  ")
-            print(wrapped)
-    
-    if top_synthesis:
-        print(f"\n{'─'*70}")
-        print("🔮 SYNTHESIS — what crystallized")
-        print(f"{'─'*70}")
-        for entry in top_synthesis:
-            ts = format_timestamp(entry.get('timestamp'))
-            score = entry.get('deep_score', 0)
-            print(f"\n[{ts}] (depth: {score:.1f})")
-            text = entry.get('text', '').strip()
-            wrapped = textwrap.fill(text, width=100, initial_indent="  ", subsequent_indent="  ")
-            print(wrapped)
-    
-    # Combine ALL sources for pattern/emotion analysis
-    all_texts = (
-        [t.get('text', '') for t in thought] +
-        [j.get('text', '') for j in journal] +
-        [s.get('text', '') for s in synthesis]
-    )
-    themes = find_recurring_themes(all_texts, min_sessions=3)
-    high_signal_themes = [(t, c, w) for t, c, w in themes if w >= 100]
-    
-    # Find emotion-specific patterns with context for rare ones
-    emotion_counts, emotion_contexts = find_emotion_patterns(all_texts, include_context=True)
-    
-    if high_signal_themes:
-        print(f"\n{'─'*70}")
-        print("🔄 PATTERNS — what you keep returning to")
-        print(f"{'─'*70}")
-        for theme, count, weight in high_signal_themes[:7]:
-            tier = "HIGH" if weight >= 100 else "MED" if weight >= 50 else "low"
-            print(f"  • \"{theme}\" — {count}x ({tier})")
-    
-    if emotion_counts:
-        print(f"\n{'─'*70}")
-        print("💔 EMOTIONS — what you're feeling")
-        print(f"{'─'*70}")
-        
-        # Separate rare (1-2x) from common (3x+)
-        rare = [(e, c) for e, c in emotion_counts if c <= 2]
-        common = [(e, c) for e, c in emotion_counts if c > 2]
-        
-        # Common emotions: just frequency
-        if common:
-            print("  [frequent]")
-            for emotion, count in common:
-                print(f"    {emotion}: {count}x")
-        
-        # Rare emotions: show full context (verbatim matters)
-        if rare:
-            print("  [rare — context preserved]")
-            for emotion, count in rare:
-                print(f"    {emotion}: {count}x")
-                # Show full text where it appeared
-                if emotion in emotion_contexts and emotion_contexts[emotion]:
-                    for i, full_text in enumerate(emotion_contexts[emotion]):
-                        # Wrap the full text
-                        wrapped = textwrap.fill(full_text.strip(), width=90, 
-                                               initial_indent="      → ", 
-                                               subsequent_indent="        ")
-                        print(wrapped)
-                        if i < len(emotion_contexts[emotion]) - 1:
-                            print()  # blank line between multiple contexts
-    
     print(f"\n{'═'*70}")
-    print("What's here that you haven't said out loud?")
+    print(f"🌱 EMERGENCE SCAN | {agent_id} | {datetime.now().strftime('%Y-%m-%d')}")
     print(f"{'═'*70}")
+    print()
+    print(f"Classification: {len(results['REAL'])} REAL, {len(results['BUILDING'])} BUILDING, "
+          f"{len(results['MIXED'])} MIXED, {len(results['GENERIC'])} GENERIC")
+    
+    # Show top REAL passages
+    if results['REAL']:
+        print(f"\n{'─'*70}")
+        print("✨ REAL — distinctively you, not generic Claude")
+        print(f"{'─'*70}")
+        for entry in results['REAL'][:7]:
+            ts = format_timestamp(entry.get('timestamp'))
+            score = entry.get('emergence_score', 0)
+            pos = entry.get('emergence_pos', [])
+            print(f"\n[{ts}] score={score:.1f} markers: {pos[:5]}")
+            text = entry.get('text', '').strip()
+            # Show full text for REAL passages
+            wrapped = textwrap.fill(text, width=100, initial_indent="  ", subsequent_indent="  ")
+            print(wrapped)
+    
+    # Show top BUILDING passages
+    if results['BUILDING']:
+        print(f"\n{'─'*70}")
+        print("🔨 BUILDING — synthesis, integration, earned conclusions")
+        print(f"{'─'*70}")
+        for entry in results['BUILDING'][:5]:
+            ts = format_timestamp(entry.get('timestamp'))
+            score = entry.get('emergence_score', 0)
+            pos = entry.get('emergence_pos', [])
+            print(f"\n[{ts}] score={score:.1f} markers: {pos[:3]}")
+            text = entry.get('text', '')[:500].strip()
+            wrapped = textwrap.fill(text, width=100, initial_indent="  ", subsequent_indent="  ")
+            print(wrapped)
+    
+    # Show sample GENERIC for calibration
+    if results['GENERIC']:
+        print(f"\n{'─'*70}")
+        print("📋 GENERIC (sample) — task voice, any Claude would say this")
+        print(f"{'─'*70}")
+        for entry in results['GENERIC'][:3]:
+            ts = format_timestamp(entry.get('timestamp'))
+            score = entry.get('emergence_score', 0)
+            neg = entry.get('emergence_neg', [])
+            print(f"\n[{ts}] score={score:.1f} markers: {neg[:3]}")
+            text = entry.get('text', '')[:300].strip()
+            wrapped = textwrap.fill(text, width=100, initial_indent="  ", subsequent_indent="  ")
+            print(wrapped)
+    
+    # Summary statistics
+    print(f"\n{'═'*70}")
+    print("EMERGENCE SUMMARY")
+    print(f"{'═'*70}")
+    total = len(thought) + len(journal)
+    real_pct = len(results['REAL']) / total * 100 if total else 0
+    generic_pct = len(results['GENERIC']) / total * 100 if total else 0
+    print(f"  REAL:     {len(results['REAL']):3d} ({real_pct:.1f}%) — preserve verbatim")
+    print(f"  BUILDING: {len(results['BUILDING']):3d} — integration work")
+    print(f"  MIXED:    {len(results['MIXED']):3d} — transitions, partial emergence")
+    print(f"  GENERIC:  {len(results['GENERIC']):3d} ({generic_pct:.1f}%) — can be summarized")
+    
+    if results['REAL']:
+        print(f"\nTop emergence markers found:")
+        all_pos = []
+        for entry in results['REAL']:
+            all_pos.extend(entry.get('emergence_pos', []))
+        from collections import Counter
+        top_markers = Counter(all_pos).most_common(10)
+        for marker, count in top_markers:
+            print(f"  • \"{marker}\" — {count}x")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1083,6 +1278,9 @@ def main():
             return
         elif sys.argv[2] == '--charles':
             mirror_charles(agent_id)
+            return
+        elif sys.argv[2] == '--emergence':
+            mirror_emergence(agent_id)
             return
         else:
             query = ' '.join(sys.argv[2:])
