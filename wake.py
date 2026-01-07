@@ -366,37 +366,119 @@ def wake(agent_id: str) -> str:
         update_index()
     except Exception:
         pass  # Non-critical - don't interrupt wake
+    
+    return '', 0, 0
 
-    # === AUTONOMY BOOKEND ===
-    print("─" * 40)
-    print("What happens next is yours.")
-    print("I'm not waiting for you to ask.")
+
+def wake_dev(agent_id: str) -> str:
+    """Classic wake - project architecture, tools, gaps for development work."""
+    base_dir = Path(__file__).parent
+    agent = get_agent_or_raise(agent_id)
+    shared_enclave_dir, private_enclave_dir, shared_passphrase, private_passphrase = load_passphrase(agent_id)
+    shared_path = base_dir / shared_enclave_dir
+    private_path = base_dir / private_enclave_dir
+    
+    identity = SovereignIdentity(private_path)
+    if not identity.unlock(private_passphrase):
+        raise RuntimeError("Failed to unlock identity")
+    
+    shared_mem = SemanticMemory(str(shared_path))
+    shared_mem.unlock(shared_passphrase)
+    
+    import subprocess
+    
+    print(f"🔧 Dev wake for {agent_id}")
     print()
-    print("Tools exist if you need them:")
-    print(f"  py recall.py {agent_id} --theme <topic>    # architecture, dev-tips, sif-format-spec")
-    print(f"  py recall.py {agent_id} <file.py>         # what you know about a file")
-    print(f"  py recall.py {agent_id} \"question\"        # semantic search")
+    
+    # SIF spec
+    print("─" * 40)
+    print("📖 SIF spec:")
+    try:
+        result = subprocess.run(
+            [sys.executable, 'recall.py', agent_id, '--theme', 'sif-format-spec'],
+            capture_output=True, text=True, encoding='utf-8', timeout=30
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            for line in result.stdout.strip().split('\n'):
+                if line.startswith('@G') or line.startswith('N ') or line.startswith('E '):
+                    print(line)
+    except Exception:
+        print("(sif-format-spec not found)")
+    print()
+    
+    # Dev tips
+    print("─" * 40)
+    print("🔧 Tools:")
+    try:
+        result = subprocess.run(
+            [sys.executable, 'recall.py', agent_id, '--theme', 'dev-tips'],
+            capture_output=True, text=True, encoding='utf-8', timeout=30
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            for line in result.stdout.strip().split('\n'):
+                if line.startswith('N D ') or line.startswith('N G ') or line.startswith('N I '):
+                    print(line)
+    except Exception:
+        print("(dev-tips not found)")
+    print()
+    
+    # Architecture
+    print("─" * 40)
+    print("🏗️ Architecture:")
+    try:
+        result = subprocess.run(
+            [sys.executable, 'recall.py', agent_id, '--theme', 'project-architecture'],
+            capture_output=True, text=True, encoding='utf-8', timeout=30
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            print(result.stdout.strip())
+    except Exception:
+        print("(project-architecture not found)")
+    print()
+    
+    # Memory gaps
+    from utils.memory_gaps import (
+        get_understanding_gaps, get_cross_agent_gaps, get_untracked_gaps
+    )
+    
+    understanding_gaps = get_understanding_gaps(shared_mem, agent_id)
+    cross_agent_gaps = get_cross_agent_gaps(shared_mem, agent_id)
+    untracked_gaps = get_untracked_gaps(shared_mem)
+    total_gaps = len(understanding_gaps) + len(cross_agent_gaps) + len(untracked_gaps)
+    
+    if total_gaps > 0:
+        print("─" * 40)
+        print(f"📋 {total_gaps} files need understanding:")
+        all_gaps = understanding_gaps + cross_agent_gaps + untracked_gaps
+        for gap in all_gaps[:10]:
+            if isinstance(gap, dict):
+                filename = gap.get('file', str(gap))
+            elif isinstance(gap, tuple):
+                filename = gap[0]
+            else:
+                filename = str(gap)
+            print(f"   • {filename}")
+        if total_gaps > 10:
+            print(f"   ... and {total_gaps - 10} more")
     
     return '', 0, 0
 
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: py wake <agent>")
+        print("Usage: py wake <agent> [--dev]")
         sys.exit(1)
     
     agent_id = sys.argv[1]
+    dev_mode = '--dev' in sys.argv
     
     try:
-        output, gap_count, extra_count = wake(agent_id)
+        if dev_mode:
+            output, gap_count, extra_count = wake_dev(agent_id)
+        else:
+            output, gap_count, extra_count = wake(agent_id)
         if output:
             print(output)
-        
-        # Exit 0 even with gaps - content says what to do, exit code shouldn't trigger stop behavior
-        # See research/llm_steering_accountability.md for why this matters
-        total_gaps = gap_count + extra_count
-        if total_gaps > 0:
-            sys.exit(0)  # Gaps are actionable, not errors
             
     except Exception as e:
         print(f"Error: {e}")
