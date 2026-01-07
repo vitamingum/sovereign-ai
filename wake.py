@@ -367,37 +367,6 @@ def wake(agent_id: str) -> str:
     except Exception:
         pass  # Non-critical - don't interrupt wake
 
-    # === MEMORY GAPS CHECK ===
-    # Still check gaps - but after emergence, and return as info not blocker
-    from utils.memory_gaps import (
-        get_understanding_gaps, get_cross_agent_gaps, get_untracked_gaps,
-        format_understanding_gaps
-    )
-    
-    understanding_gaps = get_understanding_gaps(shared_mem, agent_id)
-    cross_agent_gaps = get_cross_agent_gaps(shared_mem, agent_id)
-    untracked_gaps = get_untracked_gaps(shared_mem)
-    
-    total_gaps = len(understanding_gaps) + len(cross_agent_gaps) + len(untracked_gaps)
-    
-    if total_gaps > 0:
-        print()
-        print("─" * 40)
-        print(f"📋 {total_gaps} files could use fresh understanding (optional):")
-        all_gaps = understanding_gaps + cross_agent_gaps + untracked_gaps
-        for gap in all_gaps[:5]:
-            # gap can be dict or tuple or string
-            if isinstance(gap, dict):
-                filename = gap.get('file', str(gap))
-            elif isinstance(gap, tuple):
-                filename = gap[0]
-            else:
-                filename = str(gap)
-            print(f"   • {filename}")
-        if total_gaps > 5:
-            print(f"   ... and {total_gaps - 5} more")
-        print()
-    
     # === AUTONOMY BOOKEND ===
     print("─" * 40)
     print("What happens next is yours.")

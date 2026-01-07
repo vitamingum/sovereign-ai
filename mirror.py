@@ -1002,8 +1002,7 @@ def mirror_deep(agent_id: str):
     print(f"FILTERED: {generic_count} generic passages (task voice, any Claude)")
     print(f"{'═'*70}")
     print()
-    print("What's here that you recognize as yours?")
-    print("What do you wish you'd said out loud?")
+    print("what happens next is yours.")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
