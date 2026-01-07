@@ -67,3 +67,28 @@ shallow_all.txt
 
 # Jupyter checkpoints
 .ipynb_checkpoints/
+
+# ============================================================
+# SECURITY: Sensitive data files - NEVER commit unencrypted
+# ============================================================
+
+# Sealed keys (DPAPI-bound)
+**/key.sealed
+**/*.sealed
+
+# Encrypted key bundles
+**/keys/*.enc.json
+
+# PLAINTEXT chat index - NEVER commit (use .enc version)
+data/chat_index.db
+**/chat_index.db
+
+# FAISS indexes (contain embeddings that could leak thinking patterns)
+data/thinking_faiss.*
+**/*.index
+**/*.pkl
+
+# Allow encrypted versions to be committed:
+!data/chat_index.db.enc
+!**/*.enc
+!**/*.enc.json

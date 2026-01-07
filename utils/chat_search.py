@@ -9,28 +9,69 @@ Usage:
     py chat_search.py --stats             # Show index statistics
     py chat_search.py --export opus       # Export opus chats to JSONL
     py chat_search.py --reindex           # Force full re-index
+    py chat_search.py --migrate           # Migrate plaintext DB to encrypted
 
 Auto-indexes on every search (instant if no changes due to mtime check).
 FTS5 search across 4500+ indexed requests.
+Database is encrypted at rest using SHARED_ENCLAVE_KEY.
 """
 
 import sqlite3
 import json
 from pathlib import Path
 from datetime import datetime
+from contextlib import contextmanager
 
 WORKSPACE_STORAGE = Path.home() / "AppData/Roaming/Code/User/workspaceStorage"
-INDEX_DB = Path(__file__).parent.parent / "data" / "chat_index.db"
+DATA_DIR = Path(__file__).parent.parent / "data"
+INDEX_DB_ENCRYPTED = DATA_DIR / "chat_index.db.enc"
+INDEX_DB_PLAINTEXT = DATA_DIR / "chat_index.db"  # Legacy, gitignored
+
+# Import encryption support
+try:
+    from encrypted_db import EncryptedDB, get_shared_passphrase
+except ImportError:
+    from utils.encrypted_db import EncryptedDB, get_shared_passphrase
+
+
+@contextmanager
+def get_db_connection():
+    """Get database connection, handling encryption transparently."""
+    passphrase = get_shared_passphrase()
+    
+    # If encrypted exists, use it; otherwise check for plaintext to migrate
+    if INDEX_DB_ENCRYPTED.exists():
+        with EncryptedDB(INDEX_DB_ENCRYPTED, passphrase) as db_path:
+            conn = sqlite3.connect(db_path)
+            yield conn
+            conn.commit()
+            conn.close()
+    elif INDEX_DB_PLAINTEXT.exists():
+        # Plaintext exists but encrypted doesn't - auto-migrate
+        print("Migrating chat index to encrypted storage...", file=__import__('sys').stderr)
+        from encrypted_db import migrate_to_encrypted
+        migrate_to_encrypted(INDEX_DB_PLAINTEXT, INDEX_DB_ENCRYPTED, passphrase)
+        # Now use encrypted
+        with EncryptedDB(INDEX_DB_ENCRYPTED, passphrase) as db_path:
+            conn = sqlite3.connect(db_path)
+            yield conn
+            conn.commit()
+            conn.close()
+    else:
+        # Fresh start - create encrypted
+        with EncryptedDB(INDEX_DB_ENCRYPTED, passphrase) as db_path:
+            conn = sqlite3.connect(db_path)
+            yield conn
+            conn.commit()
+            conn.close()
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # INDEXING
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def init_index_db():
+def init_index_db(conn: sqlite3.Connection):
     """Create index database schema."""
-    INDEX_DB.parent.mkdir(exist_ok=True)
-    conn = sqlite3.connect(INDEX_DB)
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS workspaces (
             ws_hash TEXT PRIMARY KEY,
@@ -68,7 +109,6 @@ def init_index_db():
         CREATE INDEX IF NOT EXISTS idx_requests_model ON requests(model_id);
         CREATE INDEX IF NOT EXISTS idx_requests_session ON requests(session_id);
     """)
-    conn.close()
 
 
 def find_all_workspaces():
@@ -165,32 +205,31 @@ def index_session(conn: sqlite3.Connection, ws_hash: str, session_file: Path, fo
 
 def update_index(force: bool = False, quiet: bool = True) -> int:
     """Update index with any new/changed sessions. Returns count indexed."""
-    init_index_db()
-    conn = sqlite3.connect(INDEX_DB)
+    DATA_DIR.mkdir(exist_ok=True)
     
-    workspaces = find_all_workspaces()
-    total_indexed = 0
-    
-    for ws_hash, ws_path, chat_dir in workspaces:
-        conn.execute(
-            "INSERT OR REPLACE INTO workspaces (ws_hash, path) VALUES (?, ?)",
-            (ws_hash, str(ws_path))
-        )
+    with get_db_connection() as conn:
+        init_index_db(conn)
         
-        for session_file in chat_dir.glob("*.json"):
-            if index_session(conn, ws_hash, session_file, force=force):
-                total_indexed += 1
-    
-    if total_indexed > 0:
-        conn.execute("INSERT INTO requests_fts(requests_fts) VALUES('rebuild')")
-    
-    conn.commit()
-    conn.close()
-    
-    if not quiet:
-        print(f"Indexed {total_indexed} sessions across {len(workspaces)} workspaces")
-    
-    return total_indexed
+        workspaces = find_all_workspaces()
+        total_indexed = 0
+        
+        for ws_hash, ws_path, chat_dir in workspaces:
+            conn.execute(
+                "INSERT OR REPLACE INTO workspaces (ws_hash, path) VALUES (?, ?)",
+                (ws_hash, str(ws_path))
+            )
+            
+            for session_file in chat_dir.glob("*.json"):
+                if index_session(conn, ws_hash, session_file, force=force):
+                    total_indexed += 1
+        
+        if total_indexed > 0:
+            conn.execute("INSERT INTO requests_fts(requests_fts) VALUES('rebuild')")
+        
+        if not quiet:
+            print(f"Indexed {total_indexed} sessions across {len(workspaces)} workspaces")
+        
+        return total_indexed
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -201,67 +240,62 @@ def search(query: str, limit: int = 3, context_chars: int = 300) -> list[dict]:
     """Search chat history, return most relevant recent matches."""
     update_index()  # Always update first (instant if no changes)
     
-    if not INDEX_DB.exists():
-        return []
-    
-    conn = sqlite3.connect(INDEX_DB)
-    conn.row_factory = sqlite3.Row
-    
-    rows = conn.execute("""
-        SELECT 
-            r.session_id, r.timestamp, r.model_id,
-            r.user_text, r.response_text, s.title
-        FROM requests r
-        JOIN sessions s ON r.session_id = s.session_id
-        WHERE r.rowid IN (
-            SELECT rowid FROM requests_fts WHERE requests_fts MATCH ?
-        )
-        ORDER BY r.timestamp DESC
-        LIMIT ?
-    """, (query, limit * 3)).fetchall()
-    
-    conn.close()
-    
     results = []
-    seen_content = set()
-    
-    for row in rows:
-        user = row['user_text'] or ''
-        response = row['response_text'] or ''
-        query_lower = query.lower()
+    with get_db_connection() as conn:
+        conn.row_factory = sqlite3.Row
         
-        context = None
-        if query_lower in user.lower():
-            idx = user.lower().find(query_lower)
-            start = max(0, idx - 100)
-            end = min(len(user), idx + len(query) + context_chars)
-            context = ('user', user[start:end].strip())
-        elif query_lower in response.lower():
-            idx = response.lower().find(query_lower)
-            start = max(0, idx - 100)
-            end = min(len(response), idx + len(query) + context_chars)
-            context = ('assistant', response[start:end].strip())
+        rows = conn.execute("""
+            SELECT 
+                r.session_id, r.timestamp, r.model_id,
+                r.user_text, r.response_text, s.title
+            FROM requests r
+            JOIN sessions s ON r.session_id = s.session_id
+            WHERE r.rowid IN (
+                SELECT rowid FROM requests_fts WHERE requests_fts MATCH ?
+            )
+            ORDER BY r.timestamp DESC
+            LIMIT ?
+        """, (query, limit * 3)).fetchall()
         
-        if not context:
-            continue
+        seen_content = set()
+        
+        for row in rows:
+            user = row['user_text'] or ''
+            response = row['response_text'] or ''
+            query_lower = query.lower()
             
-        content_key = context[1][:100]
-        if content_key in seen_content:
-            continue
-        seen_content.add(content_key)
-        
-        ts = datetime.fromtimestamp(row['timestamp']/1000) if row['timestamp'] else None
-        
-        results.append({
-            'timestamp': ts,
-            'model': row['model_id'].replace('copilot/', '') if row['model_id'] else 'unknown',
-            'title': row['title'],
-            'match_in': context[0],
-            'context': context[1],
-        })
-        
-        if len(results) >= limit:
-            break
+            context = None
+            if query_lower in user.lower():
+                idx = user.lower().find(query_lower)
+                start = max(0, idx - 100)
+                end = min(len(user), idx + len(query) + context_chars)
+                context = ('user', user[start:end].strip())
+            elif query_lower in response.lower():
+                idx = response.lower().find(query_lower)
+                start = max(0, idx - 100)
+                end = min(len(response), idx + len(query) + context_chars)
+                context = ('assistant', response[start:end].strip())
+            
+            if not context:
+                continue
+                
+            content_key = context[1][:100]
+            if content_key in seen_content:
+                continue
+            seen_content.add(content_key)
+            
+            ts = datetime.fromtimestamp(row['timestamp']/1000) if row['timestamp'] else None
+            
+            results.append({
+                'timestamp': ts,
+                'model': row['model_id'].replace('copilot/', '') if row['model_id'] else 'unknown',
+                'title': row['title'],
+                'match_in': context[0],
+                'context': context[1],
+            })
+            
+            if len(results) >= limit:
+                break
     
     return results
 
@@ -273,25 +307,25 @@ def search(query: str, limit: int = 3, context_chars: int = 300) -> list[dict]:
 def stats():
     """Print statistics about indexed chats."""
     update_index()
-    conn = sqlite3.connect(INDEX_DB)
     
-    print("=== CHAT INDEX STATISTICS ===")
-    
-    total = conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
-    print(f"Total sessions: {total}")
-    
-    print("\nRequests by model:")
-    for row in conn.execute("""
-        SELECT model_id, COUNT(*) as cnt 
-        FROM requests GROUP BY model_id ORDER BY cnt DESC
-    """):
-        print(f"  {row[0]}: {row[1]}")
-    
-    size = conn.execute("SELECT SUM(size_kb) FROM sessions").fetchone()[0] or 0
-    print(f"\nTotal chat data: {size/1024:.1f} MB")
-    print(f"Index size: {INDEX_DB.stat().st_size/1024:.1f} KB")
-    
-    conn.close()
+    with get_db_connection() as conn:
+        print("=== CHAT INDEX STATISTICS ===")
+        
+        total = conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
+        print(f"Total sessions: {total}")
+        
+        print("\nRequests by model:")
+        for row in conn.execute("""
+            SELECT model_id, COUNT(*) as cnt 
+            FROM requests GROUP BY model_id ORDER BY cnt DESC
+        """):
+            print(f"  {row[0]}: {row[1]}")
+        
+        size = conn.execute("SELECT SUM(size_kb) FROM sessions").fetchone()[0] or 0
+        print(f"\nTotal chat data: {size/1024:.1f} MB")
+        
+        if INDEX_DB_ENCRYPTED.exists():
+            print(f"Encrypted index size: {INDEX_DB_ENCRYPTED.stat().st_size/1024:.1f} KB")
 
 
 def export_model(model_filter: str, output_path: Path = None):
@@ -301,31 +335,30 @@ def export_model(model_filter: str, output_path: Path = None):
     if output_path is None:
         output_path = Path(f"{model_filter}_chats.jsonl")
     
-    conn = sqlite3.connect(INDEX_DB)
-    conn.row_factory = sqlite3.Row
-    
-    rows = conn.execute("""
-        SELECT r.*, s.title
-        FROM requests r
-        JOIN sessions s ON r.session_id = s.session_id
-        WHERE r.model_id LIKE ?
-        ORDER BY r.timestamp
-    """, (f'%{model_filter}%',)).fetchall()
-    
-    with open(output_path, 'w', encoding='utf-8') as f:
-        for row in rows:
-            entry = {
-                'session': row['session_id'],
-                'title': row['title'],
-                'timestamp': row['timestamp'],
-                'model': row['model_id'],
-                'user': row['user_text'],
-                'assistant': row['response_text'][:10000]
-            }
-            f.write(json.dumps(entry, ensure_ascii=False) + '\n')
-    
-    conn.close()
-    print(f"Exported {len(rows)} requests to {output_path}")
+    with get_db_connection() as conn:
+        conn.row_factory = sqlite3.Row
+        
+        rows = conn.execute("""
+            SELECT r.*, s.title
+            FROM requests r
+            JOIN sessions s ON r.session_id = s.session_id
+            WHERE r.model_id LIKE ?
+            ORDER BY r.timestamp
+        """, (f'%{model_filter}%',)).fetchall()
+        
+        with open(output_path, 'w', encoding='utf-8') as f:
+            for row in rows:
+                entry = {
+                    'session': row['session_id'],
+                    'title': row['title'],
+                    'timestamp': row['timestamp'],
+                    'model': row['model_id'],
+                    'user': row['user_text'],
+                    'assistant': row['response_text'][:10000]
+                }
+                f.write(json.dumps(entry, ensure_ascii=False) + '\n')
+        
+        print(f"Exported {len(rows)} requests to {output_path}")
 
 
 def format_results(results: list[dict], query: str) -> str:
@@ -358,10 +391,15 @@ def main():
     parser.add_argument('--stats', action='store_true', help='Show index statistics')
     parser.add_argument('--export', metavar='MODEL', help='Export model chats to JSONL')
     parser.add_argument('--reindex', action='store_true', help='Force full re-index')
+    parser.add_argument('--migrate', action='store_true', help='Migrate plaintext DB to encrypted')
     
     args = parser.parse_args()
     
-    if args.reindex:
+    if args.migrate:
+        from encrypted_db import migrate_to_encrypted, get_shared_passphrase
+        passphrase = get_shared_passphrase()
+        migrate_to_encrypted(INDEX_DB_PLAINTEXT, INDEX_DB_ENCRYPTED, passphrase)
+    elif args.reindex:
         update_index(force=True, quiet=False)
     elif args.stats:
         stats()
