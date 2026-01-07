@@ -1,0 +1,41 @@
+@G memory-gaps opus 2026-01-06
+
+N S 'memory_gaps.py: single source of truth for all knowledge gaps'
+N P 'Force knowledge hygiene - agent must understand before proceeding'
+N D 'Four gap types in priority order: stale → cross-agent → untracked → synthesis → messages'
+N D 'Fail-early: first category with gaps blocks, others wait'
+N D 'Untracked = blind spots that must be learned OR deleted (no lingering)'
+
+N Loc 'get_enclave_and_memory(agent_id: str) ~line 35: unlock shared enclave for gap checking'
+N Loc 'get_understanding_gaps(sm, agent_id) ~line 42: hash mismatch = stale understanding'
+N Loc 'get_cross_agent_gaps(sm, agent_id) ~line 96: files partners know but I dont'
+N Loc 'get_untracked_gaps(sm) ~line 108: files with NO understanding at all'
+N Loc 'get_synthesis_gaps(sm) ~line 149: cross-file questions without synthesis'
+N Loc 'extract_python_definitions(filepath) ~line 212: function/class extraction for examples'
+N Loc 'get_message_gaps(sm, agent_id) ~line 267: dialogues without synthesis'
+N Loc 'format_understanding_gaps(...) ~line 280: SIF template with example fix'
+N Loc 'format_synthesis_gaps(gaps, agent_id) ~line 339: desire-based framing'
+N Loc 'format_message_gaps(gaps, agent_id) ~line 368: conversation synthesis prompts'
+N Loc 'print_all_gaps(...) ~line 386: concise summary for --all mode'
+N Loc 'main() ~line 421: CLI with fail-early, --all, --json modes'
+
+N I 'Uses list_all() not similarity search - ensures recent memories found regardless of embedding'
+N I 'File hash comparison: sha256 first 12 chars - stale if NO stored hash matches current'
+N I 'Desire-based framing: "patterns waiting to become understanding" not obligation'
+N G 'File moved = not a gap, just orphaned understanding (dont glob search for relocations)'
+N G 'Untracked excludes enclave/ internals - verbs only at root'
+
+E _1 implements _2
+E _3 structures _1
+E _4 extends _3
+E _5 extends _3
+E _6 generates _13
+E _7 implements _1
+E _8 enables _6
+E _9 implements _1
+E _10 implements _1
+E _11 implements _1
+E _14 justifies _7
+E _15 justifies _7
+E _16 warns_about _7
+E _17 warns_about _8

@@ -295,8 +295,10 @@ def format_understanding_gaps(gaps: list[dict], cross_agent: list[str], untracke
     
     # === YOUR GAPS (self-maintenance framing) ===
     size_word = "small " if total <= 5 else ""
+    lines.append("─" * 40)
     lines.append(f"📋 {agent_id.capitalize()}, you're almost awake — {total} {size_word}files to understand")
     lines.append("   then full context is yours")
+    lines.append("─" * 40)
     lines.append("")
     lines.append(f"@G close-gaps {agent_id} {today}")
     lines.append("")

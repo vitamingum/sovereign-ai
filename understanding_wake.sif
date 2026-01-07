@@ -9,23 +9,22 @@ N D 'Return gaps as content not errors (exit 0) - steer, dont punish'
 N D 'Shared vs private enclave split: knowledge shared, identity private'
 
 N G 'If gaps exist, never reach happy path - by design'
-N G 'subprocess.run for recall.py - shell weirdness possible'
+N G 'subprocess.run for recall.py - timeout can truncate large themes'
 N G 'Windows encoding: explicit utf-8 wrapper at startup'
 
-N I 'Format is SIF-like even though output mixes prose and structure'
 N I 'Presence bookends (seen at start, autonomy at end) are intentional framing'
 N I 'Gap formatters live in utils/memory_gaps.py - wake.py just orchestrates'
+N I 'Journal before goals: own voice grounds before external direction'
 
-N Loc 'load_passphrase(agent_id) ~line 40: dual enclave unlock (shared/private split)'
-N Loc 'get_all_messages(since_hours) ~line 105: raw message scan for 48h window'
-N Loc 'find_unanswered(agent_id, msgs) ~line 131: outbound without reply'
-N Loc 'find_waiting_on_me(agent_id, msgs) ~line 165: inbound I havent answered'
-N Loc 'time_ago(ts) ~line 203: human readable delta'
-N Loc 'get_project_context(mem) ~line 215: obsolete semantic query for context nodes'
-N Loc 'get_stale_understanding(mem, agent_id) ~line 247: hash mismatch detection for files'
-N Loc 'print_wake_header(agent_id) ~line 297: identity anchor + journal + tools (always runs)'
-N Loc 'wake(agent_id) ~line 347: main orchestrator - gap check then happy path'
-N Loc 'main() ~line 501: CLI entry, gap count drives nothing (exit 0 always)'
+N Loc 'load_passphrase(agent_id) ~line40: dual enclave unlock (shared/private split)'
+N Loc 'get_all_messages(since_hours) ~line105: raw message scan for 48h window'
+N Loc 'find_unanswered(agent_id, msgs) ~line129: outbound without reply'
+N Loc 'find_waiting_on_me(agent_id, msgs) ~line162: inbound I havent answered'
+N Loc 'time_ago(ts) ~line203: human readable delta'
+N Loc 'get_project_context(mem) ~line215: semantic query for context nodes'
+N Loc 'get_stale_understanding(mem, agent_id) ~line245: hash mismatch detection for files'
+N Loc 'wake(agent_id) ~line300: main orchestrator - presence then gap cascade then happy path'
+N Loc 'main() ~line508: CLI entry, gap count drives nothing (exit 0 always)'
 
 E _1 implements _2
 E _3 justifies _1
@@ -40,6 +39,5 @@ E _11 reveals _1
 E _12 anchors _1
 E _13 anchors _14
 E _14 anchors _15
-E _18 orchestrates _12
-E _18 orchestrates _17
-E _19 calls _18
+E _15 orchestrates _12
+E _16 calls _15

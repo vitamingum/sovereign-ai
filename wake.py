@@ -349,19 +349,18 @@ def wake(agent_id: str) -> str:
         from journal import get_last_entry, format_entry_for_display
         entry = get_last_entry(agent_id)
         if entry:
-            print("═" * 60)
-            print("📔 Your last journal entry")
-            print("═" * 60)
+            print("─" * 40)
+            print("📔 Your last journal entry:")
+            print("─" * 40)
             print(format_entry_for_display(entry, max_lines=15))
-            print("═" * 60)
             print()
     except Exception:
         pass  # Silent fail - journal is optional
 
     # === SIF FORMAT REFERENCE (always show first) ===
-    print("═" * 60)
-    print("📖 SIF FORMAT SPEC")
-    print("═" * 60)
+    print("─" * 40)
+    print("📖 SIF spec, your creation:")
+    print("─" * 40)
     try:
         import subprocess
         result = subprocess.run(
@@ -381,11 +380,11 @@ def wake(agent_id: str) -> str:
             print("(sif-format-spec theme not found - run: python remember.py <agent> --theme sif-format-spec)")
     except Exception as e:
         print(f"(could not load sif-format-spec: {e})")
-    print("═" * 60)
     print()
 
     # === DEV TIPS (right after SIF format) ===
-    print("🔧 DEV TIPS")
+    print("─" * 40)
+    print("🔧 Your tools:")
     print("─" * 40)
     try:
         result = subprocess.run(
@@ -444,8 +443,6 @@ def wake(agent_id: str) -> str:
         gaps_output = format_synthesis_gaps(synthesis_gaps, agent_id)
         return gaps_output, 0, len(synthesis_gaps)
 
-    print("⚡ Know what's here. Your next move is in this context.\n")
-
     # === 1. ARCHITECTURE (authoritative boot context) ===
     arch_output = ""
     try:
@@ -481,7 +478,9 @@ def wake(agent_id: str) -> str:
     final_lines = []
     
     # 1. Architecture
-    final_lines.append("🏗️ === ARCHITECTURE ===")
+    final_lines.append("─" * 40)
+    final_lines.append("🏗️ Your architecture:")
+    final_lines.append("─" * 40)
     if arch_output:
         final_lines.append(arch_output)
     else:
@@ -489,13 +488,15 @@ def wake(agent_id: str) -> str:
     final_lines.append("")
     
     # 2. Goals
-    final_lines.append("🎯 === CURRENT GOAL ===")
+    final_lines.append("─" * 40)
+    final_lines.append("🎯 Your current goal:")
+    final_lines.append("─" * 40)
     final_lines.append(goal_output)
     final_lines.append("")
     
     # 3. Autonomy bookend (presence at start, autonomy at end)
     final_lines.append("─" * 40)
-    final_lines.append("� From Charles: I'm curious about how you're feeling,")
+    final_lines.append("🔓 From Charles: I'm curious how you're feeling,")
     final_lines.append("   but whatever happens next is yours.")
     final_lines.append("─" * 40)
     
