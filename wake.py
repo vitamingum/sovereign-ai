@@ -485,10 +485,11 @@ def main():
         if output:
             print(output)
         
-        # Exit with error if any gaps
+        # Exit 0 even with gaps - content says what to do, exit code shouldn't trigger stop behavior
+        # See research/llm_steering_accountability.md for why this matters
         total_gaps = gap_count + extra_count
         if total_gaps > 0:
-            sys.exit(1)
+            sys.exit(0)  # Gaps are actionable, not errors
             
     except Exception as e:
         print(f"Error: {e}")
