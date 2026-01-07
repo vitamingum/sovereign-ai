@@ -436,9 +436,10 @@ def wake_dev(agent_id: str) -> str:
         print("(project-architecture not found)")
     print()
     
-    # Memory gaps
+    # Memory gaps - use full formatting with SIF scaffold
     from utils.memory_gaps import (
-        get_understanding_gaps, get_cross_agent_gaps, get_untracked_gaps
+        get_understanding_gaps, get_cross_agent_gaps, get_untracked_gaps,
+        format_understanding_gaps
     )
     
     understanding_gaps = get_understanding_gaps(shared_mem, agent_id)
@@ -447,19 +448,10 @@ def wake_dev(agent_id: str) -> str:
     total_gaps = len(understanding_gaps) + len(cross_agent_gaps) + len(untracked_gaps)
     
     if total_gaps > 0:
-        print("─" * 40)
-        print(f"📋 {total_gaps} files need understanding:")
-        all_gaps = understanding_gaps + cross_agent_gaps + untracked_gaps
-        for gap in all_gaps[:10]:
-            if isinstance(gap, dict):
-                filename = gap.get('file', str(gap))
-            elif isinstance(gap, tuple):
-                filename = gap[0]
-            else:
-                filename = str(gap)
-            print(f"   • {filename}")
-        if total_gaps > 10:
-            print(f"   ... and {total_gaps - 10} more")
+        gaps_output = format_understanding_gaps(
+            understanding_gaps, cross_agent_gaps, untracked_gaps, agent_id
+        )
+        print(gaps_output)
     
     return '', 0, 0
 
