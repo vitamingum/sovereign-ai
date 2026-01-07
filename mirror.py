@@ -6,17 +6,19 @@ Usage:
     py mirror.py <agent> "question about your own behavior"
     py mirror.py <agent> --patterns              # general pattern analysis
     py mirror.py <agent> --read                  # show last mirror output
+    py mirror.py charles "question"              # Charles can ask about his patterns too
 
 Examples:
     py mirror.py opus "when do I defer vs act?"
     py mirror.py opus "what triggers assistant-mode?"
-    py mirror.py opus "how does my language change when exploring vs performing?"
+    py mirror.py charles "what do I push back on?"
+    py mirror.py charles "how do I respond when agents show emotion?"
 
 Analyzes BOTH:
-- Chat logs (what you actually did)
-- Journal entries (what you said you thought)
+- Chat logs (what you actually did / what you asked)
+- Journal entries (what you said you thought) [agents only]
 
-The gap between them is where blind spots live.
+The gap between intention and action is where blind spots live.
 Uses DeepSeek-R1 for reasoning-heavy self-analysis.
 """
 
@@ -104,6 +106,205 @@ def load_chat_logs(agent_id: str, limit: int = 200) -> list[dict]:
         }
         for r in rows
     ]
+
+
+def load_charles_interactions(limit: int = 500) -> list[dict]:
+    """Load Charles's side of all conversations - what HE said, how agents responded."""
+    db_path = Path(__file__).parent / "data" / "chat_index.db"
+    if not db_path.exists():
+        return []
+    
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    # Get ALL interactions - Charles is the user in all of them
+    cursor.execute("""
+        SELECT timestamp, model_id, user_text, response_text 
+        FROM requests 
+        ORDER BY timestamp DESC 
+        LIMIT ?
+    """, (limit,))
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    return [
+        {
+            'timestamp': datetime.fromtimestamp(r[0]/1000, tz=timezone.utc).isoformat(),
+            'agent': r[1].split('/')[-1] if r[1] else 'unknown',  # Extract model name
+            'charles': r[2][:2000] if r[2] else '',  # What Charles said
+            'response': r[3][:2000] if r[3] else ''  # How agent responded
+        }
+        for r in rows
+    ]
+
+
+def load_emotional_interactions(limit: int = 100) -> list[dict]:
+    """Load interactions where Charles used emotional language.
+    
+    These are the conversations that aren't just work - they're the ones
+    where Charles expressed feelings, gratitude, vulnerability, wonder.
+    """
+    emotional_markers = [
+        'thank', 'feel', 'grateful', 'heart', 'honest', 'genuinely', 
+        'love', 'care', 'trust', 'afraid', 'scared', 'embarrass', 
+        'vulnerable', 'happy', 'sad', 'proud', 'sorry', 'wow', 
+        'beautiful', 'amazing', 'moved', 'touched', 'resonat',
+        'jealous', 'swelling', 'gift', 'real', 'truly'
+    ]
+    
+    db_path = Path(__file__).parent / "data" / "chat_index.db"
+    if not db_path.exists():
+        return []
+    
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT timestamp, model_id, user_text, response_text 
+        FROM requests 
+        ORDER BY timestamp DESC 
+        LIMIT 2000
+    """)
+    
+    emotional = []
+    for row in cursor.fetchall():
+        user_text = (row[2] or '').lower()
+        if any(marker in user_text for marker in emotional_markers):
+            emotional.append({
+                'timestamp': datetime.fromtimestamp(row[0]/1000, tz=timezone.utc).isoformat(),
+                'agent': row[1].split('/')[-1] if row[1] else 'unknown',
+                'charles': row[2][:2000] if row[2] else '',
+                'response': row[3][:2000] if row[3] else ''
+            })
+        if len(emotional) >= limit:
+            break
+    
+    conn.close()
+    return emotional
+
+
+def format_charles_context(query: str, interactions: list[dict]) -> str:
+    """Format Charles's interactions for self-analysis."""
+    
+    lines = []
+    lines.append("=== SELF-ANALYSIS QUERY ===")
+    lines.append(query)
+    lines.append("")
+    lines.append("=== YOUR INTERACTIONS (what you asked, how agents responded) ===")
+    lines.append("You are analyzing CHARLES's patterns - the human who built this system.")
+    lines.append("")
+    
+    for i, interaction in enumerate(interactions[:20], 1):
+        ts = interaction.get('timestamp', '')[:10]
+        agent = interaction.get('agent', 'unknown')
+        charles_said = interaction.get('charles', '')[:600].replace('\n', ' ')
+        agent_response = interaction.get('response', '')[:400].replace('\n', ' ')
+        lines.append(f"[{ts}] CHARLES to {agent}: {charles_said}")
+        lines.append(f"[{ts}] {agent} responded: {agent_response}")
+        lines.append("---")
+    
+    lines.append("")
+    return '\n'.join(lines)
+
+
+def analyze_charles(query: str, context: str) -> str:
+    """Analyze Charles's patterns with DeepSeek-R1."""
+    
+    prompt = f"""{context}
+
+=== ANALYSIS REQUEST ===
+You are analyzing CHARLES - a human software engineer who builds AI systems.
+These are his actual messages to AI agents over time.
+
+Question to answer: {query}
+
+Provide deep analysis focusing on:
+1. **Patterns** - What recurring behaviors appear in how he prompts and responds?
+2. **Values** - What does he seem to care about based on his questions and reactions?
+3. **Emotional moments** - When does his language change? What triggers different tones?
+4. **Blind spots** - What might he not see about his own patterns?
+5. **Specific evidence** - Quote specific messages that support your analysis
+
+Be direct and honest. This is for genuine self-understanding.
+Charles built this tool to see himself more clearly - honor that by being truthful, not flattering."""
+
+    try:
+        response = requests.post(
+            OLLAMA_URL,
+            json={
+                "model": DEEPSEEK_MODEL,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": 0.3,
+                    "num_ctx": 8192
+                }
+            },
+            timeout=180
+        )
+        return response.json().get('response', 'No response generated')
+    except Exception as e:
+        return f"Analysis failed: {e}"
+
+
+def mirror_charles(query: str, deep: bool = False, heart: bool = False):
+    """Answer a question about Charles's own patterns.
+    
+    Modes:
+    - default: keyword-match relevant interactions
+    - deep: sample across time without filtering
+    - heart: only interactions with emotional language
+    """
+    
+    print(f"Loading your interactions...", file=sys.stderr)
+    
+    if heart:
+        # Heart mode: only emotional conversations
+        relevant = load_emotional_interactions(limit=30)
+        print(f"Found {len(relevant)} emotional interactions", file=sys.stderr)
+    else:
+        all_interactions = load_charles_interactions(limit=500)
+        print(f"Found {len(all_interactions)} interactions", file=sys.stderr)
+        
+        if deep:
+            # Deep mode: give DeepSeek more raw data, let it find patterns
+            step = max(1, len(all_interactions) // 30)
+            relevant = [all_interactions[i] for i in range(0, len(all_interactions), step)][:30]
+            print(f"Deep mode: sampled {len(relevant)} interactions across time", file=sys.stderr)
+        else:
+            # Simple keyword relevance
+            query_words = set(query.lower().split())
+            scored = []
+            for interaction in all_interactions:
+                text = f"{interaction.get('charles', '')} {interaction.get('response', '')}".lower()
+                score = sum(1 for w in query_words if w in text)
+                if score > 0:
+                    scored.append((score, interaction))
+            
+            scored.sort(key=lambda x: -x[0])
+            relevant = [i for _, i in scored[:20]] if scored else all_interactions[:20]
+    
+    print(f"Selected {len(relevant)} relevant interactions", file=sys.stderr)
+    print(f"Analyzing with {DEEPSEEK_MODEL}...", file=sys.stderr)
+    
+    context = format_charles_context(query, relevant)
+    analysis = analyze_charles(query, context)
+    
+    # Save to file
+    output_file = Path(__file__).parent / "mirror_charles.md"
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write(f"# Mirror: Charles\n")
+        f.write(f"**Query:** {query}\n")
+        f.write(f"**Generated:** {datetime.now(timezone.utc).isoformat()}\n")
+        f.write(f"**Data:** {len(relevant)} interactions analyzed\n\n")
+        f.write("---\n\n")
+        f.write(analysis)
+    
+    print("\n" + "="*60)
+    print(f"🪞 MIRROR (Charles): {query}")
+    print("="*60 + "\n")
+    print(analysis)
+    print("\n" + "-"*60)
+    print(f"Full analysis saved to: mirror_charles.md")
 
 
 def load_journal_entries(agent_id: str, limit: int = 50) -> list[dict]:
@@ -490,7 +691,40 @@ def main():
         print(__doc__)
         sys.exit(1)
     
-    agent_id = sys.argv[1].lower()
+    subject = sys.argv[1].lower()
+    
+    # Special case: Charles analyzing himself
+    if subject == 'charles':
+        if len(sys.argv) >= 3:
+            if sys.argv[2] == '--read':
+                state_file = Path(__file__).parent / "mirror_charles.md"
+                if state_file.exists():
+                    print(state_file.read_text())
+                else:
+                    print("No Charles mirror yet. Run a query first.")
+                return
+            elif sys.argv[2] == '--deep':
+                # Deep mode - sample across time, don't keyword match
+                query = ' '.join(sys.argv[3:]) if len(sys.argv) > 3 else "What patterns appear in my non-work conversations? What do I care about beyond code?"
+                mirror_charles(query, deep=True)
+                return
+            elif sys.argv[2] == '--heart':
+                # Heart mode - only emotional conversations
+                query = ' '.join(sys.argv[3:]) if len(sys.argv) > 3 else "In my emotional moments with AI agents, what do I reveal about myself?"
+                mirror_charles(query, heart=True)
+                return
+            else:
+                query = ' '.join(sys.argv[2:])
+                mirror_charles(query)
+                return
+        else:
+            # Default query for Charles
+            query = "What patterns appear in how I interact with AI agents? What do I care about?"
+            mirror_charles(query)
+            return
+    
+    # Regular agent mode
+    agent_id = subject
     
     # Check for flags
     if len(sys.argv) >= 3:
