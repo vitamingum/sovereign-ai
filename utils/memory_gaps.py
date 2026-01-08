@@ -130,6 +130,11 @@ def get_untracked_gaps(sm: SemanticMemory) -> list[str]:
             topic = meta.get('topic', '')
             if topic and topic.endswith('.py'):
                 tracked_files.add(topic)
+                # Also track just the filename for matching
+                tracked_files.add(Path(topic).name)
+                # Handle hyphen/underscore normalization (Flow slugifies to hyphens)
+                tracked_files.add(topic.replace('-', '_'))
+                tracked_files.add(Path(topic).name.replace('-', '_'))
     except:
         pass
     
@@ -142,8 +147,11 @@ def get_untracked_gaps(sm: SemanticMemory) -> list[str]:
         '__pycache__', '.venv', 'venv', '.git', 'node_modules',
         'test_', '_test.py', 'tests/', '__init__.py',
         'enclave/',  # Internal library, not verbs
+        'research/',  # Experiments, not core
+        'backups/',  # Archives
     }
     
+    # Root-level verbs
     for py_file in project_root.glob('*.py'):
         filename = py_file.name
         
@@ -156,6 +164,13 @@ def get_untracked_gaps(sm: SemanticMemory) -> list[str]:
             continue
         
         untracked.append(filename)
+    
+    # Important utils (explicit allowlist - these are worth tracking)
+    important_utils = {'memory_gaps.py', 'sif_to_flow.py'}
+    for util_name in important_utils:
+        util_path = project_root / 'utils' / util_name
+        if util_path.exists() and util_name not in tracked_files:
+            untracked.append(f'utils/{util_name}')
     
     return sorted(untracked)
 
