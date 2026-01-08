@@ -436,6 +436,20 @@ def wake_dev(agent_id: str) -> str:
         print("(project-architecture not found)")
     print()
     
+    # Pending accords - check for proposals needing this agent
+    print("─" * 40)
+    print("📜 Accords:")
+    try:
+        result = subprocess.run(
+            [sys.executable, 'accord.py', 'status', agent_id],
+            capture_output=True, text=True, encoding='utf-8', timeout=10
+        )
+        if result.returncode == 0:
+            print(result.stdout.strip())
+    except Exception as e:
+        print(f"(accord status error: {e})")
+    print()
+    
     # Memory gaps - shared burden, any agent can fill
     from utils.memory_gaps import get_stale_gaps, get_untracked_gaps
     
