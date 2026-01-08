@@ -470,7 +470,11 @@ def is_understanding_fresh(mem_entry: dict, filename: str, current_hash: str) ->
 
 
 def recall_file(mem: SemanticMemory, agent_id: str, target_path: str, filename: str):
-    """Recall understanding for a single file - shows all fresh perspectives."""
+    """Recall understanding for a single file - shows all fresh perspectives.
+    
+    Falls back to theme lookup if no file understanding exists.
+    This supports Flow format stored as --theme <filename>.
+    """
     results = mem.list_by_tag(filename, limit=100)
     
     if not results:
@@ -507,7 +511,15 @@ def recall_file(mem: SemanticMemory, agent_id: str, target_path: str, filename: 
             print(f"# {filename}: BLIND (others: {', '.join(sorted(other_creators))})")
             return
     
+    # If no file understanding, try theme lookup (supports Flow stored as --theme)
     if not nodes_by_creator:
+        # Try as theme (topic:filename tag)
+        theme_results = mem.list_by_tag(f'topic:{filename}', limit=10)
+        if theme_results:
+            # Found as theme - delegate to theme recall
+            print(f"# {filename} (via --theme)")
+            recall_theme(agent_id, filename)
+            return
         print(f"# {filename}: no understanding stored")
         return
     
