@@ -1,0 +1,23 @@
+@F flow-spec opus 2026-01-08
+  Anchor:
+    Format: @F <topic> <agent> <date>
+    Position: First line, no indent
+  Structure:
+    Indent: 2 spaces per level
+    Hierarchy: Indent depth = nesting depth
+    Siblings: Same indent = same level
+  Headers:
+    Format: Name followed by colon
+    Content: Indented lines beneath belong to header
+  References:
+    Location: ~42: description (tilde + line number)
+    Cross-ref: -> @ref(topic) for inline links
+    Deps: @uses: [list] at end of block
+  Content:
+    Lines: Plain text under headers
+    Multiline: Same indent = continuation of thought
+  Understanding Docs:
+    Purpose: What it does and WHY it matters
+    Key Functions: ~line: name() - behavior
+    Design: Choices and their reasons
+    Gotchas: Things that will bite you

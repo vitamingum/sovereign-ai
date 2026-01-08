@@ -389,16 +389,22 @@ def wake_dev(agent_id: str) -> str:
     print(f"🔧 Dev wake for {agent_id}")
     print()
     
-    # Flow spec (preferred format)
+    # Flow spec (self-documenting - the spec IS the example)
     print("─" * 40)
-    print("📖 Flow spec (preferred):")
-    print("""@F <topic> <agent> <date>  # Flow anchor
-  Indentation = hierarchy (2 spaces)
-  Header:  # colon = section header
-    Content under header
-    ~84: function()  # tilde = location
-    -> @ref(target)  # inline cross-reference
-  @uses: [dep1, dep2]  # block dependencies""")
+    print("📖 Flow spec:")
+    try:
+        result = subprocess.run(
+            [sys.executable, 'recall.py', agent_id, 'flow-spec'],
+            capture_output=True, text=True, encoding='utf-8', timeout=30
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            # Print just the Flow content, skip recall metadata
+            for line in result.stdout.strip().split('\n'):
+                if line.startswith('#') or line.startswith('## ['):
+                    continue
+                print(line)
+    except Exception:
+        print("(flow-spec not found - run: py remember.py opus flow-spec @data/flow-spec.flow)")
     print()
     
     # Dev tips
