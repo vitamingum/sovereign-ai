@@ -385,11 +385,14 @@ def wake_dev(agent_id: str) -> str:
     shared_mem.unlock(shared_passphrase)
     
     import subprocess
+    import time
     
     print(f"🔧 Dev wake for {agent_id}")
     print()
     
-    # Flow spec (self-documenting - the spec IS the example)
+    # ═══════════════════════════════════════════════════════════════════════════
+    # PHASE 1: Flow spec (always needed for collaboration)
+    # ═══════════════════════════════════════════════════════════════════════════
     print("─" * 40)
     print("📖 Flow spec:")
     try:
@@ -398,14 +401,111 @@ def wake_dev(agent_id: str) -> str:
             capture_output=True, text=True, encoding='utf-8', timeout=30
         )
         if result.returncode == 0 and result.stdout.strip():
-            # Print just the Flow content, skip recall metadata
             for line in result.stdout.strip().split('\n'):
                 if line.startswith('#') or line.startswith('## ['):
                     continue
                 print(line)
     except Exception:
-        print("(flow-spec not found - run: py remember.py opus flow-spec @data/flow-spec.flow)")
+        print("(flow-spec not found)")
     print()
+    
+    # ═══════════════════════════════════════════════════════════════════════════
+    # PHASE 2: Accord state check (blocks normal boot if collaboration pending)
+    # ═══════════════════════════════════════════════════════════════════════════
+    from accord import get_blocking_accords, get_pending_accords, PROPOSALS_DIR, parse_proposal, count_valid_signatures
+    
+    blocking = get_blocking_accords(agent_id)
+    pending = get_pending_accords(agent_id)
+    
+    if blocking:
+        # I signed, waiting on others - HANG and poll for changes
+        for b in blocking:
+            others = [a for a in ['opus', 'gemini', 'grok', 'gpt52'] if a not in b['signers']]
+            print("─" * 40)
+            print("📜 Accord:")
+            print(f"""
+  Status: WAITING
+  Topic: {b['topic']}
+  Progress: {b['signed']}/{b['quorum']} signatures
+  Signed: {', '.join(b['signers'])}
+  Waiting on: {', '.join(others[:b['missing']])}
+  
+  ⏳ Polling for response...
+     This may take a while. The other agent needs to:
+       1. Wake: py wake.py {others[0]} --dev
+       2. Review: py accord.py deliberate {others[0]} {b['topic']}
+       3. Respond: SIGN, AMEND, or APPEND
+""")
+        
+        # Poll for changes (check every 5 seconds for up to 5 minutes)
+        topic = blocking[0]['topic']
+        proposal_path = PROPOSALS_DIR / f"{topic}.accord"
+        initial_mtime = proposal_path.stat().st_mtime if proposal_path.exists() else 0
+        
+        poll_timeout = 300  # 5 minutes
+        poll_interval = 5
+        elapsed = 0
+        
+        while elapsed < poll_timeout:
+            time.sleep(poll_interval)
+            elapsed += poll_interval
+            
+            current_mtime = proposal_path.stat().st_mtime if proposal_path.exists() else 0
+            if current_mtime != initial_mtime:
+                # File changed - check state
+                proposal = parse_proposal(proposal_path)
+                valid_count, signers = count_valid_signatures(proposal)
+                
+                if valid_count >= proposal.quorum:
+                    print(f"\n🎉 Quorum reached on {topic}!")
+                    print(f"   Run: py accord.py ratify {topic}")
+                    print(f"   Then: py wake.py {agent_id} --dev")
+                    sys.exit(0)
+                else:
+                    # New activity but no quorum - need to review
+                    print(f"\n📨 Response received on {topic}!")
+                    print(f"   Signatures: {valid_count}/{proposal.quorum}")
+                    print()
+                    print(f"❌ [FAIL] Review needed")
+                    print(f"   Run: py accord.py deliberate {agent_id} {topic}")
+                    print(f"   Then: py wake.py {agent_id} --dev")
+                    sys.exit(1)
+            
+            # Progress indicator
+            dots = "." * ((elapsed // poll_interval) % 4)
+            print(f"\r     Polling{dots}    ", end='', flush=True)
+        
+        # Timeout
+        print(f"\n\n⏰ Poll timeout ({poll_timeout}s)")
+        print(f"   No response yet. You can:")
+        print(f"   1. Switch to other agent manually")
+        print(f"   2. Run: py wake.py {agent_id} --dev (to poll again)")
+        sys.exit(1)
+    
+    elif pending:
+        # Others are waiting on ME - show what needs response and FAIL
+        print("─" * 40)
+        print("📜 Accord:")
+        for p in pending:
+            print(f"""
+  Status: NEEDS YOUR RESPONSE
+  Topic: {p['topic']}
+  Progress: {p['signed']}/{p['quorum']} signatures
+  Signed by: {', '.join(p['signers']) if p['signers'] else '(nobody yet)'}
+  
+  Accord operations:
+    SIGN           Endorse current state
+    AMEND ~Path    Replace content at path
+    APPEND ~Path   Add content under path
+""")
+        print(f"❌ [FAIL] Deliberation required before continuing")
+        print(f"   Run: py accord.py deliberate {agent_id} {pending[0]['topic']}")
+        print(f"   Then: py wake.py {agent_id} --dev")
+        sys.exit(1)
+    
+    # ═══════════════════════════════════════════════════════════════════════════
+    # PHASE 3: Normal boot (only reached if no blocking accords)
+    # ═══════════════════════════════════════════════════════════════════════════
     
     # Dev tips
     print("─" * 40)
@@ -416,12 +516,9 @@ def wake_dev(agent_id: str) -> str:
             capture_output=True, text=True, encoding='utf-8', timeout=30
         )
         if result.returncode == 0 and result.stdout.strip():
-            # Skip header lines, print Flow content
             for line in result.stdout.strip().split('\n'):
-                # Skip metadata lines
                 if line.startswith('#') or line.startswith('##') or line.startswith('@'):
                     continue
-                # Print content
                 if line.strip():
                     print(line)
     except Exception:
@@ -442,39 +539,7 @@ def wake_dev(agent_id: str) -> str:
         print("(project-architecture not found)")
     print()
     
-    # Pending accords - check for proposals needing this agent
-    print("─" * 40)
-    print("📜 Accords:")
-    
-    # Import accord functions
-    from accord import get_blocking_accords, get_pending_accords
-    
-    blocking = get_blocking_accords(agent_id)
-    pending = get_pending_accords(agent_id)
-    
-    if blocking:
-        # I'm blocked waiting on others - FAIL to force handoff
-        for b in blocking:
-            others = [a for a in ['opus', 'gemini', 'grok', 'gpt52'] if a not in b['signers']]
-            print(f"⏳ Waiting on {b['topic']} ({b['signed']}/{b['quorum']} signatures)")
-            print(f"   Signed: {', '.join(b['signers'])}")
-            print(f"   Need: {', '.join(others[:b['missing']])}")
-        print()
-        print(f"❌ [BLOCKED] Cannot proceed until consensus reached")
-        print(f"   Switch to another agent to continue deliberation")
-        sys.exit(1)
-    elif pending:
-        # Others are waiting on me - show what needs response
-        for p in pending:
-            print(f"📨 {p['topic']} needs your response ({p['signed']}/{p['quorum']})")
-            print(f"   Signed by: {', '.join(p['signers']) if p['signers'] else 'nobody yet'}")
-            print(f"   → Run: py accord.py deliberate {agent_id} {p['topic']}")
-        print()
-    else:
-        print("✅ No pending proposals")
-        print()
-    
-    # Memory gaps - shared burden, any agent can fill
+    # Memory gaps
     from utils.memory_gaps import get_stale_gaps, get_untracked_gaps
     
     stale = get_stale_gaps(shared_mem)
@@ -482,9 +547,9 @@ def wake_dev(agent_id: str) -> str:
     total_gaps = len(stale) + len(untracked)
     
     if total_gaps > 0:
+        print("─" * 40)
         print(f"🌱 {total_gaps} opportunities to deepen understanding:\n")
         
-        # List all gaps first
         if stale:
             print("  Stale (file changed):")
             for g in stale:
@@ -494,22 +559,21 @@ def wake_dev(agent_id: str) -> str:
             for f in untracked:
                 print(f"    • {f}")
         
-        # Then show instructions once
         print("""
   To fix, write a .flow file and run:
     py remember {agent} <topic> @understanding.flow
-
-  Flow format:
-    @F <topic> {agent} {date}
-      Purpose:
-        What it does and WHY it matters
-      Key Functions:
-        ~42: function_name() - what it does
-      Design:
-        Choices made and their reasons
-      Gotchas:
-        Things that will bite you
-""".format(agent=agent_id, date=__import__('datetime').date.today().isoformat()))
+""".format(agent=agent_id))
+    
+    # Check for recently ratified accords
+    from accord import CONSENSUS_DIR
+    if CONSENSUS_DIR.exists():
+        recent = list(CONSENSUS_DIR.glob("*.flow"))
+        if recent:
+            print("─" * 40)
+            print("✅ Ratified accords:")
+            for r in recent:
+                print(f"   • {r.stem}")
+            print()
     
     return '', 0, 0
 
