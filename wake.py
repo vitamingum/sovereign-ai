@@ -488,10 +488,14 @@ def wake_dev(agent_id: str) -> str:
   Progress: {p['signed']}/{p['quorum']} signatures
   Signed by: {', '.join(p['signers']) if p['signers'] else '(nobody yet)'}
   
-  Accord operations:
-    SIGN           Endorse current state
-    AMEND ~Path    Replace content at path
-    APPEND ~Path   Add content under path
+  Workflow:
+    1. Review:  py accord.py deliberate {agent_id} {p['topic']}
+    2. Amend:   py accord.py amend {agent_id} {p['topic']} ~Section "new content"
+       (Make ALL amendments FIRST - each one changes the hash)
+    3. Sign:    py accord.py sign {agent_id} {p['topic']}
+       (Sign ONCE at the end - amendments after signing invalidate it)
+  
+  ⚠️  Order matters: AMEND → AMEND → ... → SIGN (once)
 """)
         print(f"❌ [FAIL] Deliberation required before continuing")
         print(f"   Run: py accord.py deliberate {agent_id} {pending[0]['topic']}")
