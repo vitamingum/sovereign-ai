@@ -428,8 +428,13 @@ def wake_dev(agent_id: str) -> str:
             capture_output=True, text=True, encoding='utf-8', timeout=30
         )
         if result.returncode == 0 and result.stdout.strip():
+            # Skip header lines, print content (works for both Flow and SIF)
             for line in result.stdout.strip().split('\n'):
-                if line.startswith('N D ') or line.startswith('N G ') or line.startswith('N I '):
+                # Skip metadata lines
+                if line.startswith('#') or line.startswith('##') or line.startswith('@'):
+                    continue
+                # Print SIF nodes or Flow content
+                if line.strip():
                     print(line)
     except Exception:
         print("(dev-tips not found)")
