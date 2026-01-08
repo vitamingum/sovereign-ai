@@ -390,9 +390,21 @@ def wake_dev(agent_id: str) -> str:
     print(f"🔧 Dev wake for {agent_id}")
     print()
     
-    # SIF spec
+    # Flow spec (preferred format)
     print("─" * 40)
-    print("📖 SIF spec:")
+    print("📖 Flow spec (preferred):")
+    print("""@F <topic> <agent> <date>  # Flow anchor
+  Indentation = hierarchy (2 spaces)
+  Header:  # colon = section header
+    Content under header
+    ~84: function()  # tilde = location
+    -> @ref(target)  # inline cross-reference
+  @uses: [dep1, dep2]  # block dependencies""")
+    print()
+    
+    # SIF spec (legacy)
+    print("─" * 40)
+    print("📖 SIF spec (legacy):")
     try:
         result = subprocess.run(
             [sys.executable, 'recall.py', agent_id, '--theme', 'sif-format-spec'],
@@ -400,7 +412,8 @@ def wake_dev(agent_id: str) -> str:
         )
         if result.returncode == 0 and result.stdout.strip():
             for line in result.stdout.strip().split('\n'):
-                if line.startswith('@G') or line.startswith('N ') or line.startswith('E '):
+                # Support both SIF (@G, N, E) and Flow (@F, indented) formats
+                if line.startswith('@G') or line.startswith('@F') or line.startswith('N ') or line.startswith('E ') or (line.startswith('  ') and ':' in line):
                     print(line)
     except Exception:
         print("(sif-format-spec not found)")

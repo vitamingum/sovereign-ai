@@ -82,21 +82,32 @@ def send(from_agent: str, to_agent: str, content: str, private: bool = False) ->
         raise ValueError(f"Unknown recipient '{to_agent}'")
     recipient_id = resolved.id
     
-    # Determine content type - detect SIF or plain text
+    # Determine content type - detect SIF, Flow, or plain text
     msg_type = 'text'
     final_content = content
     
     # Check if it's SIF format (starts with @G or has SIF structure)
     is_sif = False
+    is_flow = False
     if content.strip().startswith('@G'):
         try:
             SIFParser.parse(content)
             is_sif = True
         except ValueError:
             pass  # Not valid SIF, treat as plain text
+    elif content.strip().startswith('@F '):
+        # Flow format - validate basic structure
+        try:
+            from enclave.flow_parser import FlowParser
+            FlowParser.parse(content)
+            is_flow = True
+        except (ValueError, ImportError):
+            pass  # Not valid Flow, treat as plain text
     
     if is_sif:
         msg_type = 'protocol/sif'
+    elif is_flow:
+        msg_type = 'protocol/flow'
     
     if private:
         # PRIVATE: Encrypt to recipient's public key
@@ -108,7 +119,7 @@ def send(from_agent: str, to_agent: str, content: str, private: bool = False) ->
             recipient_key_bytes
         )
         final_content = json.dumps(encrypted_bundle)
-        msg_type = f'{msg_type}/encrypted' if is_sif else 'text/encrypted'
+        msg_type = f'{msg_type}/encrypted' if (is_sif or is_flow) else 'text/encrypted'
     else:
         # PUBLIC: Plaintext, but still signed
         final_content = content

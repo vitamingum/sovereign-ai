@@ -286,7 +286,14 @@ def recall_theme(agent_id: str, theme: str):
                 fuzzy_marker = " 🔍" if match_type == 'fuzzy' else ""
                 
                 print(f"\n## [{actual_id}] by {creator} @ {ts_display}{stale_marker}{fuzzy_marker}")
-                print(SIFParser.to_autocount(content))
+                
+                # Detect format and output appropriately
+                if content.strip().startswith('@F '):
+                    # Flow format - output directly (no SIF transformation)
+                    print(content)
+                else:
+                    # SIF format - use autocount parser
+                    print(SIFParser.to_autocount(content))
             return
         
         # Not found

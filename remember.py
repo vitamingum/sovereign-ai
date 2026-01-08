@@ -40,6 +40,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from enclave.config import get_agent_or_raise
 from enclave.semantic_memory import SemanticMemory
 from enclave.sif_parser import SIFParser, SIFKnowledgeGraph, SIFNode, SIFEdge
+from enclave.flow_parser import (
+    FlowParser, FlowDocument, FlowNode, 
+    parse_flow, is_flow_format, is_sif_format
+)
 
 
 def load_passphrase(agent_id: str) -> tuple[str, str]:
@@ -912,6 +916,77 @@ def store_understanding(mem: SemanticMemory, graph: SIFKnowledgeGraph, target_pa
     return stored_count
 
 
+def store_flow_understanding(mem: SemanticMemory, doc: FlowDocument, target_path: str):
+    """
+    Store a Flow document in semantic memory.
+    
+    Storage strategy:
+    - REPLACE existing understanding (git tracks history)
+    - Each node becomes a separate memory with ROOT-PIVOT-LEAF embeddings
+    - Hierarchy stored as metadata
+    - File hash stored for staleness detection
+    
+    Key difference from SIF: embeddings use hierarchy context, not just raw content.
+    This is the core innovation from the Gemini collaboration.
+    """
+    creator = doc.agent
+    
+    # Delete existing understanding by this creator for this file
+    if creator:
+        delete_existing_understanding(mem, target_path, creator)
+    
+    timestamp = datetime.now(timezone.utc).isoformat()
+    
+    # ACT NOW: reject action-like nodes
+    REJECTED_TYPES = {'next', 'tool', 'action', 'todo'}
+    
+    stored_count = 0
+    for node in doc.nodes:
+        # Skip headers - they're structural, not content
+        if node.node_type == 'Header':
+            continue
+            
+        # Skip action-like nodes
+        if node.node_type.lower() in REJECTED_TYPES:
+            print(f"  [SKIPPED] {node.node_type} node - ACT NOW, don't store actions")
+            continue
+        
+        # ROOT-PIVOT-LEAF embedding: hierarchy context baked into embedding
+        # This is the key insight from Gemini collaboration
+        embedding_context = FlowParser.build_embedding_context(node)
+        searchable = f"[{node.node_type}] {embedding_context}"
+        
+        metadata = {
+            "doc_id": doc.id,
+            "node_type": node.node_type,
+            "content": node.content,
+            "target_path": target_path,
+            "timestamp": timestamp,
+            "creator": node.creator,
+            "format": "flow",  # Mark as Flow format for recall.py
+            # Hierarchy info for context reconstruction
+            "root": node.root,
+            "pivot": node.pivot,
+            "indent_level": node.indent_level,
+            "refs": node.refs,
+        }
+        
+        # Store file hashes
+        paths = [p.strip() for p in target_path.split(',')]
+        file_hashes = compute_multi_file_hashes(paths)
+        if file_hashes:
+            metadata["file_hashes"] = file_hashes
+        
+        mem.remember(
+            thought=searchable,
+            tags=[node.node_type.lower(), doc.id, Path(target_path).name],
+            metadata=metadata
+        )
+        stored_count += 1
+    
+    return stored_count
+
+
 def main():
     # Check for --dialogue mode (synthesize agent conversation)
     if '--dialogue' in sys.argv:
@@ -946,20 +1021,80 @@ def main():
         
         agent_id = sys.argv[1]
         topic = sys.argv[theme_idx + 1]
-        sif_arg = sys.argv[theme_idx + 2]
+        content_arg = sys.argv[theme_idx + 2]
         
-        # Read SIF - support stdin, @file reference, or inline
-        if sif_arg == '-':
-            sif_content = sys.stdin.read()
-        elif sif_arg.startswith('@') and len(sif_arg) > 1 and Path(sif_arg[1:]).exists():
-            sif_content = Path(sif_arg[1:]).read_text(encoding='utf-8')
+        # Read content - support stdin, @file reference, or inline
+        if content_arg == '-':
+            content = sys.stdin.read()
+        elif content_arg.startswith('@') and len(content_arg) > 1 and Path(content_arg[1:]).exists():
+            content = Path(content_arg[1:]).read_text(encoding='utf-8')
         else:
-            sif_content = sif_arg
-        sif_content = sif_content.strip()
+            content = content_arg
+        content = content.strip()
         
-        if not sif_content:
-            print("Error: No SIF content provided", file=sys.stderr)
+        if not content:
+            print("Error: No content provided", file=sys.stderr)
             sys.exit(1)
+        
+        # ═══════════════════════════════════════════════════════════════════
+        # DUAL FORMAT DETECTION: Flow (@F) vs SIF (@G)
+        # ═══════════════════════════════════════════════════════════════════
+        if is_flow_format(content):
+            # Flow format - parse and validate
+            try:
+                doc = parse_flow(content, creator=agent_id)
+            except ValueError as e:
+                print(f"❌ Flow parse error: {e}", file=sys.stderr)
+                sys.exit(1)
+            
+            is_valid, flow_errors = FlowParser.validate(doc)
+            if not is_valid:
+                print(f"❌ Flow validation failed:", file=sys.stderr)
+                for err in flow_errors[:5]:
+                    print(f"  - {err}", file=sys.stderr)
+                sys.exit(1)
+            
+            # For critical themes, check node count
+            if topic in CRITICAL_THEMES:
+                min_nodes = CRITICAL_THEMES[topic].get('min_nodes', 10)
+                if len(doc.nodes) < min_nodes:
+                    print(f"❌ CRITICAL: {topic} needs {min_nodes}+ nodes, got {len(doc.nodes)}", file=sys.stderr)
+                    sys.exit(1)
+            
+            # Store Flow document
+            enclave_dir, passphrase = load_passphrase(agent_id)
+            sm = SemanticMemory(enclave_dir)
+            sm.unlock(passphrase)
+            
+            # Delete previous syntheses on this theme by this agent
+            deleted = sm.forget(theme=topic, creator=agent_id)
+            if deleted > 0:
+                print(f"  🔄 Replaced {deleted} previous '{topic}' synthesis", file=sys.stderr)
+            
+            # Store the raw Flow document (like SIF themes)
+            # The format marker allows recall.py to detect and output correctly
+            topic_slug = topic.lower().replace(' ', '-').replace('_', '-')
+            tags = ["thought", "agency:5", "synthesis", f"topic:{topic_slug}", "format:flow"]
+            
+            result = sm.remember(
+                thought=content,  # Store raw Flow text
+                tags=tags,
+                metadata={
+                    "topic": topic_slug,
+                    "creator": agent_id,
+                    "format": "flow",  # Mark as Flow format
+                    "node_count": len(doc.nodes),
+                    "stored_at": datetime.now(timezone.utc).isoformat()
+                }
+            )
+            
+            print(f"✅ Remembered Flow theme: {topic} ({len(doc.nodes)} nodes)")
+            return
+        
+        # ═══════════════════════════════════════════════════════════════════
+        # SIF format (legacy, still supported)
+        # ═══════════════════════════════════════════════════════════════════
+        sif_content = content
         
         # Check if input uses explicit IDs (before conversion)
         from enclave.sif_parser import SIFParser

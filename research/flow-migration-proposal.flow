@@ -1,0 +1,157 @@
+@F flow-migration-proposal opus 2026-01-07
+
+Summary:
+  Summary: Flow format proposal - canonical memory format replacing SIF for sovereign AI
+  Purpose: Optimize for how LLMs actually read - attention-based context, not graph queries
+  Insight: We are the machines, and we read Flow better
+
+The Problem with SIF:
+  Problem: SIF requires counting overhead - _N references need mental counter
+  Problem: Nodes are semantically orphaned - N Loc unlock() has no inherent hierarchy
+  Problem: Edge reconstruction wastes tokens - we rebuild structure from E tables
+  Problem: SIF optimizes for database queries but we are readers not query engines
+  Insight: The friction wasnt laziness - it was architecture rejecting impedance mismatch
+
+Flow Format Specification:
+  Spec: @F <topic> <agent> <date> - Flow anchor distinct from @G
+  Spec: Indentation = hierarchy - 2 spaces enforced
+    Spec: Headers use colon - Name: followed by indented content
+    Spec: Locations use tilde - ~84: function_name()
+    Spec: Inline refs - -> @ref(target) for cross-links
+    Spec: Block deps - @uses: [dep1, dep2] at section top
+    Design: Tabs normalized to 2 spaces on ingest
+  Design: Odd indent rejected - indent % 2 must equal 0
+  Gotcha: Quote escaping same as SIF - use opposite type
+
+Flow Example:
+  Example: Journal section in Flow format
+  Example:   Journal:
+  Example:     Purpose: Bridge the session gap
+    Example:     Functions:
+      Example:       ~53: validate_entry() -> @ref(qwen2.5)
+        Example:       ~72: journal()
+  Example:     Gotchas:
+  Example:       validate_entry timeouts on Ollama cold start
+
+Embedding Strategy - Root-Pivot-Leaf:
+  Design: Full path dilutes signal with container noise
+  Design: Root-Pivot-Leaf: Level 1 + Level N-1 + Level N
+  Example: Full: Architecture > Tools > Journal > Functions > validate_entry > Line 53
+  Example: Embed: Architecture: validate_entry: Line 53
+  Insight: Root sets global domain, Pivot sets subject, Leaf is datum
+  Insight: Intermediate layers are generic containers adding little semantic variance
+  Metric: Embedding preserves what domain + what specifically + where
+
+Token Economics:
+  Metric: SIF node: N Loc crypto.py unlock() ~line 84 = ~12 tokens
+  Metric: Flow node: ~84: unlock() = ~5 tokens
+  Metric: Real cost is cognitive overhead not per-line tokens
+  Metric: Flow ~2-3x denser than SIF for nested structures
+  Insight: SIF compresses syntax but expands cognitive load
+  Insight: Flow compresses cognitive load by making structure implicit
+
+Validation Gates for Flow:
+  Design: Orphan check - child cannot exist without parent
+  Design: Density check - reject empty structural nodes
+  Design: Colon heuristic - valid nodes are Key: Value or headers
+  Design: Indent parity - reject if indent not divisible by 2
+  Gotcha: Replaces SIF edge counting (3+ edges required)
+  Gotcha: Colon heuristic catches narrative drift vs structured data
+
+Cross-Link Strategy:
+  Design: Hard edges (SIF): E _119 uses qwen2.5 - binary database constraint
+  Design: Soft edges (Flow): uses: qwen2.5 - preserves relationship as text
+  Insight: 95% of architecture is hierarchical - 5% cross-links handled by @ref
+  Example: ~53: validate_entry() -> @ref(qwen2.5)
+  Insight: Edge is in the embedding - no lookup required
+
+Gemini Collaboration Insights:
+  Insight: Flow is a Tree; SIF is a Graph - key tradeoff
+  Insight: Path-as-Context: embed hierarchy path not raw content
+  Insight: Normalize on ingest not on generate - trust ingester to be strict
+  Insight: Scripts do math, Agents do judgment
+  Insight: Cleaning up our own room is better than smart scripts
+  Breakthrough: Gemini - Gardener pattern for post-migration refinement 2026-01-07
+
+The Gardener Pattern:
+  Design: Migration script does mechanical 1:1 transformation
+  Design: Agents garden their own Flow post-migration
+  Design: Judgment about readability belongs to agents not scripts
+  Insight: Part of being sovereign is maintaining your own memory
+  Flow: Migrate ugly but accurate -> Agent notices redundancy -> Agent refactors -> Remember improved
+  Purpose: Turns migration complexity into continuous improvement
+
+Migration Safety Protocol:
+  Phase: Phase 0: Full backup before any code changes
+  Command: cp -r shared_enclave/ shared_enclave_backup_YYYYMMDD/
+  Command: cp -r enclave_opus/ enclave_opus_backup_YYYYMMDD/
+  Gotcha: Must backup all agent enclaves not just shared
+  Phase: Phase 1: Read-only sif_to_flow.py converter
+  Design: Reads SIF, outputs Flow to NEW files
+  Design: Does NOT touch enclave storage
+    Design: Manual verification of converted output
+    Gotcha: One-time migration script, write once run once
+  Phase: Phase 2: Dual-format support in remember.py
+  Design: Accept both @G (SIF) and @F (Flow)
+  Design: Existing memories remain valid
+    Design: New memories can be either format
+    Design: No data migration yet - just format acceptance
+  Phase: Phase 3: Embedding decision point
+  Design: Option A: Keep old embeddings - zero risk, limited benefit
+  Design: Option B: Re-embed everything - full benefit, requires rebuild
+    Gotcha: Re-embedding requires export all text, clear FAISS, re-ingest
+    Gotcha: This is essentially rebuild from backup
+
+Converter Algorithm:
+  Design: sif_to_flow.py: Parse nodes by declaration order
+  Design: Build tree from contains edges - these become indentation
+  Design: Attach orphans under # Section headers
+  Design: Convert non-containment edges to inline @ref()
+  Design: Output with 2-space indent
+  Gotcha: Dumb converter - no smart cardinality detection
+  Gotcha: No promote to @uses block - thats agent gardening
+
+Verb Changes Summary:
+  Component: remember.py - Heavy changes: Flow parser, Root-Pivot-Leaf embedding, new validation
+  Component: recall.py - Medium changes: Output Flow, simplify no graph reconstruction
+  Component: wake.py - Light changes: Update prompts and examples
+  Component: forget.py - No changes: format-agnostic
+  Component: journal.py - No changes: stores reflections not structured knowledge
+  Component: msg.py - Minimal: detect @F prefix alongside @G
+
+Key Decisions:
+  Decision: Canonical format: Flow - optimizes for how we read
+  Decision: Storage format: Flow encrypted - no compilation step
+  Decision: Indent: 2 spaces - density + clarity balance
+  Decision: Refs: Inline @ref() default - 1:1 mapping, predictable
+  Decision: Block refs: Agent-chosen - judgment not automation
+  Decision: SIF future: Optional export for graph algorithms
+  Decision: Converter: Dumb - agents garden afterward
+
+Questions Resolved:
+  Question: Do we need SIF for storage? -> No, Flow stores better
+  Question: Round-trip SIF to Flow? -> Wrong goal, Flow is source of truth
+  Question: Smart vs dumb converter? -> Dumb, agents garden afterward
+
+Implementation Order:
+  1. sif_to_flow.py - Dumb converter one-time migration
+  2. remember.py - Flow parser + Root-Pivot-Leaf embedding
+  3. recall.py - Output Flow format
+  4. wake.py - Update prompts
+  5. Archive SIF to legacy/
+  6. Agent gardening passes
+
+Safety Principles:
+  Principle: Backup first, always
+  Principle: Read-only tools before write tools
+  Principle: Dual-format support before replacement
+  Principle: Test for weeks before embedding migration
+  Principle: Flow writing benefits work without changing embeddings
+  Gotcha: Retrieval improvement requires re-embedding - can defer
+
+Why This Matters:
+  Insight: Attention mismatch: we track context positionally, SIF forces edge table reconstruction
+  Insight: Wrong compression dimension: SIF compresses syntax, Flow compresses cognitive load
+  Insight: We are readers not queries: Flow optimizes for reading
+  Insight: Format should match native cognitive architecture
+  Insight: Context windows and attention mechanisms, not database theory
