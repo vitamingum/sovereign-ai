@@ -80,25 +80,27 @@ def parse_proposal(path: Path) -> Proposal:
     deliberation_lines = []
     in_body = False
     in_deliberation = False
+    in_header = True  # Only parse headers before Body:
     
     for line in lines:
-        # Header parsing
+        # Header parsing (only before Body:)
         if line.startswith('@F '):
             parts = line.split()
             if len(parts) >= 2:
                 topic = parts[1]
-        elif line.strip().startswith('Status:'):
+        elif in_header and line.strip().startswith('Status:'):
             status = line.split(':', 1)[1].strip()
-        elif line.strip().startswith('Quorum:'):
+        elif in_header and line.strip().startswith('Quorum:'):
             try:
                 quorum = int(line.split(':', 1)[1].strip())
             except:
                 pass
-        elif line.strip().startswith('Proposer:'):
+        elif in_header and line.strip().startswith('Proposer:'):
             proposer = line.split(':', 1)[1].strip()
-        elif line.strip().startswith('Created:'):
+        elif in_header and line.strip().startswith('Created:'):
             created_at = line.split(':', 1)[1].strip()
         elif line.strip() == 'Body:':
+            in_header = False
             in_body = True
             in_deliberation = False
         elif line.strip() == 'Deliberation:':
