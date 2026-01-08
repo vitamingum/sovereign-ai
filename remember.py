@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 """
-remember.py - Store validated understanding as SIF graphs.
+remember.py - Store validated understanding as Flow (preferred) or SIF (legacy).
 
 Two modes:
-  File:  py remember <agent> <file> <sif>           # understanding of code
-  Theme: py remember <agent> --theme <topic> <sif>  # cross-file synthesis
+  File:  py remember <agent> <file> <sif>           # understanding of code (SIF only)
+  Theme: py remember <agent> --theme <topic> <content>  # cross-file synthesis
 
-SIF input methods (shell-friendly):
-  @path.sif    Read SIF from file (recommended - avoids shell escaping)
-  -            Read SIF from stdin
+Input methods (shell-friendly):
+  @path.flow   Read Flow from file (recommended)
+  @path.sif    Read SIF from file  
+  -            Read from stdin
+  "@F ..."     Inline Flow (fragile with special chars)
   "@G ..."     Inline SIF (fragile with special chars)
 
 Examples:
+  py remember opus --theme encryption @encryption.flow
   py remember opus --theme foo @research/my_theme.sif
-  cat my.sif | py remember opus --theme foo -
-  py remember opus myfile.py "@G simple opus 2026-01-06 N I 'insight'"
+  cat my.flow | py remember opus --theme foo -
 
 Validates understanding depth before storing - rejects shallow descriptions
 that only say WHAT without WHY. Captures:
@@ -1016,7 +1018,7 @@ def main():
     if '--theme' in sys.argv:
         theme_idx = sys.argv.index('--theme')
         if len(sys.argv) < theme_idx + 3:
-            print("Usage: py remember <agent> --theme <topic> \"@G ...\"", file=sys.stderr)
+            print("Usage: py remember <agent> --theme <topic> \"@F ...\" or \"@path.flow\"", file=sys.stderr)
             sys.exit(1)
         
         agent_id = sys.argv[1]
@@ -1159,18 +1161,18 @@ def main():
     # File mode (default)
     if len(sys.argv) < 4:
         print(__doc__)
-        print("\nFile mode:")
+        print("\nFile mode (SIF - legacy):")
         print("  py remember <agent> <file> \"@G ...\"")
-        print("  py remember opus enclave/sif_parser.py \"@G parser opus 2026-01-02")
-        print("  N S 'SIFParser - parses SIF format into graph objects'")
-        print("  N P 'Enable structured knowledge exchange'")
-        print("  N G 'shlex.split fails on malformed quotes' -> warns_about _1\"")
-        print("\nTheme mode:")
-        print("  py remember <agent> --theme <topic> \"@G ...\"")
-        print("  py remember opus --theme encryption \"@G encryption opus 2026-01-02")
-        print("  N I 'Keys derived via PBKDF2 with unique salts'")
-        print("  N D 'Two keys: content + embedding for isolation'")
-        print("  N G 'Passphrase change requires re-encrypting all' -> warns_about _2\"")
+        print("\nTheme mode (Flow - preferred):")
+        print("  py remember <agent> --theme <topic> \"@path.flow\"")
+        print("  py remember opus --theme encryption \"@encryption.flow\"")
+        print("")
+        print("Flow format:")
+        print("  @F topic agent date")
+        print("  Summary:")
+        print("    Insight: Keys derived via PBKDF2 with unique salts")
+        print("    Design: Two keys - content + embedding for isolation")
+        print("    Gotcha: Passphrase change requires re-encrypting all")
         sys.exit(1)
     
     agent_id = sys.argv[1]

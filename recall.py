@@ -298,11 +298,14 @@ def recall_theme(agent_id: str, theme: str):
         
         # Not found
         print(f"# {theme}: NO SYNTHESIS", file=sys.stderr)
-        print(f"\nStore one with:", file=sys.stderr)
-        print(f"  py remember {agent_id} --theme \"{theme}\" \"@G {theme_slug} {agent_id} ...\"", file=sys.stderr)
+        print(f"\nStore one with (Flow preferred):", file=sys.stderr)
+        print(f"  py remember {agent_id} --theme \"{theme}\" \"@{theme_slug}.flow\"", file=sys.stderr)
         print(f"", file=sys.stderr)
-        print(f"SIF format: N <Type> '<content>' -> <relation> <target>", file=sys.stderr)
-        print(f"Types: S=Synthesis P=Purpose C=Component D=Design G=Gotcha I=Insight", file=sys.stderr)
+        print(f"Flow format:", file=sys.stderr)
+        print(f"  @F {theme_slug} {agent_id} 2026-01-07", file=sys.stderr)
+        print(f"  Summary:", file=sys.stderr)
+        print(f"    Insight: ...", file=sys.stderr)
+        print(f"    Design: ...", file=sys.stderr)
         sys.exit(1)
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
