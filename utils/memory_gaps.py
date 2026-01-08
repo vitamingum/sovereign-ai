@@ -25,7 +25,7 @@ from pathlib import Path
 from collections import defaultdict
 from datetime import datetime
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -126,11 +126,15 @@ def get_untracked_gaps(sm: SemanticMemory) -> list[str]:
             meta = r.get('metadata', {})
             file_hashes = meta.get('file_hashes', {})
             tracked_files.update(file_hashes.keys())
+            # Also count theme syntheses that reference files by name
+            topic = meta.get('topic', '')
+            if topic and topic.endswith('.py'):
+                tracked_files.add(topic)
     except:
         pass
     
-    # Scan for all .py files in project root
-    project_root = Path(__file__).parent
+    # Scan for all .py files in project root (parent of utils/)
+    project_root = Path(__file__).parent.parent
     untracked = []
     
     # Patterns to exclude
