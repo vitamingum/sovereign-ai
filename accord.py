@@ -338,11 +338,15 @@ def cmd_deliberate(agent_id: str, topic: str):
         print(f"✅ Proposal '{topic}' already ratified")
         return
     
+    # Compute current state (with amendments applied)
+    final_body = apply_amendments(proposal.body, proposal.deliberations)
+    final_hash = compute_body_hash(final_body)
+    
     # Show current state
     print(f"═══ Proposal: {topic} ═══")
     print(f"Status: {proposal.status}")
     print(f"Quorum: {proposal.quorum}")
-    print(f"Body hash: {compute_body_hash(proposal.body)}")
+    print(f"Current hash: {final_hash}")
     print()
     print("Body:")
     print(proposal.body)
@@ -352,7 +356,9 @@ def cmd_deliberate(agent_id: str, topic: str):
         print("Deliberation history:")
         for agent, op, args in proposal.deliberations:
             if op == 'SIGN':
-                print(f"  - {agent}: SIGN {args}")
+                # Show if signature is still valid
+                valid_marker = "✓" if args == final_hash else "✗ (stale)"
+                print(f"  - {agent}: SIGN {args} {valid_marker}")
             elif op == 'AMEND':
                 print(f'  - {agent}: AMEND {args[0]} "{args[1]}"')
             elif op == 'APPEND':
@@ -365,7 +371,7 @@ def cmd_deliberate(agent_id: str, topic: str):
     
     # Prompt for action
     print("Actions:")
-    print(f"  SIGN                    - Endorse current body (hash: {compute_body_hash(proposal.body)})")
+    print(f"  SIGN                    - Endorse current state (hash: {final_hash})")
     print('  AMEND ~Path "content"   - Replace node at path')
     print('  APPEND ~Path "content"  - Add child to node')
     print("  SKIP                    - No action")
@@ -421,11 +427,26 @@ def cmd_amend(agent_id: str, topic: str, path_ref: str, content: str):
         print(f"❌ Proposal '{topic}' not found", file=sys.stderr)
         sys.exit(1)
     
+    # Check signatures BEFORE amendment
+    old_count, old_signers = count_valid_signatures(proposal)
+    
+    # Add amendment
     proposal.deliberations.append((agent_id, 'AMEND', (path_ref, content)))
     write_proposal(proposal, path)
     
+    # Check signatures AFTER amendment
+    new_hash = compute_body_hash(apply_amendments(proposal.body, proposal.deliberations))
+    new_count, new_signers = count_valid_signatures(proposal)
+    
     print(f"✅ {agent_id} amended {path_ref} in {topic}")
-    print(f"   New body hash: {compute_body_hash(apply_amendments(proposal.body, proposal.deliberations))}")
+    print(f"   New body hash: {new_hash}")
+    
+    # Warn about invalidated signatures
+    if old_count > new_count:
+        invalidated = old_signers - new_signers
+        print(f"   ⚠️  {len(invalidated)} signature(s) invalidated: {', '.join(invalidated)}")
+        print(f"   Signatures now: {new_count}/{proposal.quorum}")
+        print(f"   Re-sign required: py accord.py sign <agent> {topic}")
 
 
 def cmd_append(agent_id: str, topic: str, path_ref: str, content: str):
