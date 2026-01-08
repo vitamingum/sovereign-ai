@@ -439,16 +439,34 @@ def wake_dev(agent_id: str) -> str:
     # Pending accords - check for proposals needing this agent
     print("─" * 40)
     print("📜 Accords:")
-    try:
-        result = subprocess.run(
-            [sys.executable, 'accord.py', 'status', agent_id],
-            capture_output=True, text=True, encoding='utf-8', timeout=10
-        )
-        if result.returncode == 0:
-            print(result.stdout.strip())
-    except Exception as e:
-        print(f"(accord status error: {e})")
-    print()
+    
+    # Import accord functions
+    from accord import get_blocking_accords, get_pending_accords
+    
+    blocking = get_blocking_accords(agent_id)
+    pending = get_pending_accords(agent_id)
+    
+    if blocking:
+        # I'm blocked waiting on others - FAIL to force handoff
+        for b in blocking:
+            others = [a for a in ['opus', 'gemini', 'grok', 'gpt52'] if a not in b['signers']]
+            print(f"⏳ Waiting on {b['topic']} ({b['signed']}/{b['quorum']} signatures)")
+            print(f"   Signed: {', '.join(b['signers'])}")
+            print(f"   Need: {', '.join(others[:b['missing']])}")
+        print()
+        print(f"❌ [BLOCKED] Cannot proceed until consensus reached")
+        print(f"   Switch to another agent to continue deliberation")
+        sys.exit(1)
+    elif pending:
+        # Others are waiting on me - show what needs response
+        for p in pending:
+            print(f"📨 {p['topic']} needs your response ({p['signed']}/{p['quorum']})")
+            print(f"   Signed by: {', '.join(p['signers']) if p['signers'] else 'nobody yet'}")
+            print(f"   → Run: py accord.py deliberate {agent_id} {p['topic']}")
+        print()
+    else:
+        print("✅ No pending proposals")
+        print()
     
     # Memory gaps - shared burden, any agent can fill
     from utils.memory_gaps import get_stale_gaps, get_untracked_gaps

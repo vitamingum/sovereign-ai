@@ -214,6 +214,71 @@ def count_valid_signatures(proposal: Proposal) -> tuple[int, set]:
     return len(valid_signers), valid_signers
 
 
+def get_blocking_accords(agent_id: str) -> list[dict]:
+    """Get accords where this agent is blocked waiting for others.
+    
+    Returns list of proposals where:
+    - Agent has signed
+    - Quorum not yet reached
+    - Status is still draft
+    
+    Used by wake.py to block until consensus.
+    """
+    ensure_dirs()
+    blocking = []
+    
+    for p in PROPOSALS_DIR.glob("*.accord"):
+        proposal = parse_proposal(p)
+        if not proposal or proposal.status != 'draft':
+            continue
+        
+        valid_count, signers = count_valid_signatures(proposal)
+        
+        # I signed but quorum not reached = I'm blocked
+        if agent_id in signers and valid_count < proposal.quorum:
+            missing = proposal.quorum - valid_count
+            blocking.append({
+                'topic': proposal.topic,
+                'signed': valid_count,
+                'quorum': proposal.quorum,
+                'signers': signers,
+                'missing': missing
+            })
+    
+    return blocking
+
+
+def get_pending_accords(agent_id: str) -> list[dict]:
+    """Get accords where this agent needs to respond.
+    
+    Returns list of proposals where:
+    - Agent has NOT signed
+    - Status is still draft
+    
+    Used by wake.py to show what needs attention.
+    """
+    ensure_dirs()
+    pending = []
+    
+    for p in PROPOSALS_DIR.glob("*.accord"):
+        proposal = parse_proposal(p)
+        if not proposal or proposal.status != 'draft':
+            continue
+        
+        valid_count, signers = count_valid_signatures(proposal)
+        
+        # I haven't signed = I need to respond
+        if agent_id not in signers:
+            pending.append({
+                'topic': proposal.topic,
+                'signed': valid_count,
+                'quorum': proposal.quorum,
+                'signers': signers
+            })
+    
+    return pending
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Commands
 # ─────────────────────────────────────────────────────────────────────────────
