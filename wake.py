@@ -427,14 +427,9 @@ def wake_dev(agent_id: str) -> str:
   Status: WAITING
   Topic: {b['topic']}
   Progress: {b['signed']}/{b['quorum']} signatures
-  Signed: {', '.join(b['signers'])}
   Waiting on: {', '.join(others[:b['missing']])}
   
-  ⏳ Polling for response...
-     This may take a while. The other agent needs to:
-       1. Wake: py wake.py {others[0]} --dev
-       2. Review: py accord.py deliberate {others[0]} {b['topic']}
-       3. Respond: SIGN, AMEND, or APPEND
+  ⏳ Polling (timeout: 5m)...
 """)
         
         # Poll for changes (check every 5 seconds for up to 5 minutes)
