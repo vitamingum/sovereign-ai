@@ -217,8 +217,8 @@ def synthesize_dialogue(agent_id: str, correspondent: str, messages: list[dict])
     
     output.append("")
     output.append("---")
-    output.append(f"# Synthesize this dialogue as SIF:")
-    output.append(f"# py remember.py {agent_id} --theme {correspondent} \"@G {correspondent} {agent_id} {datetime.now().strftime('%Y-%m-%d')}; N S '...'; ...\"")
+    output.append(f"# Synthesize this dialogue as Flow:")
+    output.append(f"# py remember.py {agent_id} {correspondent} @synthesis.flow")
     
     return "\n".join(output)
 

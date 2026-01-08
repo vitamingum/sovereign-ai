@@ -93,9 +93,11 @@ def get_all_topics(sm: SemanticMemory, agent_id: str = None) -> dict:
 def get_stale_gaps(sm: SemanticMemory, agent_id: str = None) -> list[dict]:
     """Find topics where file changed since last remember.
     
+    Checks ALL agents - gaps are shared, any agent can fill.
+    
     Returns list of {topic, stored_hash, current_hash, file}
     """
-    topics = get_all_topics(sm, agent_id)
+    topics = get_all_topics(sm)  # Don't filter by agent - shared burden
     gaps = []
     
     for norm, info in topics.items():
@@ -128,12 +130,14 @@ def get_stale_gaps(sm: SemanticMemory, agent_id: str = None) -> list[dict]:
 def get_untracked_gaps(sm: SemanticMemory, agent_id: str = None) -> list[str]:
     """Find files that should be tracked but aren't.
     
+    Checks ALL agents - gaps are shared, any agent can fill.
+    
     Returns list of filenames.
     """
     project_root = Path(__file__).parent.parent
     
-    # Get all topics (normalized)
-    topics = get_all_topics(sm, agent_id)
+    # Get all topics (normalized) - don't filter by agent
+    topics = get_all_topics(sm)  # Shared burden
     tracked = set(topics.keys())
     
     # Also add file_path values
@@ -186,11 +190,11 @@ def main():
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
     
-    # Check stale
-    stale = get_stale_gaps(sm, agent_id)
+    # Check stale (any agent's entry that's out of date)
+    stale = get_stale_gaps(sm)
     
-    # Check untracked
-    untracked = get_untracked_gaps(sm, agent_id)
+    # Check untracked (files no agent has remembered)
+    untracked = get_untracked_gaps(sm)
     
     if not stale and not untracked:
         print("✅ No memory gaps")
@@ -198,23 +202,23 @@ def main():
     
     # Report
     total = len(stale) + len(untracked)
-    print(f"❌ {agent_id.capitalize()}: {total} items need attention")
+    print(f"🌱 {total} memory gaps:\n")
     
     if stale:
-        files = ', '.join(g['file'] for g in stale)
-        print(f"N Stale '{files}'")
-        print("# ^ file changed since last remember")
+        print("  Stale (file changed):")
+        for g in stale:
+            print(f"    • {g['file']}")
         if not show_all:
             sys.exit(1)
     
     if untracked:
-        files = ', '.join(untracked)
-        print(f"N Untracked '{files}'")
-        print("# ^ remember OR delete")
+        print("  Untracked (no understanding):")
+        for f in untracked:
+            print(f"    • {f}")
         if not show_all:
             sys.exit(1)
     
-    print(f"\nN Cmd 'py utils/memory_gaps.py {agent_id}'  # fail-early details")
+    print(f"\nRun: py utils/memory_gaps.py {agent_id} --all  # see everything")
     sys.exit(1)
 
 

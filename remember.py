@@ -160,8 +160,8 @@ def main():
     # Check critical topic requirements
     topic_slug = topic.lower().replace(' ', '-').replace('_', '-')
     if topic_slug in CRITICAL_TOPICS:
-        min_nodes = CRITICAL_TOPICS[topic_slug].get('min_nodes', 10)
-        if len(doc.nodes) < min_nodes:
+        min_nodes = CRITICAL_TOPICS[topic_slug].get('min_nodes')
+        if min_nodes and len(doc.nodes) < min_nodes:
             print(f"❌ CRITICAL: {topic} needs {min_nodes}+ nodes, got {len(doc.nodes)}", file=sys.stderr)
             sys.exit(1)
     
@@ -214,6 +214,57 @@ def main():
         print(f"✅ Remembered: {topic} ({len(doc.nodes)} nodes, hash:{file_hash})")
     else:
         print(f"✅ Remembered: {topic} ({len(doc.nodes)} nodes)")
+    
+    # Show other agents' perspectives on the same topic
+    show_other_perspectives(sm, topic_slug, agent_id, file_hash)
+
+
+def show_other_perspectives(mem: SemanticMemory, topic: str, current_agent: str, current_hash: str = None):
+    """
+    Show other agents' understanding of the same topic.
+    
+    Only shows fresh perspectives (matching file hash if topic is a file).
+    Gives current agent visibility into how others interpreted the content.
+    """
+    all_memories = mem.list_all()
+    
+    # Find other agents' understanding of this topic
+    other_perspectives = {}  # agent -> content
+    
+    for m in all_memories:
+        meta = m.get('metadata', {})
+        stored_topic = meta.get('topic', '')
+        creator = meta.get('creator', '')
+        
+        # Skip if not same topic or same agent
+        if stored_topic != topic or creator == current_agent or not creator:
+            continue
+        
+        # If this is a file topic, check hash freshness
+        if current_hash:
+            stored_hash = meta.get('file_hash', '')
+            if stored_hash and stored_hash != current_hash:
+                continue  # Stale - file changed since they wrote
+        
+        # Keep newest per agent
+        stored_at = meta.get('stored_at', '')
+        if creator not in other_perspectives or stored_at > other_perspectives[creator].get('stored_at', ''):
+            other_perspectives[creator] = {
+                'content': m.get('content', ''),
+                'stored_at': stored_at,
+                'node_count': meta.get('node_count', '?')
+            }
+    
+    if not other_perspectives:
+        return
+    
+    print(f"\n{'─' * 60}")
+    print(f"📚 Other agents' perspectives on {topic}:")
+    
+    for agent, data in sorted(other_perspectives.items()):
+        date = data['stored_at'][:10] if data['stored_at'] else '?'
+        print(f"\n## [{topic}] by {agent} @ {date} ({data['node_count']} nodes)")
+        print(data['content'])
 
 
 if __name__ == "__main__":

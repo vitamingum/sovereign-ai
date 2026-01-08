@@ -410,12 +410,12 @@ def wake_dev(agent_id: str) -> str:
             capture_output=True, text=True, encoding='utf-8', timeout=30
         )
         if result.returncode == 0 and result.stdout.strip():
-            # Skip header lines, print content (works for both Flow and SIF)
+            # Skip header lines, print Flow content
             for line in result.stdout.strip().split('\n'):
                 # Skip metadata lines
                 if line.startswith('#') or line.startswith('##') or line.startswith('@'):
                     continue
-                # Print SIF nodes or Flow content
+                # Print content
                 if line.strip():
                     print(line)
     except Exception:
@@ -436,11 +436,11 @@ def wake_dev(agent_id: str) -> str:
         print("(project-architecture not found)")
     print()
     
-    # Memory gaps - simplified API
+    # Memory gaps - shared burden, any agent can fill
     from utils.memory_gaps import get_stale_gaps, get_untracked_gaps
     
-    stale = get_stale_gaps(shared_mem, agent_id)
-    untracked = get_untracked_gaps(shared_mem, agent_id)
+    stale = get_stale_gaps(shared_mem)
+    untracked = get_untracked_gaps(shared_mem)
     total_gaps = len(stale) + len(untracked)
     
     if total_gaps > 0:

@@ -141,7 +141,11 @@ def recall_by_pattern(mem: SemanticMemory, pattern: str) -> list[dict]:
 
 
 def display_topic(topic_info: dict):
-    """Display a single topic's content."""
+    """Display a single topic's content.
+    
+    Only shows FRESH perspectives - stale ones (hash mismatch) are hidden.
+    Stale understanding is about old code and may be misleading.
+    """
     topic = topic_info['topic']
     entries = topic_info['entries']
     
@@ -155,24 +159,37 @@ def display_topic(topic_info: dict):
         if creator not in by_creator or stored_at > by_creator[creator].get('metadata', {}).get('stored_at', ''):
             by_creator[creator] = e
     
+    # Filter to fresh perspectives only
+    fresh_creators = {}
+    for creator, entry in by_creator.items():
+        meta = entry.get('metadata', {})
+        file_hash = meta.get('file_hash')
+        file_path = meta.get('file_path')
+        
+        # If no file tracking, it's a theme - always fresh
+        if not file_hash or not file_path:
+            fresh_creators[creator] = entry
+            continue
+        
+        # Check hash
+        from remember import compute_file_hash
+        current = compute_file_hash(Path(file_path))
+        if not current or current == file_hash:
+            fresh_creators[creator] = entry
+        # else: stale, skip silently
+    
+    if not fresh_creators:
+        print(f"# {topic}\n(all perspectives are stale - file has changed)")
+        return
+    
     print(f"# {topic}")
     
-    for creator, entry in sorted(by_creator.items()):
+    for creator, entry in sorted(fresh_creators.items()):
         meta = entry.get('metadata', {})
         stored_at = meta.get('stored_at', '')[:10]  # Just date
         content = entry.get('content', '')
         
-        # Check for staleness if it's a file
-        file_hash = meta.get('file_hash')
-        file_path = meta.get('file_path')
-        stale_marker = ""
-        if file_hash and file_path:
-            from remember import compute_file_hash
-            current = compute_file_hash(Path(file_path))
-            if current and current != file_hash:
-                stale_marker = " [STALE]"
-        
-        print(f"\n## [{topic}] by {creator} @ {stored_at}{stale_marker}")
+        print(f"\n## [{topic}] by {creator} @ {stored_at}")
         print(content)
 
 
