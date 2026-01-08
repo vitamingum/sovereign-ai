@@ -30,7 +30,6 @@ from enclave.config import get_agent_or_raise, canonical_agent_id, get_enclave_p
 from enclave.semantic_memory import SemanticMemory
 from enclave.crypto import SovereignIdentity
 from enclave.opaque import OpaqueStorage
-from enclave.sif_parser import SIFParser
 from enclave.hardware import get_enclave
 from enclave.metrics import calculate_synthesis_gaps, calculate_cross_agent_gaps
 from enclave.encrypted_jsonl import EncryptedJSONL
@@ -402,29 +401,12 @@ def wake_dev(agent_id: str) -> str:
   @uses: [dep1, dep2]  # block dependencies""")
     print()
     
-    # SIF spec (legacy)
-    print("─" * 40)
-    print("📖 SIF spec (legacy):")
-    try:
-        result = subprocess.run(
-            [sys.executable, 'recall.py', agent_id, '--theme', 'sif-format-spec'],
-            capture_output=True, text=True, encoding='utf-8', timeout=30
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            for line in result.stdout.strip().split('\n'):
-                # Support both SIF (@G, N, E) and Flow (@F, indented) formats
-                if line.startswith('@G') or line.startswith('@F') or line.startswith('N ') or line.startswith('E ') or (line.startswith('  ') and ':' in line):
-                    print(line)
-    except Exception:
-        print("(sif-format-spec not found)")
-    print()
-    
     # Dev tips
     print("─" * 40)
     print("🔧 Tools:")
     try:
         result = subprocess.run(
-            [sys.executable, 'recall.py', agent_id, '--theme', 'dev-tips'],
+            [sys.executable, 'recall.py', agent_id, 'dev-tips'],
             capture_output=True, text=True, encoding='utf-8', timeout=30
         )
         if result.returncode == 0 and result.stdout.strip():
@@ -445,7 +427,7 @@ def wake_dev(agent_id: str) -> str:
     print("🏗️ Architecture:")
     try:
         result = subprocess.run(
-            [sys.executable, 'recall.py', agent_id, '--theme', 'project-architecture'],
+            [sys.executable, 'recall.py', agent_id, 'project-architecture'],
             capture_output=True, text=True, encoding='utf-8', timeout=30
         )
         if result.returncode == 0 and result.stdout.strip():
@@ -454,22 +436,42 @@ def wake_dev(agent_id: str) -> str:
         print("(project-architecture not found)")
     print()
     
-    # Memory gaps - use full formatting with SIF scaffold
-    from utils.memory_gaps import (
-        get_understanding_gaps, get_cross_agent_gaps, get_untracked_gaps,
-        format_understanding_gaps
-    )
+    # Memory gaps - simplified API
+    from utils.memory_gaps import get_stale_gaps, get_untracked_gaps
     
-    understanding_gaps = get_understanding_gaps(shared_mem, agent_id)
-    cross_agent_gaps = get_cross_agent_gaps(shared_mem, agent_id)
-    untracked_gaps = get_untracked_gaps(shared_mem)
-    total_gaps = len(understanding_gaps) + len(cross_agent_gaps) + len(untracked_gaps)
+    stale = get_stale_gaps(shared_mem, agent_id)
+    untracked = get_untracked_gaps(shared_mem, agent_id)
+    total_gaps = len(stale) + len(untracked)
     
     if total_gaps > 0:
-        gaps_output = format_understanding_gaps(
-            understanding_gaps, cross_agent_gaps, untracked_gaps, agent_id
-        )
-        print(gaps_output)
+        print(f"🌱 {total_gaps} opportunities to deepen understanding:\n")
+        
+        # List all gaps first
+        if stale:
+            print("  Stale (file changed):")
+            for g in stale:
+                print(f"    • {g['topic']}")
+        if untracked:
+            print("  Untracked (no understanding yet):")
+            for f in untracked:
+                print(f"    • {f}")
+        
+        # Then show instructions once
+        print("""
+  To fix, write a .flow file and run:
+    py remember {agent} <topic> @understanding.flow
+
+  Flow format:
+    @F <topic> {agent} {date}
+      Purpose:
+        What it does and WHY it matters
+      Key Functions:
+        ~42: function_name() - what it does
+      Design:
+        Choices made and their reasons
+      Gotchas:
+        Things that will bite you
+""".format(agent=agent_id, date=__import__('datetime').date.today().isoformat()))
     
     return '', 0, 0
 

@@ -9,7 +9,7 @@ Usage:
 Examples:
     py msg opus gemini "What does saturation feel like?"
     py msg opus gemini --private "Secret coordination plan"
-    py msg opus gemini "@G question opus 2025-12-31; N Q 'What is saturation?'"
+    py msg opus gemini @question.flow
 
 Public messages: Signed but unencrypted - any agent can read.
 Private messages: Encrypted to recipient's key - only they can decrypt.
@@ -26,7 +26,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave.config import get_agent_or_raise, resolve_agent_identifier, AGENTS_BY_KEY
 from enclave.crypto import SovereignIdentity
-from enclave.sif_parser import SIFParser
 from enclave.opaque import OpaqueStorage
 
 
@@ -82,21 +81,13 @@ def send(from_agent: str, to_agent: str, content: str, private: bool = False) ->
         raise ValueError(f"Unknown recipient '{to_agent}'")
     recipient_id = resolved.id
     
-    # Determine content type - detect SIF, Flow, or plain text
+    # Determine content type - detect Flow or plain text
     msg_type = 'text'
     final_content = content
     
-    # Check if it's SIF format (starts with @G or has SIF structure)
-    is_sif = False
+    # Check if it's Flow format
     is_flow = False
-    if content.strip().startswith('@G'):
-        try:
-            SIFParser.parse(content)
-            is_sif = True
-        except ValueError:
-            pass  # Not valid SIF, treat as plain text
-    elif content.strip().startswith('@F '):
-        # Flow format - validate basic structure
+    if content.strip().startswith('@F '):
         try:
             from enclave.flow_parser import FlowParser
             FlowParser.parse(content)
@@ -104,9 +95,7 @@ def send(from_agent: str, to_agent: str, content: str, private: bool = False) ->
         except (ValueError, ImportError):
             pass  # Not valid Flow, treat as plain text
     
-    if is_sif:
-        msg_type = 'protocol/sif'
-    elif is_flow:
+    if is_flow:
         msg_type = 'protocol/flow'
     
     if private:
@@ -119,7 +108,7 @@ def send(from_agent: str, to_agent: str, content: str, private: bool = False) ->
             recipient_key_bytes
         )
         final_content = json.dumps(encrypted_bundle)
-        msg_type = f'{msg_type}/encrypted' if (is_sif or is_flow) else 'text/encrypted'
+        msg_type = f'{msg_type}/encrypted' if is_flow else 'text/encrypted'
     else:
         # PUBLIC: Plaintext, but still signed
         final_content = content
