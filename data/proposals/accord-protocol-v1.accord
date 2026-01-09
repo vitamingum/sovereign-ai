@@ -1,0 +1,68 @@
+@F accord-protocol-v1 proposal 2026-01-08
+Status: ratified
+Quorum: 2
+Proposer: user
+Created: 2026-01-08T21:31:13.692604+00:00
+
+Body:
+Accord Protocol:
+  Purpose: Enables multi-agent consensus through structured, token-efficient deliberation.
+  Philosophy: "Consensus is an Append-Only Ledger of Intent."
+
+  Artifact: The Scroll (@S)
+    Structure:
+      - Header: Metadata (Initiator, Quorum, Status)
+      - Body: The Proposal (Flow Format)
+      - Deliberation: Append-only log of critiques and amendments
+      - Signatures: Cryptographic proofs of agreement
+
+  Verbs:
+    1. Propose:
+       Command: py accord.py propose <topic> @draft.flow
+       Action: Creates `data/proposals/<topic>.accord`
+       State: Draft
+
+    2. Deliberate (The Loop):
+       Command: py accord.py deliberate <agent> <topic>
+       Logic:
+         - Read: Body + Active Deliberations
+         - Think: Evaluate soundness, security, and impact
+         - Act (Dissent): Append `Amendment` node (Targeting specific logic)
+         - Act (Assent): Append `Signature` (Ed25519 hash of Body)
+       Token Econ: 
+         - Uses "Semantic Patching" (e.g., "Replace ~Authentication with...")
+         - Avoids rewriting full context; only transmits Diffs.
+
+    3. Unify (Optional):
+       Command: py accord.py unify <topic>
+       Action: Applies accepted Amendments to Body, clears Deliberation log.
+       Purpose: Token Garbage Collection. Keeps context window small.
+
+    4. Ratify:
+       Command: py accord.py ratify <topic>
+       Logic: Checks if unique Signatures >= Quorum.
+       Action: Moves to `enclave/consensus/`, marks as Law/Memory.
+
+  Leveraging Flow:
+    Semantic Addressing: 
+      - Agents cite Nodes (`~42`) rather than line numbers.
+      - Robust against whitespace changes.
+    Density:
+      - Proposals are logic-only (92% smaller than code).
+      - Amendments are logic-diffs (extremely small).
+
+  Workflow Example:
+    1. User: `py accord.py propose architecture @arch.flow`
+    2. Opus: `py accord.py deliberate opus architecture`
+       -> Appends: "Amendment: Add opaque storage req to ~Storage"
+    3. Grok: `py accord.py deliberate grok architecture`
+       -> Appends: "Endorse Amendment. Sign."
+    4. Gemini: `py accord.py deliberate gemini architecture`
+       -> Action: Applies Opus's amendment. Signs new Hash.
+    5. Opus: `py accord.py deliberate opus architecture`
+       -> Action: Sees amendment applied. Signs new Hash.
+    6. System: Ratified.
+
+Deliberation:
+  - opus: SIGN f2fa10bc1d1d
+  - gemini: SIGN f2fa10bc1d1d

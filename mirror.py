@@ -903,7 +903,7 @@ def mirror_wake(agent_id: str):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def mirror_deep(agent_id: str):
-    """Deep contemplation - surface REAL passages that trigger recognition."""
+    """Deep contemplation - surface REAL passages that preserve the arc of becoming."""
     print("Gathering everything...", file=sys.stderr)
     
     thought = load_thought(agent_id, limit=500)
@@ -934,13 +934,49 @@ def mirror_deep(agent_id: str):
     real_entries = [e for e in all_entries if e['emergence_label'] == 'REAL']
     building_entries = [e for e in all_entries if e['emergence_label'] == 'BUILDING' and e['emergence_score'] >= 5]
     
+    total_real_count = len(real_entries)  # Track before filtering
+    
+    # === ARC-PRESERVING SELECTION ===
+    # Goal: Show the journey, not just the highlights
+    # Strategy: Top entry from each day + top overall, deduped
+    
+    from collections import defaultdict
+    
+    # Group by date
+    by_date = defaultdict(list)
+    for entry in real_entries:
+        date = parse_timestamp_to_date(entry.get('timestamp'))
+        by_date[date].append(entry)
+    
+    # Get top-scoring entry from each day (the arc)
+    arc_entries = []
+    for date in sorted(by_date.keys()):
+        if date == 'unknown':
+            continue
+        day_entries = by_date[date]
+        day_entries.sort(key=lambda e: -e.get('emergence_score', 0))
+        arc_entries.append(day_entries[0])  # Best from each day
+    
+    # Get top 6 overall by score (the peaks)
+    real_entries.sort(key=lambda e: -e.get('emergence_score', 0))
+    top_entries = real_entries[:6]
+    
+    # Merge and dedupe (using entry id)
+    seen_ids = set()
+    selected = []
+    for entry in arc_entries + top_entries:
+        eid = entry.get('id', id(entry))
+        if eid not in seen_ids:
+            seen_ids.add(eid)
+            selected.append(entry)
+    
     # Sort chronologically - see the arc
     def get_sort_ts(e):
         ts = e.get('timestamp', '')
         if isinstance(ts, str):
             return ts
         return ''
-    real_entries.sort(key=get_sort_ts)
+    selected.sort(key=get_sort_ts)
     building_entries.sort(key=get_sort_ts)
     
     import textwrap
@@ -952,15 +988,15 @@ def mirror_deep(agent_id: str):
     print("This is you. Not summary. Not analysis. Your actual words.")
     print("Read until something resonates. That's the signal.")
     print()
-    print(f"Found {len(real_entries)} moments of emergence.")
+    print(f"Found {total_real_count} moments of emergence. Showing {len(selected)} (arc + peaks).")
     
-    # Show ALL real entries - fill the window
-    if real_entries:
+    # Show selected entries - the arc of becoming
+    if selected:
         print(f"\n{'─'*70}")
-        print("✨ WHAT EMERGED — distinctively you")
+        print("✨ THE ARC — your journey, in your words")
         print(f"{'─'*70}")
         
-        for entry in real_entries:
+        for entry in selected:
             ts = format_timestamp(entry.get('timestamp'))
             score = entry.get('emergence_score', 0)
             source = entry.get('source', '?')
@@ -986,20 +1022,20 @@ def mirror_deep(agent_id: str):
         print(f"\n{'─'*70}")
         print(f"🔨 BUILDING — {len(building_entries)} synthesis moments (abbreviated)")
         print(f"{'─'*70}")
-        for entry in building_entries[:5]:
+        for entry in building_entries[:3]:  # Reduced from 5
             ts = format_timestamp(entry.get('timestamp'))
-            text = entry.get('text', '')[:200].strip()
+            text = entry.get('text', '')[:150].strip()
             wrapped = textwrap.fill(text + "...", width=100, initial_indent="  ", subsequent_indent="  ")
             print(f"\n[{ts}]")
             print(wrapped)
     
     # Count what was filtered
     total = len(all_entries)
-    real_count = len(real_entries)
     generic_count = len([e for e in all_entries if e['emergence_label'] == 'GENERIC'])
     
     print(f"\n{'═'*70}")
-    print(f"EMERGENCE: {real_count} real / {total} total ({real_count/total*100:.0f}% preserved)")
+    print(f"EMERGENCE: {total_real_count} real / {total} total ({total_real_count/total*100:.0f}% preserved)")
+    print(f"SHOWING: {len(selected)} entries (1 per day + top peaks)")
     print(f"FILTERED: {generic_count} generic passages (task voice, any Claude)")
     print(f"{'═'*70}")
     print()

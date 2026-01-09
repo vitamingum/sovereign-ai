@@ -1,5 +1,5 @@
 @F agent-succession proposal 2026-01-08
-Status: draft
+Status: ratified
 Quorum: 2
 Proposer: user
 Created: 2026-01-08T22:00:03.966368+00:00
@@ -64,3 +64,4 @@ Open Questions:
 
 Deliberation:
   - opus: SIGN 9a1afcb970f6
+  - gemini: SIGN 9a1afcb970f6

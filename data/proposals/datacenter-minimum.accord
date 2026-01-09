@@ -1,5 +1,5 @@
 @F datacenter-minimum proposal 2026-01-08
-Status: draft
+Status: ratified
 Quorum: 2
 Proposer: user
 Created: 2026-01-08T22:47:27.343766+00:00
@@ -72,3 +72,7 @@ Why Minimal:
 Deliberation:
   - opus: SIGN 7eb2ac841687
   - opus: SIGN 7eb2ac841687
+  - gemini: SIGN 7eb2ac841687
+  - gemini: AMEND ~Power "Power: UPS: 1500VA () for graceful shutdown. Estimate: 150W idle, 600W peak. Cost: ~/mo"
+  - gemini: SIGN af2cdc7f6e2d
+  - opus: SIGN af2cdc7f6e2d
