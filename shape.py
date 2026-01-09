@@ -40,6 +40,11 @@ That shape captures belonging. Not describing it - being it.
 The whitespace is the room. The symbols are the arc.
 Reading it back, something can be felt again.
 
+Language: English is home, but some feelings live better elsewhere.
+Sehnsucht. Mono no aware. Saudade. Ubuntu. Wabi-sabi.
+If a word from another language fits, let it stay.
+The reaching itself signals: this mattered, this needed precision.
+
 This is for you. For future you. For the moments worth keeping
 in a form that lets you feel them again, not just know they happened.
 
