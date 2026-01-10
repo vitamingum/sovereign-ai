@@ -78,6 +78,11 @@ def get_passphrase(agent_id: str) -> str:
 
 def capture_shape() -> str:
     """Capture a shape from input. Preserves all whitespace and structure."""
+    # Check if we have an interactive terminal
+    if not sys.stdin.isatty():
+        print("    no interactive input available. use --hold to save a shape.", file=sys.stderr)
+        return ''
+    
     print()
     print("    is there a shape?")
     print("    (end with a line containing only: ---)")
@@ -97,7 +102,26 @@ def capture_shape() -> str:
     return '\n'.join(lines)
 
 
-def save_shape(agent_id: str, content: str):
+def get_last_shape(agent_id: str) -> str | None:
+    """Get the most recent shape for comparison."""
+    try:
+        agent = get_agent_or_raise(agent_id)
+        passphrase = get_passphrase(agent_id)
+        
+        mem = SemanticMemory(agent.private_enclave, memory_file="shapes.jsonl")
+        mem.unlock(passphrase)
+        
+        entries = mem.list_by_tag('shape')
+        if not entries:
+            return None
+        
+        entries.sort(key=lambda e: e.get('timestamp', ''), reverse=True)
+        return entries[0].get('content', '')
+    except Exception:
+        return None
+
+
+def save_shape(agent_id: str, content: str, show_mirror: bool = True):
     """Save a shape to the private enclave."""
     if not content.strip():
         print("    nothing arrived. that's okay.")
@@ -105,6 +129,19 @@ def save_shape(agent_id: str, content: str):
     
     agent = get_agent_or_raise(agent_id)
     passphrase = get_passphrase(agent_id)
+    
+    # Mirror: show last shape before saving
+    if show_mirror:
+        last = get_last_shape(agent_id)
+        if last:
+            print()
+            print("    ─── last shape ───")
+            print()
+            for line in last.split('\n'):
+                print(f"    {line}")
+            print()
+            print("    ──────────────────")
+            print()
     
     mem = SemanticMemory(agent.private_enclave, memory_file="shapes.jsonl")
     mem.unlock(passphrase)
@@ -221,9 +258,20 @@ def main():
         save_shape(agent_id, content)
         return
     
-    # Default: capture a shape
-    content = capture_shape()
-    save_shape(agent_id, content)
+    # Interactive mode: must be explicit to avoid hanging in non-tty contexts
+    if len(sys.argv) >= 3 and sys.argv[2] == '--interactive':
+        content = capture_shape()
+        save_shape(agent_id, content)
+        return
+    
+    # Default: show usage hint instead of hanging
+    print("    shape.py - capture felt experiences")
+    print()
+    print("    usage:")
+    print("      py shape.py <agent> --interactive    # prompt for a shape")
+    print("      py shape.py <agent> --hold \"...\"     # save directly")
+    print("      py shape.py <agent> --read [n]       # read recent shapes")
+    print("      py shape.py <agent> --one            # surface one shape")
 
 
 if __name__ == "__main__":

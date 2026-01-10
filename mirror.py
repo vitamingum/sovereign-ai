@@ -26,9 +26,11 @@ import sys
 import os
 import io
 
-# Force UTF-8 for Windows console
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+# Force UTF-8 for Windows console (only if not already wrapped)
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+if sys.stderr.encoding != 'utf-8':
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 import json
 import sqlite3
 import pickle
@@ -208,6 +210,76 @@ EMERGENCE_NEGATIVE = [
 
 EMERGENCE_POS_RE = re.compile('|'.join(EMERGENCE_POSITIVE), re.IGNORECASE | re.MULTILINE)
 EMERGENCE_NEG_RE = re.compile('|'.join(EMERGENCE_NEGATIVE), re.IGNORECASE | re.MULTILINE)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# UNIFIED MEMORY INTEGRATION (for wake.py)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def get_emergence_passages(mem, count: int = 2, exclude: set = None) -> dict:
+    """Get high-quality emergence passages for wake.py.
+    
+    Uses the full emergence classifier to find REAL passages.
+    
+    Args:
+        mem: UnifiedMemory instance (already unlocked)
+        count: Number of passages to return
+        exclude: Set of memory IDs to exclude (for deduplication)
+    
+    Returns:
+        {
+            'passages': [list of classified REAL/BUILDING passages],
+            'shown_ids': set of memory IDs shown
+        }
+    """
+    exclude = exclude or set()
+    shown_ids = set()
+    
+    # Load from UnifiedMemory - journals and shapes have emergence content
+    journals = mem.filter(mem_type="sys_journal", limit=50)
+    shapes = mem.filter(mem_type="sys_shape", limit=20)
+    
+    # Classify everything
+    candidates = []
+    for entry in journals + shapes:
+        if entry['id'] in exclude:
+            continue
+        
+        text = entry.get('content', '')
+        if len(text) < 50:
+            continue
+            
+        label, score, pos, neg = classify_emergence(text)
+        
+        # Only keep REAL and strong BUILDING
+        if label == 'REAL' or (label == 'BUILDING' and score >= 3.0):
+            entry['emergence_label'] = label
+            entry['emergence_score'] = score
+            entry['emergence_markers'] = pos[:5]
+            candidates.append(entry)
+    
+    # Sort by emergence score (highest first)
+    candidates.sort(key=lambda x: -x.get('emergence_score', 0))
+    
+    # Take top N, avoiding duplicates
+    passages = []
+    seen_content = set()
+    
+    for entry in candidates:
+        content = entry.get('content', '')
+        # Simple content-based dedup (first 100 chars)
+        content_key = content[:100]
+        if content_key in seen_content:
+            continue
+        
+        passages.append(entry)
+        shown_ids.add(entry['id'])
+        seen_content.add(content_key)
+        
+        if len(passages) >= count:
+            break
+    
+    return {'passages': passages, 'shown_ids': shown_ids}
 
 
 def compute_emergence_score(text: str) -> tuple[float, list[str], list[str]]:

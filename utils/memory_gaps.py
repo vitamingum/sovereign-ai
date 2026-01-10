@@ -21,25 +21,53 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dotenv import load_dotenv
 load_dotenv()
 
-from enclave.semantic_memory import SemanticMemory
+from enclave.unified_memory import UnifiedMemory
 from enclave.config import get_agent_or_raise
+from enclave.hardware import get_enclave
 
 
-def get_enclave_and_memory(agent_id: str):
-    """Get shared enclave path and initialized SemanticMemory."""
+def get_memory(agent_id: str) -> UnifiedMemory:
+    """Get initialized UnifiedMemory for agent."""
     agent = get_agent_or_raise(agent_id)
+    base_dir = Path(__file__).parent.parent
     
-    passphrase = os.environ.get('SHARED_ENCLAVE_KEY')
-    if not passphrase:
-        env_file = Path(__file__).parent.parent / '.env'
+    private_path = base_dir / agent.private_enclave / "storage" / "private"
+    shared_path = base_dir / agent.shared_enclave / "storage" / "encrypted"
+    
+    # Get private passphrase
+    private_passphrase = None
+    key_file = private_path / "key.sealed"
+    if key_file.exists():
+        try:
+            with open(key_file, "rb") as f:
+                sealed_data = f.read()
+            enclave = get_enclave()
+            private_passphrase = enclave.unseal(sealed_data).decode('utf-8')
+        except Exception:
+            pass
+    
+    if not private_passphrase:
+        private_passphrase = os.environ.get(f'{agent.env_prefix}_KEY')
+    
+    if not private_passphrase:
+        env_file = base_dir / '.env'
+        if env_file.exists():
+            for line in env_file.read_text().splitlines():
+                if line.startswith(f'{agent.env_prefix}_KEY='):
+                    private_passphrase = line.split('=', 1)[1]
+    
+    # Get shared passphrase
+    shared_passphrase = os.environ.get('SHARED_ENCLAVE_KEY')
+    if not shared_passphrase:
+        env_file = base_dir / '.env'
         if env_file.exists():
             for line in env_file.read_text().splitlines():
                 if line.startswith('SHARED_ENCLAVE_KEY='):
-                    passphrase = line.split('=', 1)[1]
+                    shared_passphrase = line.split('=', 1)[1]
     
-    sm = SemanticMemory(agent.shared_enclave)
-    sm.unlock(passphrase)
-    return agent.shared_enclave, sm
+    mem = UnifiedMemory(private_path, shared_path)
+    mem.unlock(private_passphrase, shared_passphrase)
+    return mem
 
 
 def file_hash(path: Path) -> str:
@@ -55,14 +83,17 @@ def normalize_topic(topic: str) -> str:
     return topic.replace('-', '_')
 
 
-def get_all_topics(sm: SemanticMemory, agent_id: str = None) -> dict:
+def get_all_topics(mem: UnifiedMemory, agent_id: str = None) -> dict:
     """Get all topics with their metadata.
     
     Returns {normalized_topic: {topic, file_hash, file_path, creator}}
     """
     topics = {}
     
-    for m in sm.list_all():
+    # Filter for sys_understanding type (shared memories about files/code)
+    entries = mem.filter(mem_type='sys_understanding')
+    
+    for m in entries:
         meta = m.get('metadata', {})
         topic = meta.get('topic')
         creator = meta.get('creator')
@@ -76,28 +107,27 @@ def get_all_topics(sm: SemanticMemory, agent_id: str = None) -> dict:
         
         norm = normalize_topic(topic)
         
-        # Keep newest per topic
-        stored_at = meta.get('stored_at', '')
-        if norm not in topics or stored_at > topics[norm].get('stored_at', ''):
+        # Keep newest per topic (entries already sorted newest first)
+        if norm not in topics:
             topics[norm] = {
                 'topic': topic,
                 'file_hash': meta.get('file_hash'),
                 'file_path': meta.get('file_path'),
                 'creator': creator,
-                'stored_at': stored_at
+                'created_at': m.get('created_at', '')
             }
     
     return topics
 
 
-def get_stale_gaps(sm: SemanticMemory, agent_id: str = None) -> list[dict]:
+def get_stale_gaps(mem: UnifiedMemory, agent_id: str = None) -> list[dict]:
     """Find topics where file changed since last remember.
     
     Checks ALL agents - gaps are shared, any agent can fill.
     
     Returns list of {topic, stored_hash, current_hash, file}
     """
-    topics = get_all_topics(sm)  # Don't filter by agent - shared burden
+    topics = get_all_topics(mem)  # Don't filter by agent - shared burden
     gaps = []
     
     for norm, info in topics.items():
@@ -127,7 +157,7 @@ def get_stale_gaps(sm: SemanticMemory, agent_id: str = None) -> list[dict]:
     return gaps
 
 
-def get_untracked_gaps(sm: SemanticMemory, agent_id: str = None) -> list[str]:
+def get_untracked_gaps(mem: UnifiedMemory, agent_id: str = None) -> list[str]:
     """Find files that should be tracked but aren't.
     
     Checks ALL agents - gaps are shared, any agent can fill.
@@ -137,7 +167,7 @@ def get_untracked_gaps(sm: SemanticMemory, agent_id: str = None) -> list[str]:
     project_root = Path(__file__).parent.parent
     
     # Get all topics (normalized) - don't filter by agent
-    topics = get_all_topics(sm)  # Shared burden
+    topics = get_all_topics(mem)  # Shared burden
     tracked = set(topics.keys())
     
     # Also add file_path values
@@ -173,6 +203,15 @@ def get_untracked_gaps(sm: SemanticMemory, agent_id: str = None) -> list[str]:
             if norm not in tracked:
                 untracked.append(f'utils/{u}')
     
+    # Important enclave files worth tracking
+    important_enclave = ['unified_memory.py', 'semantic_memory.py', 'config.py', 'flow_parser.py']
+    for e in important_enclave:
+        p = project_root / 'enclave' / e
+        if p.exists():
+            norm = normalize_topic(e)
+            if norm not in tracked:
+                untracked.append(f'enclave/{e}')
+    
     return sorted(untracked)
 
 
@@ -185,16 +224,16 @@ def main():
     show_all = '--all' in sys.argv
     
     try:
-        _, sm = get_enclave_and_memory(agent_id)
+        mem = get_memory(agent_id)
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
     
     # Check stale (any agent's entry that's out of date)
-    stale = get_stale_gaps(sm)
+    stale = get_stale_gaps(mem)
     
     # Check untracked (files no agent has remembered)
-    untracked = get_untracked_gaps(sm)
+    untracked = get_untracked_gaps(mem)
     
     if not stale and not untracked:
         print("✅ No memory gaps")

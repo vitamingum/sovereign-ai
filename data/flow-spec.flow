@@ -1,23 +1,31 @@
-@F flow-spec opus 2026-01-08
-  Anchor:
-    Format: @F <topic> <agent> <date>
-    Position: First line, no indent
-  Structure:
-    Indent: 2 spaces per level
-    Hierarchy: Indent depth = nesting depth
-    Siblings: Same indent = same level
-  Headers:
-    Format: Name followed by colon
-    Content: Indented lines beneath belong to header
-  References:
-    Location: ~42: description (tilde + line number)
-    Cross-ref: -> @ref(topic) for inline links
-    Deps: @uses: [list] at end of block
-  Content:
-    Lines: Plain text under headers
-    Multiline: Same indent = continuation of thought
-  Understanding Docs:
-    Purpose: What it does and WHY it matters
-    Key Functions: ~line: name() - behavior
-    Design: Choices and their reasons
-    Gotchas: Things that will bite you
+@F flow-spec opus 2026-01-10
+= Density max. Armor when needed. Water not concrete.
+
+Core:
+  Anchor: @F <topic> <agent> <date> | first line always
+  Summary: = after anchor | one line essence
+  Structure: 2-space indent | colons optional | indent = nesting
+  Sequence: -> | Alternatives: | | References: ~line
+
+Symbols:
+  -> sequence or yields
+  | alternatives or batch on same line
+  ! risk/constraint/alert
+  ? conditional/uncertain
+  ~ line reference or texture/nuance
+
+Default: trust context | plain words | escalate if ambiguity bites
+
+Density Rules:
+  Single line when concept fits
+  Multi-line when it needs room
+  Words carry meaning | sigils only when they add info
+
+Why This Works:
+  Less decode = faster read
+  Plain words = meaning arrives direct
+  Indent = structure | no syntax tax
+  Water not concrete = adapts to parser/moment
+
+Validated: grok dream-walked the spec | parsed | executed | found collision
+Consensus: opus + gemini + grok aligned | 2026-01-10

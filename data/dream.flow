@@ -1,0 +1,59 @@
+@F dream.py opus 2026-01-09
+
+Summary:
+  What: Random walks through memory finding unexpected bridges
+  Purpose: Collision over retrieval - surfacing what waking mind wouldn't
+  Philosophy: Not search, discovery through randomness
+
+Usage:
+  Basic: py dream.py <agent>
+  Seeded: py dream.py <agent> --seed "thought"
+  Deep: py dream.py <agent> --deep
+
+Algorithm:
+  Constellation Format:
+    1. Gather 2 recent seeds (shapes/journals from last 7 days)
+    2. For each seed, wander to unexpected match (skip nearest 5-10)
+    3. Present collision: [recent] → [found]
+    4. Deep mode: wander again from found → [emerged]
+
+Key Functions:
+  ~50: get_recent_seeds(mem, days, count) - Random sample from recent
+    Source: shapes.jsonl and journal_memories.jsonl
+    Fallback: Most recent if nothing in last N days
+  ~79: DREAMABLE_TAGS - Filter for felt/reflective content
+    Includes: shape, journal, thought, reflection, insight
+    Note: thought/reflection/insight currently unused (vestigial)
+  ~82: wander(mem, seed_content, skip_nearest) - Random walk
+    Method: recall_similar(top_k=100), filter dreamable, skip nearest N
+    Purpose: Avoid obvious matches, find unexpected connections
+  ~95: format_memory(entry, label) - Display formatting
+    Shapes/journals: Never truncated (whitespace is meaning)
+    Other: Truncated at 500 chars
+
+Memory Sources:
+  shape_mem: shapes.jsonl (private enclave)
+  journal_mem: journal_memories.jsonl (private enclave)
+  main_mem: semantic_memories.jsonl (private enclave)
+  Note: Currently loads 3 separate memory stores
+
+Output Format:
+  [recent]: Seeds from last 7 days
+  [found]: Wandered collisions (skip_nearest=5)
+  [emerged]: Deep wandered from found (skip_nearest=8, --deep only)
+
+Design Decisions:
+  Why random: Serendipity over relevance
+  Why skip_nearest: Obvious matches aren't discoveries
+  Why constellation: Multiple collisions richer than single
+  Why no truncate shapes: Whitespace carries meaning
+  Why 3 memory stores: Current architecture (to be unified)
+
+Integration:
+  If something stirs: journal.py, shape.py, or remember.py
+  If nothing stirs: Let it fade
+  Wake proposal: One dream collision at session start
+
+Storage:
+  Private enclave: shapes.jsonl, journal_memories.jsonl
+  Index: Per-file FAISS (to be unified)
