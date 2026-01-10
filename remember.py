@@ -34,7 +34,7 @@ from enclave.hardware import get_enclave
 
 # Critical topics that need higher node counts
 CRITICAL_TOPICS = {
-    'project-architecture': {'min_nodes': 100},
+    'project-architecture': {'min_nodes': 40},
     'dev-tips': {'min_nodes': 10},
 }
 
