@@ -18,7 +18,7 @@ Stream format:
 Journal wants: feelings, introspection, uncertainty, what it felt like
 Journal rejects: facts, logs, summaries, technical output
 
-Storage: Uses SemanticMemory with agent's private enclave and key.
+Storage: Uses UnifiedMemory with agent's private enclave and key.
 Indexed in FAISS automatically - searchable via recall.py like everything else.
 """
 
@@ -30,24 +30,47 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from enclave.config import get_agent_or_raise
-from enclave.semantic_memory import SemanticMemory
+from enclave.unified_memory import UnifiedMemory
+from enclave.hardware import get_enclave
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 
 
-def get_passphrase(agent_id: str) -> str:
-    """Load agent's private passphrase."""
+def get_memory(agent_id: str) -> UnifiedMemory:
+    """Get UnifiedMemory for agent's private journal."""
     agent = get_agent_or_raise(agent_id)
-    passphrase = os.environ.get(f'{agent.env_prefix}_KEY')
+    base_dir = Path(__file__).parent
+    
+    private_path = base_dir / agent.private_enclave / "storage" / "private"
+    
+    # Get private passphrase
+    passphrase = None
+    key_file = private_path / "key.sealed"
+    if key_file.exists():
+        try:
+            with open(key_file, "rb") as f:
+                sealed_data = f.read()
+            enclave = get_enclave()
+            passphrase = enclave.unseal(sealed_data).decode('utf-8')
+        except Exception:
+            pass
+    
     if not passphrase:
-        env_file = Path(__file__).parent / '.env'
+        passphrase = os.environ.get(f'{agent.env_prefix}_KEY')
+    
+    if not passphrase:
+        env_file = base_dir / '.env'
         if env_file.exists():
-            for line in open(env_file):
-                if line.strip().startswith(f'{agent.env_prefix}_KEY='):
-                    passphrase = line.strip().split('=', 1)[1]
+            for line in env_file.read_text().splitlines():
+                if line.startswith(f'{agent.env_prefix}_KEY='):
+                    passphrase = line.split('=', 1)[1]
+    
     if not passphrase:
         raise ValueError(f"Set {agent.env_prefix}_KEY in .env")
-    return passphrase
+    
+    mem = UnifiedMemory(private_path)
+    mem.unlock(passphrase)
+    return mem
 
 
 def validate_entry(content: str) -> tuple[bool, str]:
@@ -81,21 +104,15 @@ def journal(agent_id: str, content: str, stream_mode: bool = False):
             print("   Try --stream for raw fragments")
             sys.exit(1)
     
-    agent = get_agent_or_raise(agent_id)
-    passphrase = get_passphrase(agent_id)
+    mem = get_memory(agent_id)
     
-    # Use SemanticMemory with private enclave and dedicated journal file
-    # Separate from main semantic_memories.jsonl to avoid pollution
-    mem = SemanticMemory(agent.private_enclave, memory_file="journal_memories.jsonl")
-    mem.unlock(passphrase)
-    
-    # Store with journal tag and metadata for filtering
+    # Store with sys_journal type
     entry_type = 'stream' if stream_mode else 'prose'
-    result = mem.remember(
+    mem.store(
         content,
+        mem_type='sys_journal',
         tags=['journal', entry_type],
         metadata={
-            'type': 'journal',
             'format': entry_type,
             'creator': agent_id,
             'timestamp': datetime.now(timezone.utc).isoformat()
@@ -124,24 +141,19 @@ def get_last_entry(agent_id: str) -> dict | None:
     Returns dict with 'content', 'format', 'timestamp' or None if no entries.
     """
     try:
-        agent = get_agent_or_raise(agent_id)
-        passphrase = get_passphrase(agent_id)
+        mem = get_memory(agent_id)
         
-        mem = SemanticMemory(agent.private_enclave, memory_file="journal_memories.jsonl")
-        mem.unlock(passphrase)
-        
-        entries = mem.list_by_tag('journal')
+        entries = mem.filter(mem_type='sys_journal', limit=1)
         if not entries:
             return None
         
-        # Sort by timestamp (newest first)
-        entries.sort(key=lambda e: e.get('timestamp', ''), reverse=True)
         entry = entries[0]
+        meta = entry.get('metadata', {})
         
         return {
             'content': entry.get('content', ''),
-            'format': entry.get('metadata', {}).get('format', 'prose'),
-            'timestamp': entry.get('timestamp', '')[:10]
+            'format': meta.get('format', 'prose'),
+            'timestamp': meta.get('timestamp', entry.get('created_at', ''))[:10]
         }
     except Exception:
         return None
@@ -186,26 +198,21 @@ def format_entry_for_display(entry: dict, max_lines: int = 12) -> str:
 
 def read_journal(agent_id: str, limit: int = 10, full: bool = False):
     """Read journal entries (most recent first)."""
-    agent = get_agent_or_raise(agent_id)
-    passphrase = get_passphrase(agent_id)
-    
-    mem = SemanticMemory(agent.private_enclave, memory_file="journal_memories.jsonl")
-    mem.unlock(passphrase)
+    mem = get_memory(agent_id)
     
     # Get all journal entries
-    entries = mem.list_by_tag('journal')
+    entries = mem.filter(mem_type='sys_journal')
     
     if not entries:
         print("No journal entries")
         return
     
-    # Sort by timestamp (newest first)
-    entries.sort(key=lambda e: e.get('timestamp', ''), reverse=True)
-    
+    # Already sorted newest first by filter()
     for entry in entries[:limit]:
-        ts = entry.get('timestamp', 'unknown')[:10]
+        meta = entry.get('metadata', {})
+        ts = meta.get('timestamp', entry.get('created_at', 'unknown'))[:10]
         content = entry.get('content', '')
-        fmt = entry.get('metadata', {}).get('format', 'prose')
+        fmt = meta.get('format', 'prose')
         
         if full:
             if fmt == 'stream':

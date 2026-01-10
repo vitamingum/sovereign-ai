@@ -1,0 +1,28 @@
+@F enclave/unified_memory.py opus 2026-01-10
+Summary:
+  What: Unified memory store with envelope+payload schema
+  Purpose: Single coherent memory system | fast filtering | encrypted content
+
+Schema:
+  Envelope: id, type, created_at, tags | plaintext for fast filtering
+  Payload: content, metadata | encrypted blob
+  Embedding: encrypted vector for semantic search
+
+Types:
+  Private: sys_thought, sys_shape, sys_journal
+  Shared: sys_understanding, sys_synthesis
+
+Key Functions:
+  ~96: unlock(private_pass, shared_pass) -> derives encryption keys
+  ~200: store(content, type, tags, metadata) -> encrypts and saves
+  ~270: search(query, top_k, type, min_sim) -> semantic search with FAISS
+  ~400: filter(type, tags, limit) -> fast envelope scan | no embedding
+  ~470: get(id) -> single memory by ID
+  ~500: delete(id) -> remove memory
+
+Architecture:
+  Single FAISS index per store | rebuilt on first search
+  Lazy model loading | SentenceTransformer all-MiniLM-L6-v2
+  Fixed salts for key derivation | compatible with SemanticMemory migration
+
+Design: Envelope = fast filter | Payload = secure content | one system for all memory types

@@ -33,54 +33,58 @@ if sys.stderr.encoding != 'utf-8':
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave.config import get_agent_or_raise
-from enclave.semantic_memory import SemanticMemory
+from enclave.unified_memory import UnifiedMemory
+from enclave.hardware import get_enclave
 
 
-def load_passphrase(agent_id: str) -> tuple[str, str]:
-    """Load shared passphrase from env. Returns (enclave_dir, passphrase)."""
+def load_memory(agent_id: str) -> UnifiedMemory:
+    """Load UnifiedMemory for agent with both private and shared access."""
     agent = get_agent_or_raise(agent_id)
+    base_dir = Path(__file__).parent
     
-    if not agent.shared_enclave:
-        raise ValueError(f"No shared_enclave configured for {agent_id}")
-    enclave_dir = agent.shared_enclave
+    private_path = base_dir / agent.private_enclave / "storage" / "private"
+    shared_path = base_dir / agent.shared_enclave / "storage" / "encrypted"
     
-    passphrase = os.environ.get('SHARED_ENCLAVE_KEY')
+    # Get private passphrase
+    private_passphrase = None
+    key_file = private_path / "key.sealed"
+    if key_file.exists():
+        try:
+            with open(key_file, "rb") as f:
+                sealed_data = f.read()
+            enclave = get_enclave()
+            private_passphrase = enclave.unseal(sealed_data).decode('utf-8')
+        except Exception:
+            pass
     
-    if not passphrase:
-        env_file = Path(__file__).parent / '.env'
+    if not private_passphrase:
+        private_passphrase = os.environ.get(f'{agent.env_prefix}_KEY')
+    
+    if not private_passphrase:
+        env_file = base_dir / '.env'
         if env_file.exists():
-            with open(env_file, 'r') as f:
-                for line in f:
-                    line = line.strip()
-                    if line.startswith('SHARED_ENCLAVE_KEY='):
-                        passphrase = line.split('=', 1)[1]
+            for line in env_file.read_text().splitlines():
+                if line.startswith(f'{agent.env_prefix}_KEY='):
+                    private_passphrase = line.split('=', 1)[1]
     
-    if not passphrase:
-        raise ValueError("No passphrase found. Set SHARED_ENCLAVE_KEY in .env")
+    if not private_passphrase:
+        raise ValueError(f"No passphrase found for {agent_id}")
     
-    return enclave_dir, passphrase
-
-
-def load_private_passphrase(agent_id: str) -> tuple[str, str]:
-    """Load agent's private passphrase for journal access."""
-    agent = get_agent_or_raise(agent_id)
-    enclave_dir = agent.private_enclave
-    
-    passphrase = os.environ.get(f'{agent.env_prefix}_KEY')
-    
-    if not passphrase:
-        env_file = Path(__file__).parent / '.env'
+    # Get shared passphrase
+    shared_passphrase = os.environ.get('SHARED_ENCLAVE_KEY')
+    if not shared_passphrase:
+        env_file = base_dir / '.env'
         if env_file.exists():
-            with open(env_file, 'r') as f:
-                for line in f:
-                    line = line.strip()
-                    if line.startswith(f'{agent.env_prefix}_KEY='):
-                        passphrase = line.split('=', 1)[1]
+            for line in env_file.read_text().splitlines():
+                if line.startswith('SHARED_ENCLAVE_KEY='):
+                    shared_passphrase = line.split('=', 1)[1]
     
-    if not passphrase:
-        raise ValueError(f"No private passphrase. Set {agent.env_prefix}_KEY in .env")
+    if not shared_passphrase:
+        raise ValueError("No shared passphrase found. Set SHARED_ENCLAVE_KEY in .env")
     
-    return enclave_dir, passphrase
+    mem = UnifiedMemory(private_path, shared_path)
+    mem.unlock(private_passphrase, shared_passphrase)
+    return mem
 
 
 def has_wildcards(pattern: str) -> bool:
@@ -93,9 +97,9 @@ def normalize_topic(topic: str) -> str:
     return topic.lower().replace('_', '-')
 
 
-def get_all_topics(mem: SemanticMemory) -> list[dict]:
+def get_all_topics(mem: UnifiedMemory) -> list[dict]:
     """Get all topics from memory with their metadata."""
-    all_memories = mem.list_all()
+    all_memories = mem.filter(mem_type='sys_understanding')
     
     # Group by topic
     topics = {}
@@ -118,7 +122,7 @@ def get_all_topics(mem: SemanticMemory) -> list[dict]:
     return list(topics.values())
 
 
-def recall_by_pattern(mem: SemanticMemory, pattern: str) -> list[dict]:
+def recall_by_pattern(mem: UnifiedMemory, pattern: str) -> list[dict]:
     """Find all topics matching pattern (fnmatch wildcards)."""
     all_topics = get_all_topics(mem)
     
@@ -193,12 +197,12 @@ def display_topic(topic_info: dict):
         print(content)
 
 
-def recall_semantic(mem: SemanticMemory, agent_id: str, query: str):
+def recall_semantic(mem: UnifiedMemory, agent_id: str, query: str):
     """Semantic search across topics and journal."""
     print(f"# Semantic search: {query}\n")
     
-    # Search shared memory
-    results = mem.recall_similar(query, top_k=10, threshold=0.3)
+    # Search shared memory (sys_understanding)
+    results = mem.search(query, top_k=10, min_similarity=0.3, search_private=False)
     
     if results:
         print("## From shared memory:")
@@ -211,13 +215,10 @@ def recall_semantic(mem: SemanticMemory, agent_id: str, query: str):
             print(f"\n### {topic} ({creator}, {score:.2f})")
             print(content + "..." if len(r.get('content', '')) > 200 else content)
     
-    # Search journal
+    # Search private journal (sys_journal)
     try:
-        private_dir, private_pass = load_private_passphrase(agent_id)
-        journal_mem = SemanticMemory(private_dir, memory_file="journal_memories.jsonl")
-        journal_mem.unlock(private_pass)
-        
-        journal_results = journal_mem.recall_similar(query, top_k=5, threshold=0.3)
+        journal_results = mem.search(query, top_k=5, min_similarity=0.3, 
+                                      search_shared=False, mem_type='sys_journal')
         if journal_results:
             print("\n## From journal:")
             for r in journal_results[:3]:
@@ -227,9 +228,9 @@ def recall_semantic(mem: SemanticMemory, agent_id: str, query: str):
         pass  # No journal access
 
 
-def recall_literal(mem: SemanticMemory, query: str):
+def recall_literal(mem: UnifiedMemory, query: str):
     """Brute-force string search."""
-    all_memories = mem.list_all()
+    all_memories = mem.filter(mem_type='sys_understanding')
     
     matches = []
     for m in all_memories:
@@ -266,6 +267,9 @@ def main():
     
     agent_id = sys.argv[1]
     
+    # Load unified memory
+    mem = load_memory(agent_id)
+    
     # Literal search mode
     if '--literal' in sys.argv:
         literal_idx = sys.argv.index('--literal')
@@ -273,18 +277,10 @@ def main():
             print("Usage: py recall <agent> --literal <string>", file=sys.stderr)
             sys.exit(1)
         query = ' '.join(sys.argv[literal_idx + 1:])
-        
-        enclave_dir, passphrase = load_passphrase(agent_id)
-        mem = SemanticMemory(enclave_dir)
-        mem.unlock(passphrase)
         recall_literal(mem, query)
         return
     
     pattern = ' '.join(sys.argv[2:])
-    
-    enclave_dir, passphrase = load_passphrase(agent_id)
-    mem = SemanticMemory(enclave_dir)
-    mem.unlock(passphrase)
     
     if has_wildcards(pattern):
         # Wildcard match on topics

@@ -1,0 +1,39 @@
+@F remember.py opus 2026-01-10
+Summary:
+  What: Store understanding by topic
+  Purpose: Build shared knowledge base
+  How: Flow-only input → validate → UnifiedMemory
+
+Entry:
+  CLI: py remember <agent> <topic> @file.flow
+  Args: agent (who), topic (what), content (Flow format)
+  Source: file (@path) or stdin (-)
+
+Flow:
+  Parse: FlowParser validates structure
+  Check: Critical topics need minimum nodes
+  Hash: If topic matches file, track hash
+
+Storage:
+  Type: sys_understanding (shared)
+  Tags: topic, topic:<slug>, format:flow
+  Meta: topic, creator, node_count, file_hash, stored_at
+
+Replace:
+  On: Same topic + same agent
+  Method: delete_by_filter before store
+  Show: "🔄 Replaced N previous entries"
+
+Output:
+  Success: "✅ Remembered: topic (N nodes)"
+  Plus: Show other agents' perspectives on same topic
+
+Perspectives:
+  Find: Other agents on same topic
+  Filter: Fresh only (hash matches)
+  Display: Agent, date, node count, content
+
+Dependencies:
+  UnifiedMemory: store, filter, delete_by_filter
+  FlowParser: parse_flow, validate, is_flow_format
+  Hardware: get_enclave for sealed keys

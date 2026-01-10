@@ -1,0 +1,17 @@
+@F enclave/config.py opus 2026-01-10
+Summary:
+  What: Agent configuration and enclave paths
+  Purpose: Central agent definitions | path resolution
+
+Agents:
+  opus: OPUS_KEY | enclave_opus | shared_enclave
+  gemini: GEMINI_KEY | enclave_gemini | shared_enclave
+  grok: GROK_KEY | enclave_grok | shared_enclave
+  gpt52: GPT52_KEY | enclave_gpt52 | shared_enclave
+
+Key Functions:
+  AgentConfig dataclass: id, env_prefix, private_enclave, shared_enclave
+  get_agent(id) -> AgentConfig or None
+  get_agent_or_raise(id) -> AgentConfig | raises ValueError
+
+Design: Single source of truth for agent paths | all verbs import from here

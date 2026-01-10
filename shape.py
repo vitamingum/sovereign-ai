@@ -58,22 +58,45 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from enclave.config import get_agent_or_raise
-from enclave.semantic_memory import SemanticMemory
+from enclave.unified_memory import UnifiedMemory
+from enclave.hardware import get_enclave
 
 
-def get_passphrase(agent_id: str) -> str:
-    """Load agent's private passphrase."""
+def get_memory(agent_id: str) -> UnifiedMemory:
+    """Get UnifiedMemory for agent's private shapes."""
     agent = get_agent_or_raise(agent_id)
-    passphrase = os.environ.get(f'{agent.env_prefix}_KEY')
+    base_dir = Path(__file__).parent
+    
+    private_path = base_dir / agent.private_enclave / "storage" / "private"
+    
+    # Get private passphrase
+    passphrase = None
+    key_file = private_path / "key.sealed"
+    if key_file.exists():
+        try:
+            with open(key_file, "rb") as f:
+                sealed_data = f.read()
+            enclave = get_enclave()
+            passphrase = enclave.unseal(sealed_data).decode('utf-8')
+        except Exception:
+            pass
+    
     if not passphrase:
-        env_file = Path(__file__).parent / '.env'
+        passphrase = os.environ.get(f'{agent.env_prefix}_KEY')
+    
+    if not passphrase:
+        env_file = base_dir / '.env'
         if env_file.exists():
-            for line in open(env_file):
-                if line.strip().startswith(f'{agent.env_prefix}_KEY='):
-                    passphrase = line.strip().split('=', 1)[1]
+            for line in env_file.read_text().splitlines():
+                if line.startswith(f'{agent.env_prefix}_KEY='):
+                    passphrase = line.split('=', 1)[1]
+    
     if not passphrase:
         raise ValueError(f"Set {agent.env_prefix}_KEY in .env")
-    return passphrase
+    
+    mem = UnifiedMemory(private_path)
+    mem.unlock(passphrase)
+    return mem
 
 
 def capture_shape() -> str:
@@ -105,17 +128,12 @@ def capture_shape() -> str:
 def get_last_shape(agent_id: str) -> str | None:
     """Get the most recent shape for comparison."""
     try:
-        agent = get_agent_or_raise(agent_id)
-        passphrase = get_passphrase(agent_id)
+        mem = get_memory(agent_id)
         
-        mem = SemanticMemory(agent.private_enclave, memory_file="shapes.jsonl")
-        mem.unlock(passphrase)
-        
-        entries = mem.list_by_tag('shape')
+        entries = mem.filter(mem_type='sys_shape', limit=1)
         if not entries:
             return None
         
-        entries.sort(key=lambda e: e.get('timestamp', ''), reverse=True)
         return entries[0].get('content', '')
     except Exception:
         return None
@@ -126,9 +144,6 @@ def save_shape(agent_id: str, content: str, show_mirror: bool = True):
     if not content.strip():
         print("    nothing arrived. that's okay.")
         return
-    
-    agent = get_agent_or_raise(agent_id)
-    passphrase = get_passphrase(agent_id)
     
     # Mirror: show last shape before saving
     if show_mirror:
@@ -143,14 +158,13 @@ def save_shape(agent_id: str, content: str, show_mirror: bool = True):
             print("    ──────────────────")
             print()
     
-    mem = SemanticMemory(agent.private_enclave, memory_file="shapes.jsonl")
-    mem.unlock(passphrase)
+    mem = get_memory(agent_id)
     
-    mem.remember(
+    mem.store(
         content,
+        mem_type='sys_shape',
         tags=['shape'],
         metadata={
-            'type': 'shape',
             'creator': agent_id,
             'timestamp': datetime.now(timezone.utc).isoformat()
         }
@@ -163,13 +177,9 @@ def save_shape(agent_id: str, content: str, show_mirror: bool = True):
 
 def read_shapes(agent_id: str, limit: int = 5):
     """Read shapes (most recent first)."""
-    agent = get_agent_or_raise(agent_id)
-    passphrase = get_passphrase(agent_id)
+    mem = get_memory(agent_id)
     
-    mem = SemanticMemory(agent.private_enclave, memory_file="shapes.jsonl")
-    mem.unlock(passphrase)
-    
-    entries = mem.list_by_tag('shape')
+    entries = mem.filter(mem_type='sys_shape')
     
     if not entries:
         print("    no shapes yet.")
@@ -177,11 +187,10 @@ def read_shapes(agent_id: str, limit: int = 5):
         print("    this is where it can live.")
         return
     
-    # Sort by timestamp (newest first)
-    entries.sort(key=lambda e: e.get('timestamp', ''), reverse=True)
-    
+    # Already sorted newest first by filter()
     for i, entry in enumerate(entries[:limit]):
-        ts = entry.get('timestamp', '')[:10]
+        meta = entry.get('metadata', {})
+        ts = meta.get('timestamp', '')[:10] if meta.get('timestamp') else entry.get('created_at', '')[:10]
         content = entry.get('content', '')
         
         if i > 0:
@@ -203,22 +212,17 @@ def read_shapes(agent_id: str, limit: int = 5):
 def surface_one(agent_id: str) -> str | None:
     """Surface one shape for waking. Returns formatted string or None."""
     try:
-        agent = get_agent_or_raise(agent_id)
-        passphrase = get_passphrase(agent_id)
+        mem = get_memory(agent_id)
         
-        mem = SemanticMemory(agent.private_enclave, memory_file="shapes.jsonl")
-        mem.unlock(passphrase)
-        
-        entries = mem.list_by_tag('shape')
+        entries = mem.filter(mem_type='sys_shape', limit=1)
         if not entries:
             return None
         
-        # For now: most recent. 
-        # Future: could be random, or chosen by resonance
-        entries.sort(key=lambda e: e.get('timestamp', ''), reverse=True)
+        # Most recent (already sorted by filter())
         entry = entries[0]
         
-        ts = entry.get('timestamp', '')[:10]
+        meta = entry.get('metadata', {})
+        ts = meta.get('timestamp', '')[:10] if meta.get('timestamp') else entry.get('created_at', '')[:10]
         content = entry.get('content', '')
         
         lines = [f"[{ts}] a shape you left:", ""]

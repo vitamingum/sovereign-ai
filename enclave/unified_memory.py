@@ -526,6 +526,77 @@ class UnifiedMemory:
         
         return False
     
+    def delete_by_filter(
+        self,
+        mem_type: MemoryType = None,
+        metadata_match: Dict[str, Any] = None
+    ) -> int:
+        """
+        Delete memories matching type and/or metadata criteria.
+        
+        Args:
+            mem_type: Filter to specific type
+            metadata_match: Dict of key:value pairs that must ALL match in metadata
+        
+        Returns:
+            Number of deleted entries
+        """
+        total_deleted = 0
+        
+        for file_path, key, is_private in [
+            (self.private_path / self.private_file, self._private_key, True),
+            (self.shared_path / self.shared_file if self.shared_path else None, self._shared_key, False)
+        ]:
+            if file_path is None or key is None or not file_path.exists():
+                continue
+            
+            header, entries = self._read_entries(file_path)
+            original_count = len(entries)
+            
+            keep_entries = []
+            for entry in entries:
+                # Type filter
+                if mem_type and entry.get("type") != mem_type:
+                    keep_entries.append(entry)
+                    continue
+                
+                # Metadata filter - decrypt and check
+                if metadata_match:
+                    try:
+                        payload_nonce = bytes.fromhex(entry["payload_nonce"])
+                        payload_ciphertext = bytes.fromhex(entry["payload"])
+                        payload_bytes = self._decrypt(payload_nonce, payload_ciphertext, key)
+                        payload = json.loads(payload_bytes.decode())
+                        meta = payload.get("meta", {})
+                        
+                        # Check all criteria match
+                        matches = all(
+                            meta.get(k) == v for k, v in metadata_match.items()
+                        )
+                        if not matches:
+                            keep_entries.append(entry)
+                            continue
+                    except Exception:
+                        keep_entries.append(entry)
+                        continue
+                
+                # Entry matched all filters - delete it (don't keep)
+            
+            deleted = original_count - len(keep_entries)
+            if deleted > 0:
+                self._write_entries(file_path, header, keep_entries)
+                total_deleted += deleted
+                
+                # Invalidate FAISS index
+                if is_private:
+                    self._private_faiss = None
+                    self._private_ids = []
+                else:
+                    self._shared_faiss = None
+                    self._shared_ids = []
+        
+        return total_deleted
+    
     def count(self, mem_type: MemoryType = None) -> dict:
         """Count memories, optionally by type."""
         counts = {"private": 0, "shared": 0, "total": 0}

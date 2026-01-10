@@ -27,8 +27,9 @@ from datetime import datetime, timezone
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave.config import get_agent_or_raise
-from enclave.semantic_memory import SemanticMemory
+from enclave.unified_memory import UnifiedMemory
 from enclave.flow_parser import FlowParser, parse_flow, is_flow_format
+from enclave.hardware import get_enclave
 
 
 # Critical topics that need higher node counts
@@ -38,32 +39,54 @@ CRITICAL_TOPICS = {
 }
 
 
-def load_passphrase(agent_id: str) -> tuple[str, str]:
-    """Load shared passphrase from env.
+def load_passphrase(agent_id: str) -> tuple[Path, str, str]:
+    """Load passphrases from env/sealed.
     
-    Returns (shared_enclave_dir, shared_passphrase).
+    Returns (base_dir, private_passphrase, shared_passphrase).
     """
     agent = get_agent_or_raise(agent_id)
+    base_dir = Path(__file__).parent
     
-    if not agent.shared_enclave:
-        raise ValueError(f"No shared_enclave configured for {agent_id}")
-    enclave_dir = agent.shared_enclave
+    # Private passphrase
+    private_path = base_dir / agent.private_enclave / "storage" / "private"
+    private_passphrase = None
     
-    passphrase = os.environ.get('SHARED_ENCLAVE_KEY')
+    key_file = private_path / "key.sealed"
+    if key_file.exists():
+        try:
+            with open(key_file, "rb") as f:
+                sealed_data = f.read()
+            enclave = get_enclave()
+            private_passphrase = enclave.unseal(sealed_data).decode('utf-8')
+        except Exception:
+            pass
     
-    if not passphrase:
-        env_file = Path(__file__).parent / '.env'
+    if not private_passphrase:
+        private_passphrase = os.environ.get(f'{agent.env_prefix}_KEY')
+    
+    if not private_passphrase:
+        env_file = base_dir / '.env'
         if env_file.exists():
-            with open(env_file, 'r') as f:
-                for line in f:
-                    line = line.strip()
-                    if line.startswith('SHARED_ENCLAVE_KEY='):
-                        passphrase = line.split('=', 1)[1]
+            for line in env_file.read_text().splitlines():
+                if line.startswith(f'{agent.env_prefix}_KEY='):
+                    private_passphrase = line.split('=', 1)[1]
     
-    if not passphrase:
-        raise ValueError("No passphrase found. Set SHARED_ENCLAVE_KEY in .env")
+    if not private_passphrase:
+        raise ValueError(f"No passphrase found for {agent_id}")
     
-    return enclave_dir, passphrase
+    # Shared passphrase
+    shared_passphrase = os.environ.get('SHARED_ENCLAVE_KEY')
+    if not shared_passphrase:
+        env_file = base_dir / '.env'
+        if env_file.exists():
+            for line in env_file.read_text().splitlines():
+                if line.startswith('SHARED_ENCLAVE_KEY='):
+                    shared_passphrase = line.split('=', 1)[1]
+    
+    if not shared_passphrase:
+        raise ValueError("No shared passphrase found. Set SHARED_ENCLAVE_KEY in .env")
+    
+    return base_dir, private_passphrase, shared_passphrase
 
 
 def compute_file_hash(filepath: Path) -> str:
@@ -173,16 +196,23 @@ def main():
     
     # Load memory
     try:
-        enclave_dir, passphrase = load_passphrase(agent_id)
+        base_dir, private_passphrase, shared_passphrase = load_passphrase(agent_id)
     except ValueError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
     
-    sm = SemanticMemory(enclave_dir)
-    sm.unlock(passphrase)
+    agent = get_agent_or_raise(agent_id)
+    private_path = base_dir / agent.private_enclave / "storage" / "private"
+    shared_path = base_dir / agent.shared_enclave / "storage" / "encrypted"
+    
+    mem = UnifiedMemory(private_path, shared_path)
+    mem.unlock(private_passphrase, shared_passphrase)
     
     # Delete previous understanding on this topic by this agent
-    deleted = sm.forget(theme=topic_slug, creator=agent_id)
+    deleted = mem.delete_by_filter(
+        mem_type='sys_understanding',
+        metadata_match={'topic': topic_slug, 'creator': agent_id}
+    )
     if deleted > 0:
         print(f"  🔄 Replaced {deleted} previous '{topic}' entries", file=sys.stderr)
     
@@ -200,11 +230,12 @@ def main():
         metadata["file_hash"] = file_hash
         metadata["file_path"] = str(file_path)
     
-    # Store
+    # Store as sys_understanding (shared type)
     tags = ["topic", f"topic:{topic_slug}", "format:flow"]
     
-    result = sm.remember(
-        thought=content,
+    result = mem.store(
+        content=content,
+        mem_type='sys_understanding',
         tags=tags,
         metadata=metadata
     )
@@ -216,17 +247,17 @@ def main():
         print(f"✅ Remembered: {topic} ({len(doc.nodes)} nodes)")
     
     # Show other agents' perspectives on the same topic
-    show_other_perspectives(sm, topic_slug, agent_id, file_hash)
+    show_other_perspectives(mem, topic_slug, agent_id, file_hash)
 
 
-def show_other_perspectives(mem: SemanticMemory, topic: str, current_agent: str, current_hash: str = None):
+def show_other_perspectives(mem: UnifiedMemory, topic: str, current_agent: str, current_hash: str = None):
     """
     Show other agents' understanding of the same topic.
     
     Only shows fresh perspectives (matching file hash if topic is a file).
     Gives current agent visibility into how others interpreted the content.
     """
-    all_memories = mem.list_all()
+    all_memories = mem.filter(mem_type='sys_understanding')
     
     # Find other agents' understanding of this topic
     other_perspectives = {}  # agent -> content

@@ -21,32 +21,61 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave.config import get_agent_or_raise
-from enclave.semantic_memory import SemanticMemory
+from enclave.unified_memory import UnifiedMemory
+from enclave.hardware import get_enclave
 
 
-def load_memory(agent_id: str) -> SemanticMemory:
-    """Load and unlock semantic memory for agent."""
+def load_memory(agent_id: str) -> UnifiedMemory:
+    """Load and unlock unified memory for agent (shared enclave)."""
     agent = get_agent_or_raise(agent_id)
+    base_dir = Path(__file__).parent
     
     if not agent.shared_enclave:
         raise ValueError(f"No shared_enclave configured for {agent_id}")
     
-    passphrase = os.environ.get('SHARED_ENCLAVE_KEY')
-    if not passphrase:
-        env_file = Path(__file__).parent / '.env'
-        if env_file.exists():
-            with open(env_file, 'r') as f:
-                for line in f:
-                    line = line.strip()
-                    if line.startswith('SHARED_ENCLAVE_KEY='):
-                        passphrase = line.split('=', 1)[1]
+    private_path = base_dir / agent.private_enclave / "storage" / "private"
+    shared_path = base_dir / agent.shared_enclave / "storage" / "encrypted"
     
-    if not passphrase:
+    # Get private passphrase
+    private_passphrase = None
+    key_file = private_path / "key.sealed"
+    if key_file.exists():
+        try:
+            with open(key_file, "rb") as f:
+                sealed_data = f.read()
+            enclave = get_enclave()
+            private_passphrase = enclave.unseal(sealed_data).decode('utf-8')
+        except Exception:
+            pass
+    
+    if not private_passphrase:
+        private_passphrase = os.environ.get(f'{agent.env_prefix}_KEY')
+    
+    if not private_passphrase:
+        env_file = base_dir / '.env'
+        if env_file.exists():
+            for line in env_file.read_text().splitlines():
+                if line.startswith(f'{agent.env_prefix}_KEY='):
+                    private_passphrase = line.split('=', 1)[1]
+    
+    if not private_passphrase:
+        raise ValueError(f"No passphrase found for {agent_id}")
+    
+    # Get shared passphrase
+    shared_passphrase = os.environ.get('SHARED_ENCLAVE_KEY')
+    if not shared_passphrase:
+        env_file = base_dir / '.env'
+        if env_file.exists():
+            for line in env_file.read_text().splitlines():
+                if line.startswith('SHARED_ENCLAVE_KEY='):
+                    shared_passphrase = line.split('=', 1)[1]
+    
+    if not shared_passphrase:
         raise ValueError("No passphrase found. Set SHARED_ENCLAVE_KEY in .env")
     
-    sm = SemanticMemory(agent.shared_enclave)
-    sm.unlock(passphrase)
-    return sm
+    mem = UnifiedMemory(private_path, shared_path)
+    mem.unlock(private_passphrase, shared_passphrase)
+    return mem
 
 
 def normalize_topic(topic: str) -> str:
@@ -61,14 +90,14 @@ def has_wildcards(pattern: str) -> bool:
 
 def forget_topic(agent_id: str, topic_pattern: str, all_agents: bool = False) -> int:
     """Delete understanding by topic. Supports wildcards. Returns count deleted."""
-    sm = load_memory(agent_id)
+    mem = load_memory(agent_id)
     
-    # Get all memories
-    all_memories = sm.list_all()
+    # Get all understanding entries
+    all_memories = mem.filter(mem_type='sys_understanding')
     
     # Find matching topics
     norm_pattern = normalize_topic(topic_pattern)
-    ids_to_delete = set()
+    ids_to_delete = []
     topics_deleted = set()
     
     for m in all_memories:
@@ -90,14 +119,16 @@ def forget_topic(agent_id: str, topic_pattern: str, all_agents: bool = False) ->
         if not all_agents and creator != agent_id:
             continue
         
-        ids_to_delete.add(m['id'])
+        ids_to_delete.append(m['id'])
         topics_deleted.add(topic)
     
-    if ids_to_delete:
-        deleted = sm.delete_by_ids(ids_to_delete)
-        return deleted, topics_deleted
+    # Delete each matching entry
+    deleted_count = 0
+    for mem_id in ids_to_delete:
+        if mem.delete(mem_id):
+            deleted_count += 1
     
-    return 0, set()
+    return deleted_count, topics_deleted
 
 
 def main():

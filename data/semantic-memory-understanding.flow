@@ -1,0 +1,25 @@
+@F enclave/semantic_memory.py opus 2026-01-10
+Summary:
+  What: Original semantic memory store | legacy system
+  Purpose: Encrypted memories with FAISS search
+
+Status: Being replaced by UnifiedMemory | still used by some verbs
+
+Key Functions:
+  unlock(passphrase) -> derives keys from passphrase
+  store(content, tags, metadata) -> encrypts and saves
+  recall_similar(query, top_k) -> semantic search
+  list_all() -> all memories
+  list_by_tag(tag) -> filter by tag
+
+Architecture:
+  Separate files per memory type | shapes.jsonl, journal_memories.jsonl
+  FAISS index rebuilt per search
+  AES-GCM encryption | NaCl secretbox
+
+Migration Path:
+  UnifiedMemory uses same key derivation | compatible
+  migrate_memory.py moves content to unified format
+  Envelope+payload schema replaces flat structure
+
+Design: Legacy | migrate to UnifiedMemory for new code

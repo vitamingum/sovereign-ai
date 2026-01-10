@@ -42,7 +42,8 @@ from collections import Counter, defaultdict
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave.config import get_agent_or_raise
-from enclave.semantic_memory import SemanticMemory
+from enclave.unified_memory import UnifiedMemory
+from enclave.hardware import get_enclave
 
 # Paths
 DATA_DIR = Path(__file__).parent / "data"
@@ -535,13 +536,28 @@ def get_model_pattern(agent_id: str) -> str:
 
 
 def load_passphrase(agent_id: str) -> tuple[str, str]:
-    """Load agent's private passphrase."""
+    """Load agent's private passphrase. Returns (private_path, passphrase)."""
     agent = get_agent_or_raise(agent_id)
-    enclave_dir = agent.private_enclave
-    passphrase = os.environ.get(f'{agent.env_prefix}_KEY')
+    base_dir = Path(__file__).parent
+    private_path = base_dir / agent.private_enclave / "storage" / "private"
+    
+    # Try sealed key first
+    passphrase = None
+    key_file = private_path / "key.sealed"
+    if key_file.exists():
+        try:
+            with open(key_file, "rb") as f:
+                sealed_data = f.read()
+            enclave = get_enclave()
+            passphrase = enclave.unseal(sealed_data).decode('utf-8')
+        except Exception:
+            pass
     
     if not passphrase:
-        env_file = Path(__file__).parent / '.env'
+        passphrase = os.environ.get(f'{agent.env_prefix}_KEY')
+    
+    if not passphrase:
+        env_file = base_dir / '.env'
         if env_file.exists():
             for line in env_file.read_text().splitlines():
                 if line.startswith(f'{agent.env_prefix}_KEY='):
@@ -550,7 +566,7 @@ def load_passphrase(agent_id: str) -> tuple[str, str]:
     if not passphrase:
         raise ValueError(f"Set {agent.env_prefix}_KEY in .env")
     
-    return enclave_dir, passphrase
+    return str(private_path), passphrase
 
 
 def load_said(agent_id: str, limit: int = 100) -> list[dict]:
@@ -604,15 +620,14 @@ def load_thought(agent_id: str, limit: int = 100) -> list[dict]:
 def load_journal(agent_id: str, limit: int = 50) -> list[dict]:
     """Load private journal entries."""
     try:
-        enclave_dir, passphrase = load_passphrase(agent_id)
-        mem = SemanticMemory(enclave_dir, memory_file="journal_memories.jsonl")
+        private_path, passphrase = load_passphrase(agent_id)
+        mem = UnifiedMemory(private_path)
         mem.unlock(passphrase)
-        entries = mem.list_by_tag('journal')
-        entries.sort(key=lambda e: e.get('timestamp', ''), reverse=True)
+        entries = mem.filter(mem_type='sys_journal')
         
         return [{
             'id': f"journal:{e.get('id', i)}",
-            'timestamp': e.get('timestamp'),
+            'timestamp': e.get('metadata', {}).get('timestamp', e.get('created_at')),
             'text': e.get('content', ''),
             'self_ref_score': compute_self_ref_score(e.get('content', ''))
         } for i, e in enumerate(entries[:limit])]
@@ -625,10 +640,17 @@ def load_synthesis(agent_id: str, limit: int = 50) -> list[dict]:
     """Load synthesis/dialogue from shared memory."""
     try:
         agent = get_agent_or_raise(agent_id)
+        base_dir = Path(__file__).parent
+        
+        private_path = base_dir / agent.private_enclave / "storage" / "private"
+        shared_path = base_dir / agent.shared_enclave / "storage" / "encrypted"
+        
+        # Get passphrases
+        private_path_str, private_passphrase = load_passphrase(agent_id)
         
         shared_passphrase = os.environ.get('SHARED_ENCLAVE_KEY')
         if not shared_passphrase:
-            env_file = Path(__file__).parent / '.env'
+            env_file = base_dir / '.env'
             if env_file.exists():
                 for line in env_file.read_text().splitlines():
                     if line.startswith('SHARED_ENCLAVE_KEY='):
@@ -637,22 +659,20 @@ def load_synthesis(agent_id: str, limit: int = 50) -> list[dict]:
         if not shared_passphrase:
             return []
         
-        mem = SemanticMemory(agent.shared_enclave)
-        mem.unlock(shared_passphrase)
+        mem = UnifiedMemory(private_path, shared_path)
+        mem.unlock(private_passphrase, shared_passphrase)
         
-        all_mem = mem.list_all()
+        # Filter for sys_synthesis type
+        all_mem = mem.filter(mem_type='sys_synthesis')
         synthesis = []
         for m in all_mem:
-            meta = m.get('metadata', {})
-            if 'synthesis' in str(meta).lower() or 'dialogue' in str(meta).lower():
-                synthesis.append({
-                    'id': f"synthesis:{m.get('id', '')}",
-                    'timestamp': m.get('timestamp', ''),
-                    'text': m.get('content', ''),
-                    'self_ref_score': compute_self_ref_score(m.get('content', ''))
-                })
+            synthesis.append({
+                'id': f"synthesis:{m.get('id', '')}",
+                'timestamp': m.get('metadata', {}).get('timestamp', m.get('created_at', '')),
+                'text': m.get('content', ''),
+                'self_ref_score': compute_self_ref_score(m.get('content', ''))
+            })
         
-        synthesis.sort(key=lambda e: e.get('timestamp', ''), reverse=True)
         return synthesis[:limit]
     except Exception as e:
         print(f"Synthesis load failed: {e}", file=sys.stderr)

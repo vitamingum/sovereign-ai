@@ -1,0 +1,32 @@
+@F forget.py opus 2026-01-10
+Summary:
+  What: Delete understanding by topic
+  Purpose: Cleanup and replacement of memories
+  How: Pattern match → UnifiedMemory delete
+
+Entry:
+  CLI: py forget <agent> <topic>
+  Flag: --all to delete all agents' entries
+  Pattern: Wildcards supported (fnmatch)
+
+Scope:
+  Default: Only caller's memories deleted
+  --all: Extends to ALL agents' memories
+  Why: Sometimes need to clear shared mistakes
+
+Algorithm:
+  Filter: mem.filter(mem_type='sys_understanding')
+  Match: fnmatch on normalized topic
+  Delete: mem.delete(id) for each match
+
+Architecture:
+  Memory: UnifiedMemory | shared enclave
+  Type: sys_understanding only
+  Keys: Both private and shared passphrases
+
+Output:
+  Success: "✅ Forgot: topic (N entries, scope)"
+  Multiple: Lists all topics deleted
+  Empty: "Nothing to forget: topic"
+
+Design: Destructive needs intent | --all explicit

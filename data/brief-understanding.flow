@@ -1,0 +1,17 @@
+@F brief.py opus 2026-01-10
+Summary:
+  What: Development context for working sessions
+  Purpose: Project state without identity grounding
+
+Shows:
+  Flow spec recall
+  Dev tips recall
+  Memory gaps display
+  Ratified accords list
+
+Architecture:
+  Separated from wake.py | wake is sacred self | brief is business
+  Uses recall.py for flow-spec and dev-tips
+  Uses memory_gaps.py for gap detection
+
+Design: Dev context split from identity | brief for work | wake for self
