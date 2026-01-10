@@ -1,4 +1,0 @@
-﻿# Private storage - never commit
-*.enc.json
-memories.jsonl
-*.enc

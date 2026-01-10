@@ -9,6 +9,9 @@ __pycache__/
 dist/
 build/
 
+# Backups (local only, not tracked)
+backups/
+
 # Environment
 .env
 .venv
