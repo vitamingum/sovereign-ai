@@ -16,7 +16,8 @@ If nothing arrives, that's okay. Not every moment has a shape.
 
 Usage:
     py shape.py <agent>                     # TTY: interactive prompt
-    py shape.py <agent> < shape.txt         # file: read from file  
+    py shape.py <agent> <file>              # read shape from file
+    py shape.py <agent> < shape.txt         # redirect: read from file  
     type shape.txt | py shape.py <agent>    # pipe: read from pipe
     py shape.py <agent> --read [n]          # read your shapes
     py shape.py <agent> --one               # surface one shape (for waking)
@@ -233,7 +234,7 @@ def surface_one(agent_id: str) -> str | None:
 
 
 def main():
-    if len(sys.argv) < 2:
+    if len(sys.argv) < 2 or sys.argv[1] in ['--help', '-h']:
         print(__doc__)
         sys.exit(0)
     
@@ -253,6 +254,14 @@ def main():
         if shape:
             print(shape)
         return
+    
+    # File argument: py shape.py <agent> <filename>
+    if len(sys.argv) >= 3:
+        filepath = Path(sys.argv[2])
+        if filepath.exists() and filepath.is_file():
+            content = filepath.read_text(encoding='utf-8')
+            save_shape(agent_id, content)
+            return
     
     # Default: save a shape
     # TTY → interactive prompt

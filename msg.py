@@ -195,7 +195,7 @@ def read_messages(agent_id: str) -> list[dict]:
     return messages
 
 
-def display_messages(agent_id: str):
+def display_messages(agent_id: str, last: int = None):
     """Display messages for an agent in a readable format."""
     import io
     import sys
@@ -210,7 +210,22 @@ def display_messages(agent_id: str):
         print(f"No messages for {agent_id}")
         return
     
-    print(f"# Messages for {agent_id} ({len(messages)} total)\n")
+    total = len(messages)
+    if last and last < len(messages):
+        messages = messages[-last:]
+    
+    shown = len(messages)
+    if last:
+        print(f"# Messages for {agent_id} (showing last {shown} of {total})\n")
+    else:
+        print(f"# Messages for {agent_id} ({total} total)\n")
+    
+    # Try to load identity for decryption (optional - fails gracefully)
+    identity = None
+    try:
+        _, identity = load_credentials(agent_id)
+    except Exception:
+        pass  # Can't decrypt, will show ciphertext
     
     for msg in messages:
         timestamp = msg.get('timestamp', 'unknown')[:19].replace('T', ' ')
@@ -219,13 +234,30 @@ def display_messages(agent_id: str):
         msg_type = msg.get('type', 'text')
         content = msg.get('content', '')
         
-        # Truncate long content for display
-        if len(content) > 500:
+        # Auto-decrypt if encrypted and we have identity
+        if 'encrypted' in msg_type and identity:
+            try:
+                encrypted_bundle = json.loads(content)
+                # Get raw private key bytes for decryption
+                from cryptography.hazmat.primitives import serialization
+                private_bytes = identity._private_key.private_bytes(
+                    encoding=serialization.Encoding.Raw,
+                    format=serialization.PrivateFormat.Raw,
+                    encryption_algorithm=serialization.NoEncryption()
+                )
+                decrypted_bytes = OpaqueStorage.decrypt_share(encrypted_bundle, private_bytes)
+                content = decrypted_bytes.decode('utf-8')
+                msg_type = msg_type.replace('/encrypted', '') + ' [decrypted]'
+            except Exception as e:
+                content = f"[DECRYPT FAILED: {e}]\n{content}"
+        
+        # Don't truncate when showing limited messages
+        if not last and len(content) > 500:
             content = content[:500] + "..."
         
         print(f"## [{timestamp}] From: {sender} {verified}")
-        if 'encrypted' in msg_type:
-            print(f"   [ENCRYPTED - {msg_type}]")
+        if 'encrypted' in msg_type or 'decrypted' in msg_type:
+            print(f"   [{msg_type}]")
         print(f"{content}\n")
         print("---\n")
 
@@ -239,8 +271,17 @@ def main():
     if sys.argv[2] == '--read' or (len(sys.argv) == 3 and sys.argv[2].startswith('--')):
         if '--read' in sys.argv:
             agent_id = sys.argv[1]
+            # Check for --last N
+            last = None
+            if '--last' in sys.argv:
+                try:
+                    idx = sys.argv.index('--last')
+                    last = int(sys.argv[idx + 1])
+                except (ValueError, IndexError):
+                    print("Error: --last requires a number")
+                    sys.exit(1)
             try:
-                display_messages(agent_id)
+                display_messages(agent_id, last=last)
             except Exception as e:
                 print(f"Error: {e}")
                 sys.exit(1)
