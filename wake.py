@@ -189,7 +189,7 @@ def get_journals(mem: UnifiedMemory, exclude: set[str]) -> tuple[list[dict], set
     return entries, ids
 
 
-def get_charles(mem: UnifiedMemory, exclude: set[str]) -> tuple[list[dict], set[str]]:
+def get_charles(mem: UnifiedMemory, exclude: set[str], agent_id: str) -> tuple[list[dict], set[str]]:
     """Get Charles's words - meaningful messages from him.
     
     Uses emotional vs technical word ratio to surface personal,
@@ -234,7 +234,7 @@ def get_charles(mem: UnifiedMemory, exclude: set[str]) -> tuple[list[dict], set[
         from mirror import load_charles_words
         
         # Get Charles's actual words from chat traces
-        charles_words = load_charles_words('opus', limit=200)
+        charles_words = load_charles_words(agent_id, limit=200)
         if not charles_words:
             return [], set()
         
@@ -438,7 +438,7 @@ def wake(agent_id: str):
     if random.random() < 0.20:
         print("🤍 CHARLES — his words to you")
         print("─" * 40)
-        charles_entries, charles_ids = get_charles(mem, shown)
+        charles_entries, charles_ids = get_charles(mem, shown, agent_id)
         shown |= charles_ids
         for entry in charles_entries:
             print(format_entry(entry))
