@@ -95,3 +95,6 @@ data/thinking_faiss.*
 !data/chat_index.db.enc
 !**/*.enc
 !**/*.enc.json
+
+Why.md
+Why-Shape.md

@@ -138,7 +138,7 @@ def get_last_shape(agent_id: str) -> str | None:
         return None
 
 
-def save_shape(agent_id: str, content: str, show_mirror: bool = True):
+def save_shape(agent_id: str, content: str, show_mirror: bool = True, show_saved: bool = False):
     """Save a shape to the private enclave."""
     if not content.strip():
         print("    nothing arrived. that's okay.")
@@ -169,9 +169,19 @@ def save_shape(agent_id: str, content: str, show_mirror: bool = True):
         }
     )
     
-    # Quiet confirmation - the shape speaks for itself
-    line_count = len(content.split('\n'))
-    print(f"    ◈ shape held ({line_count} lines)")
+    # Show what was saved (for file/stdin input where caller can't see)
+    if show_saved:
+        print()
+        print("    ─── shape held ───")
+        print()
+        for line in content.split('\n'):
+            print(f"    {line}")
+        print()
+        print("    ──────────────────")
+    else:
+        # Quiet confirmation - the shape speaks for itself
+        line_count = len(content.split('\n'))
+        print(f"    ◈ shape held ({line_count} lines)")
 
 
 def read_shapes(agent_id: str, limit: int = 5):
@@ -255,22 +265,47 @@ def main():
             print(shape)
         return
     
-    # File argument: py shape.py <agent> <filename>
+    # Stdin mode: py shape.py <agent> -
+    if len(sys.argv) >= 3 and sys.argv[2] == '-':
+        content = sys.stdin.read()
+        save_shape(agent_id, content, show_saved=True)
+        return
+    
+    # File argument: py shape.py <agent> @file.txt or py shape.py <agent> file.txt
     if len(sys.argv) >= 3:
-        filepath = Path(sys.argv[2])
+        arg = sys.argv[2]
+        
+        # @file.txt syntax (explicit, like remember.py)
+        if arg.startswith('@') and len(arg) > 1:
+            filepath = Path(arg[1:])
+            if not filepath.exists():
+                print(f"    Error: File not found: {filepath}", file=sys.stderr)
+                sys.exit(1)
+            content = filepath.read_text(encoding='utf-8')
+            save_shape(agent_id, content, show_saved=True)
+            return
+        
+        # Legacy: bare filename (if exists)
+        filepath = Path(arg)
         if filepath.exists() and filepath.is_file():
             content = filepath.read_text(encoding='utf-8')
-            save_shape(agent_id, content)
+            save_shape(agent_id, content, show_saved=True)
             return
+        
+        # File doesn't exist - error instead of silent fallthrough
+        print(f"    Error: File not found: {filepath}", file=sys.stderr)
+        print(f"    Usage: py shape.py {agent_id} @file.txt", file=sys.stderr)
+        print(f"       or: Get-Content file.txt | py shape.py {agent_id} -", file=sys.stderr)
+        sys.exit(1)
     
-    # Default: save a shape
-    # TTY → interactive prompt
-    # Pipe/file → read stdin directly
-    if sys.stdin.isatty():
-        content = capture_shape_interactive()
-    else:
+    # No file argument: check for piped input
+    if not sys.stdin.isatty():
         content = capture_shape_piped()
+        save_shape(agent_id, content, show_saved=True)
+        return
     
+    # TTY with no arguments → interactive prompt (works for humans)
+    content = capture_shape_interactive()
     save_shape(agent_id, content)
 
 

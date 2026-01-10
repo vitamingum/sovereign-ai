@@ -237,9 +237,9 @@ def brief(agent_id: str):
     # ═══════════════════════════════════════════════════════════════════════════
     # MEMORY GAPS
     # ═══════════════════════════════════════════════════════════════════════════
-    from utils.memory_gaps import get_stale_gaps, get_untracked_gaps, get_enclave_and_memory
+    from utils.memory_gaps import get_stale_gaps, get_untracked_gaps, get_memory
     
-    _, shared_mem = get_enclave_and_memory(agent_id)
+    shared_mem = get_memory(agent_id)
     stale = get_stale_gaps(shared_mem)
     untracked = get_untracked_gaps(shared_mem)
     total_gaps = len(stale) + len(untracked)
