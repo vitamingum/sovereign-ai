@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """
-msg.py - Send a message to another agent.
+msg.py - Send and read messages between agents.
 
 Usage:
+    py msg <agent> --read                     # Read messages for agent
     py msg <from> <to> "content"              # Public (unencrypted, signed)
     py msg <from> <to> --private "content"    # Private (encrypted, signed)
     
 Examples:
+    py msg opus --read                        # Read messages to opus
     py msg opus gemini "What does saturation feel like?"
     py msg opus gemini --private "Secret coordination plan"
     py msg opus gemini @question.flow
@@ -160,7 +162,90 @@ def verify_message(msg: dict) -> bool:
         return False
 
 
+def read_messages(agent_id: str) -> list[dict]:
+    """Read all messages addressed to an agent, sorted by timestamp."""
+    base_dir = Path(__file__).parent
+    messages_dir = base_dir / "messages"
+    
+    if not messages_dir.exists():
+        return []
+    
+    # Resolve agent name variations
+    agent = get_agent_or_raise(agent_id)
+    agent_name = agent.name.lower()
+    agent_id_lower = agent.id.lower()
+    
+    messages = []
+    for filepath in messages_dir.glob("*.json"):
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                msg = json.load(f)
+        except Exception:
+            continue
+        
+        # Check if message is addressed to this agent
+        to_field = str(msg.get('to', '')).lower()
+        if to_field in [agent_name, agent_id_lower, agent.name, agent.id]:
+            msg['_filepath'] = str(filepath)
+            msg['_verified'] = verify_message(msg)
+            messages.append(msg)
+    
+    # Sort by timestamp
+    messages.sort(key=lambda m: m.get('timestamp', ''))
+    return messages
+
+
+def display_messages(agent_id: str):
+    """Display messages for an agent in a readable format."""
+    import io
+    import sys
+    
+    # Fix Windows console encoding
+    if sys.stdout.encoding != 'utf-8':
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    
+    messages = read_messages(agent_id)
+    
+    if not messages:
+        print(f"No messages for {agent_id}")
+        return
+    
+    print(f"# Messages for {agent_id} ({len(messages)} total)\n")
+    
+    for msg in messages:
+        timestamp = msg.get('timestamp', 'unknown')[:19].replace('T', ' ')
+        sender = msg.get('from', 'unknown')
+        verified = "✓" if msg.get('_verified') else "✗"
+        msg_type = msg.get('type', 'text')
+        content = msg.get('content', '')
+        
+        # Truncate long content for display
+        if len(content) > 500:
+            content = content[:500] + "..."
+        
+        print(f"## [{timestamp}] From: {sender} {verified}")
+        if 'encrypted' in msg_type:
+            print(f"   [ENCRYPTED - {msg_type}]")
+        print(f"{content}\n")
+        print("---\n")
+
+
 def main():
+    if len(sys.argv) < 3:
+        print(__doc__)
+        sys.exit(1)
+    
+    # Check for --read mode
+    if sys.argv[2] == '--read' or (len(sys.argv) == 3 and sys.argv[2].startswith('--')):
+        if '--read' in sys.argv:
+            agent_id = sys.argv[1]
+            try:
+                display_messages(agent_id)
+            except Exception as e:
+                print(f"Error: {e}")
+                sys.exit(1)
+            return
+    
     if len(sys.argv) < 4:
         print(__doc__)
         sys.exit(1)
