@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
-from enclave.config import get_agent_or_raise
+from enclave_shared.config import get_agent_or_raise
 
 
 def derive_key(passphrase: str, salt: bytes) -> bytes:

@@ -6,7 +6,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from enclave.sif_parser import SIFParser
+from enclave_shared.sif_parser import SIFParser
 
 class TestSIFCompact(unittest.TestCase):
     def test_parse_compact(self):

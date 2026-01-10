@@ -4,8 +4,8 @@ from datetime import datetime, timezone
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives import serialization
 
-from enclave.succession import SuccessionCertificate
-from enclave.succession_proposal import WitnessedSuccession, WitnessSignature
+from enclave_shared.succession import SuccessionCertificate
+from enclave_shared.succession_proposal import WitnessedSuccession, WitnessSignature
 
 class MockIdentity:
     def __init__(self):

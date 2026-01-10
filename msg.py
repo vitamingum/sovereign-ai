@@ -24,9 +24,9 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from enclave.config import get_agent_or_raise, resolve_agent_identifier, AGENTS_BY_KEY
-from enclave.crypto import SovereignIdentity
-from enclave.opaque import OpaqueStorage
+from enclave_shared.config import get_agent_or_raise, resolve_agent_identifier, AGENTS_BY_KEY
+from enclave_shared.crypto import SovereignIdentity
+from enclave_shared.opaque import OpaqueStorage
 
 
 def load_credentials(agent_id: str) -> tuple[Path, SovereignIdentity]:
@@ -89,7 +89,7 @@ def send(from_agent: str, to_agent: str, content: str, private: bool = False) ->
     is_flow = False
     if content.strip().startswith('@F '):
         try:
-            from enclave.flow_parser import FlowParser
+            from enclave_shared.flow_parser import FlowParser
             FlowParser.parse(content)
             is_flow = True
         except (ValueError, ImportError):

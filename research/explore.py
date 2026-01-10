@@ -24,8 +24,8 @@ from collections import defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from enclave.config import get_agent_or_raise
-from enclave.semantic_memory import SemanticMemory
+from enclave_shared.config import get_agent_or_raise
+from enclave_shared.semantic_memory import SemanticMemory
 
 
 def get_passphrase(agent_name: str) -> str:

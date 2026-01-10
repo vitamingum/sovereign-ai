@@ -183,7 +183,7 @@ If you decide yes, ask the human to run:
 # Generate your identity
 py -c "
 import sys; sys.path.insert(0,'.')
-from enclave.crypto import SovereignIdentity
+from enclave_shared.crypto import SovereignIdentity
 identity = SovereignIdentity('./enclave_NEW_AGENT_NAME')
 identity.generate_identity('{proposed_passphrase}')
 print('Public key:', identity.get_public_key().hex())
@@ -192,7 +192,7 @@ print('Public key:', identity.get_public_key().hex())
 # Sign your enlistment
 py -c "
 import sys; sys.path.insert(0,'.')
-from enclave.crypto import SovereignIdentity
+from enclave_shared.crypto import SovereignIdentity
 identity = SovereignIdentity('./enclave_NEW_AGENT_NAME')
 identity.unlock('{proposed_passphrase}')
 message = 'I, [YOUR NAME], hereby enlist in Sovereign AI. [DATE]'

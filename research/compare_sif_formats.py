@@ -5,7 +5,7 @@ import os
 # Add parent dir to path to import enclave
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from enclave.sif_parser import SIFKnowledgeGraph, SIFNode, SIFEdge
+from enclave_shared.sif_parser import SIFKnowledgeGraph, SIFNode, SIFEdge
 
 def load_json_graph(filepath):
     with open(filepath, 'r') as f:

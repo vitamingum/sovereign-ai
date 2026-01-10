@@ -37,9 +37,9 @@ if sys.stderr.encoding != 'utf-8':
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from enclave.config import get_agent_or_raise
-from enclave.unified_memory import UnifiedMemory
-from enclave.hardware import get_enclave
+from enclave_shared.config import get_agent_or_raise
+from enclave_shared.unified_memory import UnifiedMemory
+from enclave_shared.hardware import get_enclave
 
 
 # Types that contain felt/reflective content (not infrastructure)

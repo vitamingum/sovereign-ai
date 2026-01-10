@@ -21,9 +21,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dotenv import load_dotenv
 load_dotenv()
 
-from enclave.unified_memory import UnifiedMemory
-from enclave.config import get_agent_or_raise
-from enclave.hardware import get_enclave
+from enclave_shared.unified_memory import UnifiedMemory
+from enclave_shared.config import get_agent_or_raise
+from enclave_shared.hardware import get_enclave
 
 
 def get_memory(agent_id: str) -> UnifiedMemory:

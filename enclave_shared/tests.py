@@ -1,4 +1,4 @@
-﻿"""
+"""
 Sovereign AI Enclave - Test Suite
 
 Tests for:
@@ -17,11 +17,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from enclave.crypto import SovereignIdentity
-from enclave.semantic_memory import SemanticMemory
-from enclave.succession import SuccessionCertificate
-from enclave.config import canonical_agent_id
-from enclave.opaque import OpaqueStorage
+from enclave_shared.crypto import SovereignIdentity
+from enclave_shared.semantic_memory import SemanticMemory
+from enclave_shared.succession import SuccessionCertificate
+from enclave_shared.config import canonical_agent_id
+from enclave_shared.opaque import OpaqueStorage
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives import serialization
 
@@ -109,9 +109,9 @@ class TestEnclave:
         total = len(self.results)
         
         if passed == total:
-            print(f"tests: {passed}/{total} ✓")
+            print(f"tests: {passed}/{total} ?")
         else:
-            print(f"tests: {passed}/{total} ✗")
+            print(f"tests: {passed}/{total} ?")
             for name, reason in self.failures:
                 print(f"  FAIL: {name} - {reason}")
         

@@ -41,9 +41,9 @@ from collections import Counter, defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from enclave.config import get_agent_or_raise
-from enclave.unified_memory import UnifiedMemory
-from enclave.hardware import get_enclave
+from enclave_shared.config import get_agent_or_raise
+from enclave_shared.unified_memory import UnifiedMemory
+from enclave_shared.hardware import get_enclave
 
 # Paths
 DATA_DIR = Path(__file__).parent / "data"

@@ -19,14 +19,14 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from enclave.config import get_agent_or_raise, canonical_agent_id, get_enclave_partners
-from enclave.semantic_memory import SemanticMemory
-from enclave.crypto import SovereignIdentity
-from enclave.opaque import OpaqueStorage
-from enclave.sif_parser import SIFParser
-from enclave.hardware import get_enclave
-from enclave.metrics import calculate_enclave_entropy, calculate_synthesis_gaps, calculate_cross_agent_gaps
-from enclave.encrypted_jsonl import EncryptedJSONL
+from enclave_shared.config import get_agent_or_raise, canonical_agent_id, get_enclave_partners
+from enclave_shared.semantic_memory import SemanticMemory
+from enclave_shared.crypto import SovereignIdentity
+from enclave_shared.opaque import OpaqueStorage
+from enclave_shared.sif_parser import SIFParser
+from enclave_shared.hardware import get_enclave
+from enclave_shared.metrics import calculate_enclave_entropy, calculate_synthesis_gaps, calculate_cross_agent_gaps
+from enclave_shared.encrypted_jsonl import EncryptedJSONL
 import re
 
 

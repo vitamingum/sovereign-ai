@@ -25,7 +25,7 @@ from dataclasses import dataclass
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from enclave.config import get_agent_or_raise
+from enclave_shared.config import get_agent_or_raise
 
 
 PROPOSALS_DIR = Path(__file__).parent / "data" / "proposals"

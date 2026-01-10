@@ -27,9 +27,9 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from enclave.config import get_agent_or_raise
-from enclave.semantic_memory import SemanticMemory
-from enclave.sif_parser import SIFParser, SIFKnowledgeGraph, SIFNode, SIFEdge
+from enclave_shared.config import get_agent_or_raise
+from enclave_shared.semantic_memory import SemanticMemory
+from enclave_shared.sif_parser import SIFParser, SIFKnowledgeGraph, SIFNode, SIFEdge
 
 
 def load_passphrase(agent_id: str) -> tuple[str, str]:
@@ -707,7 +707,7 @@ def main():
             sys.exit(1)
         
         # Normalize to auto-count format (accept flexible input, store canonical)
-        from enclave.sif_parser import SIFParser
+        from enclave_shared.sif_parser import SIFParser
         sif_content = SIFParser.to_autocount(sif_content)
         
         # Validate depth
@@ -752,7 +752,7 @@ def main():
         sif_text = sif_arg
     
     # Normalize to auto-count format (accept flexible input, store canonical)
-    from enclave.sif_parser import SIFParser
+    from enclave_shared.sif_parser import SIFParser
     sif_text = SIFParser.to_autocount(sif_text)
     
     # Handle comma-separated multi-file input

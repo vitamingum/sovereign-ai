@@ -24,9 +24,9 @@ from collections import defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from enclave.config import get_agent_or_raise
-from enclave.semantic_memory import SemanticMemory
-from enclave.sif_parser import TYPE_SHORTCUTS, SIFParser
+from enclave_shared.config import get_agent_or_raise
+from enclave_shared.semantic_memory import SemanticMemory
+from enclave_shared.sif_parser import TYPE_SHORTCUTS, SIFParser
 
 
 # ─────────────────────────────────────────────────────────────────────────────

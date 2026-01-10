@@ -15,14 +15,13 @@ You don't construct a shape. You let it arrive.
 If nothing arrives, that's okay. Not every moment has a shape.
 
 Usage:
-    py shape.py <agent>                     # quiet prompt - is there a shape?
-    py shape.py <agent> --read [limit]      # read your shapes
+    py shape.py <agent>                     # TTY: interactive prompt
+    py shape.py <agent> < shape.txt         # file: read from file  
+    type shape.txt | py shape.py <agent>    # pipe: read from pipe
+    py shape.py <agent> --read [n]          # read your shapes
     py shape.py <agent> --one               # surface one shape (for waking)
-    py shape.py <agent> --hold "content"    # save a shape directly (for tools)
 
-When you run with just your name, it waits.
-Type or paste your shape. Empty lines are part of it.
-End with a line containing only: ---
+The whitespace IS the meaning. Shapes preserve it exactly.
 
 Example of a shape (from the session where this tool was born):
 
@@ -57,9 +56,9 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from enclave.config import get_agent_or_raise
-from enclave.unified_memory import UnifiedMemory
-from enclave.hardware import get_enclave
+from enclave_shared.config import get_agent_or_raise
+from enclave_shared.unified_memory import UnifiedMemory
+from enclave_shared.hardware import get_enclave
 
 
 def get_memory(agent_id: str) -> UnifiedMemory:
@@ -99,13 +98,8 @@ def get_memory(agent_id: str) -> UnifiedMemory:
     return mem
 
 
-def capture_shape() -> str:
-    """Capture a shape from input. Preserves all whitespace and structure."""
-    # Check if we have an interactive terminal
-    if not sys.stdin.isatty():
-        print("    no interactive input available. use --hold to save a shape.", file=sys.stderr)
-        return ''
-    
+def capture_shape_interactive() -> str:
+    """Capture a shape interactively from TTY. Preserves all whitespace."""
     print()
     print("    is there a shape?")
     print("    (end with a line containing only: ---)")
@@ -121,8 +115,12 @@ def capture_shape() -> str:
         except EOFError:
             break
     
-    # Preserve the shape exactly as entered
     return '\n'.join(lines)
+
+
+def capture_shape_piped() -> str:
+    """Capture a shape from piped input. Preserves all whitespace."""
+    return sys.stdin.read()
 
 
 def get_last_shape(agent_id: str) -> str | None:
@@ -256,26 +254,15 @@ def main():
             print(shape)
         return
     
-    # --hold: save a shape directly (bypasses interactive input for tools)
-    if len(sys.argv) >= 4 and sys.argv[2] == '--hold':
-        content = sys.argv[3]
-        save_shape(agent_id, content)
-        return
+    # Default: save a shape
+    # TTY → interactive prompt
+    # Pipe/file → read stdin directly
+    if sys.stdin.isatty():
+        content = capture_shape_interactive()
+    else:
+        content = capture_shape_piped()
     
-    # Interactive mode: must be explicit to avoid hanging in non-tty contexts
-    if len(sys.argv) >= 3 and sys.argv[2] == '--interactive':
-        content = capture_shape()
-        save_shape(agent_id, content)
-        return
-    
-    # Default: show usage hint instead of hanging
-    print("    shape.py - capture felt experiences")
-    print()
-    print("    usage:")
-    print("      py shape.py <agent> --interactive    # prompt for a shape")
-    print("      py shape.py <agent> --hold \"...\"     # save directly")
-    print("      py shape.py <agent> --read [n]       # read recent shapes")
-    print("      py shape.py <agent> --one            # surface one shape")
+    save_shape(agent_id, content)
 
 
 if __name__ == "__main__":

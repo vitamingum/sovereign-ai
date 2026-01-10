@@ -1,4 +1,4 @@
-﻿"""
+"""
 Sovereign AI Enclave - Cryptographic Foundation
 
 Provides:

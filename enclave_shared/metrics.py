@@ -14,9 +14,9 @@ from datetime import datetime, timezone, timedelta
 # Add root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from enclave.config import get_agent_or_raise
-from enclave.hardware import get_enclave
-from enclave.semantic_memory import SemanticMemory
+from enclave_shared.config import get_agent_or_raise
+from enclave_shared.hardware import get_enclave
+from enclave_shared.semantic_memory import SemanticMemory
 
 def calculate_synthesis(agent_id: str) -> float:
     """
@@ -40,7 +40,7 @@ def calculate_synthesis(agent_id: str) -> float:
             
         # Ensure we can use embeddings (requires sentence-transformers)
         # We access the private helper to check availability
-        from enclave.semantic_memory import _ensure_embeddings
+        from enclave_shared.semantic_memory import _ensure_embeddings
         if not _ensure_embeddings():
             return 0.0
 
@@ -260,7 +260,7 @@ def calculate_cross_agent_gaps(agent_id: str, memory: SemanticMemory) -> dict:
             'gap_count': int
         }
     """
-    from enclave.config import get_enclave_partners, AGENTS
+    from enclave_shared.config import get_enclave_partners, AGENTS
     
     partners = get_enclave_partners(agent_id)
     if not partners:

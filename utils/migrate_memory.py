@@ -32,8 +32,8 @@ from pathlib import Path
 # Add parent to path for enclave imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from enclave.config import get_agent_or_raise, AGENTS
-from enclave.kdf import derive_memory_key, derive_embedding_key
+from enclave_shared.config import get_agent_or_raise, AGENTS
+from enclave_shared.kdf import derive_memory_key, derive_embedding_key
 
 # File version for new schema
 FILE_VERSION = 1

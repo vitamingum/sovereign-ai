@@ -25,10 +25,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from dotenv import load_dotenv
 load_dotenv()
 
-from enclave.semantic_memory import SemanticMemory
-from enclave.sif_parser import SIFParser
-from enclave.config import get_agent_or_raise, AGENTS_BY_KEY
-from enclave.opaque import OpaqueStorage
+from enclave_shared.semantic_memory import SemanticMemory
+from enclave_shared.sif_parser import SIFParser
+from enclave_shared.config import get_agent_or_raise, AGENTS_BY_KEY
+from enclave_shared.opaque import OpaqueStorage
 from wake import load_passphrase, SovereignIdentity
 
 

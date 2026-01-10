@@ -1,4 +1,4 @@
-﻿"""
+"""
 Sovereign AI Enclave
 
 A secure execution environment for AI agents with:

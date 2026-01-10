@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import List, Optional, Dict, Any, Literal
 import numpy as np
 
-from enclave.kdf import derive_memory_key, derive_embedding_key
+from enclave_shared.kdf import derive_memory_key, derive_embedding_key
 
 # Memory types
 MemoryType = Literal["sys_thought", "sys_shape", "sys_journal", "sys_understanding", "sys_synthesis"]

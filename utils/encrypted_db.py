@@ -23,7 +23,7 @@ from pathlib import Path
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from enclave.kdf import derive_key
+from enclave_shared.kdf import derive_key
 
 
 class EncryptedDB:

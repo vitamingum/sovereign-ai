@@ -24,8 +24,8 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from enclave.config import get_agent_or_raise
-from enclave.metrics import compute_entropy
+from enclave_shared.config import get_agent_or_raise
+from enclave_shared.metrics import compute_entropy
 
 
 def get_baseline_behavior(agent_id: str) -> dict:

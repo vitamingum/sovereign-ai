@@ -7,7 +7,7 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from enclave.semantic_memory import SemanticMemory
+from enclave_shared.semantic_memory import SemanticMemory
 from pathlib import Path
 import time
 
@@ -59,7 +59,7 @@ if __name__ == "__main__":
     mem = SemanticMemory(Path('enclave_opus'))
     
     # Load from sealed key
-    from enclave.hardware import get_enclave
+    from enclave_shared.hardware import get_enclave
     key_file = Path('enclave_opus/storage/private/key.sealed')
     enclave = get_enclave()
     passphrase = enclave.unseal(key_file.read_bytes()).decode('utf-8')
