@@ -1,20 +1,12 @@
 #!/usr/bin/env python3
 """
-recall.py - Retrieve understanding by topic.
+recall.py - Retrieve understanding.
 
-Usage:
-  py recall <agent> <pattern>           # wildcard match on topics
-  py recall <agent> "search query"      # semantic search (topics + journal)
-  py recall <agent> --literal "text"    # brute-force string search
+        py recall <agent> <topic>
+        py recall <agent> "query"
 
-Examples:
-  py recall opus wake.py                # exact topic match
-  py recall opus "*.py"                 # all topics ending in .py
-  py recall opus "*charles*"            # wildcard match
-  py recall opus "how encryption works" # semantic search
-
-Pattern matching uses fnmatch (shell-style wildcards: *, ?, [seq]).
-If no wildcard chars, tries exact match first, then semantic search.
+                topic: exact or wildcard
+                query: semantic search
 """
 
 import sys

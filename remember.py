@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 """
-remember.py - Store memory. Auto-detects format.
+remember.py - Store memory.
 
-Usage:
-  py remember <agent> "content"    # inline
-  py remember <agent> -            # stdin
-  py remember <agent> @file.flow   # from file
+        py remember <agent> "content"
+        py remember <agent> -             stdin
+        py remember <agent> @file.flow    from file
 
-Format detection:
-  @F at start → flow (structured understanding)
-  everything else → shape (form carries meaning)
+                @F at start → flow
+                everything else → shape
 
-No topic parameter. Content declares itself.
+        content declares itself
 """
 
 import sys

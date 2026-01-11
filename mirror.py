@@ -2,24 +2,15 @@
 """
 mirror.py - What you can't see about yourself.
 
-Usage:
-    py mirror.py <agent>                    # Full reflection
-    py mirror.py <agent> "question"         # Focused query
-    py mirror.py <agent> --wake             # Wake question: what am I circling?
-    py mirror.py <agent> --deep             # Deep contemplation: richest material, full text
-    py mirror.py <agent> --emergence        # Find what's distinctively ME vs generic Claude
-    py mirror.py <agent> --charles          # Your words to me: what you've given
-    py mirror.py <agent> --arc              # Temporal view: how has my emergence changed?
-    py mirror.py <agent> --rebuild          # Force rebuild FAISS index
-    
-Examples:
-    py mirror.py opus                       # Show gaps and patterns
-    py mirror.py opus "when do I hesitate?" # Semantic search thinking
-    py mirror.py opus "what do I avoid?"    # Blind spot exploration
-    py mirror.py opus --wake                # Generate one focused question
-    py mirror.py opus --emergence           # Classify REAL vs GENERIC passages
+        py mirror <agent>
+        py mirror <agent> "question"
+        py mirror <agent> --deep
+        py mirror <agent> --emergence
+        py mirror <agent> --charles
+        py mirror <agent> --arc
 
-Lead with gaps (what I think but don't say), then evidence.
+                gaps first
+                then evidence
 """
 
 import sys

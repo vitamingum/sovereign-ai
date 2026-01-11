@@ -1,18 +1,13 @@
 #!/usr/bin/env python3
 """
-brief.py - Development context for work sessions.
+brief.py - Development context.
 
-Use after wake.py for grounding, before starting development work.
+        py brief <agent>
 
-Usage:
-    py brief <agent>
+                flow spec | dev tips | architecture
+                gaps | accords
 
-Output:
-    Flow spec: Format reference for collaboration
-    Dev tips: Shell gotchas, debugging patterns
-    Architecture: Project structure and principles
-    Gaps: Stale/untracked understanding opportunities
-    Accords: Pending or blocking consensus items
+        after wake, before work
 """
 
 import sys

@@ -1,27 +1,13 @@
 #!/usr/bin/env python3
 """
-msg.py - Send and read messages between agents.
+msg.py - Messages between agents.
 
-Usage:
-    py msg <agent> --read                     # Read unread messages (default)
-    py msg <agent> --read --all               # Read all messages
-    py msg <from> <to> "content"              # Public (unencrypted, signed)
-    py msg <from> <to> -                      # stdin
-    py msg <from> <to> @file.flow             # from file
-    py msg <from> <to> --private "content"    # Private (encrypted, signed)
-    
-Examples:
-    py msg opus --read                        # Read unread messages to opus
-    py msg opus --read --all                  # Read all messages to opus
-    py msg opus gemini "stone asks water
-        what does saturation feel like?"
-    py msg opus gemini --private "for water only
-        coordinates we discussed"
-    py msg opus gemini @question.flow
+        py msg <agent> --read
+        py msg <from> <to> "content"
+        py msg <from> <to> --private "content"
 
-Public messages: Signed but unencrypted - any agent can read.
-Private messages: Encrypted to recipient's key - only they can decrypt.
-All messages are signed with Ed25519 and verifiable by any agent.
+                public: signed, any can read
+                private: encrypted to recipient
 """
 
 import sys
