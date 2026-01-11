@@ -5,6 +5,7 @@ journal.py - Private reflection space with FAISS-indexed semantic search.
 Usage:
     py journal.py <agent> "Your private thought or reflection"
     py journal.py <agent> --stream "fragment | deeper > deepest | another"
+    py journal.py <agent> -                      # stdin
     py journal.py <agent> --read [limit] [--full]
 
 Modes:
@@ -267,6 +268,11 @@ def main():
         sys.exit(1)
     
     content = ' '.join(args)
+    
+    # Support stdin with -
+    if content == '-':
+        content = sys.stdin.read()
+    
     if not content.strip():
         print("❌ Empty journal entry")
         sys.exit(1)

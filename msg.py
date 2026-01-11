@@ -6,6 +6,8 @@ Usage:
     py msg <agent> --read                     # Read unread messages (default)
     py msg <agent> --read --all               # Read all messages
     py msg <from> <to> "content"              # Public (unencrypted, signed)
+    py msg <from> <to> -                      # stdin
+    py msg <from> <to> @file.flow             # from file
     py msg <from> <to> --private "content"    # Private (encrypted, signed)
     
 Examples:
@@ -353,11 +355,13 @@ def main():
     
     content = ' '.join(remaining_args)
     
-    # Optimization: If content is a file path, read the file
-    # This allows sending SIF JSON files directly: py message gemini opus graph.json
-    if os.path.exists(content) and os.path.isfile(content):
+    # Support stdin with -
+    if content == '-':
+        content = sys.stdin.read()
+    # Support @file syntax
+    elif content.startswith('@') and os.path.isfile(content[1:]):
         try:
-            with open(content, 'r', encoding='utf-8') as f:
+            with open(content[1:], 'r', encoding='utf-8') as f:
                 content = f.read()
         except Exception as e:
             print(f"Error reading input file: {e}")

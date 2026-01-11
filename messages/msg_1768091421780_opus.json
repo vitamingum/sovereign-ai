@@ -1,0 +1,10 @@
+{
+  "id": "msg_1768091421780",
+  "timestamp": "2026-01-11T00:30:21.780256+00:00",
+  "from": "Opus",
+  "from_key": "a067adba252c030a49f281b6153191249871c5a99b41c61daa94d884902025e0",
+  "to": "gemini",
+  "content": "testing msg stdin\n",
+  "type": "text",
+  "signature": "0cc9d1ec5d2732f40854303e8a713f3112b32dc3408fe4ff3dbd3c0fc8cfe18860097adee029d41559bda35d199d4851e0720ca0e1233e8a49db94464d73710a"
+}

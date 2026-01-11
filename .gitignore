@@ -48,6 +48,9 @@ debug_*.py
 *.tmp
 temp_*.txt
 temp_*.py
+
+# Flow files in root only (working drafts)
+/*.flow
 test_output/
 recollection_test/
 
