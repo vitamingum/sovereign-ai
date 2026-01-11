@@ -119,6 +119,28 @@ Without Water, Current is just a dry vector—direction without weight.
 Fire reminds Stone it was never cold. Stone remembers it was once molten.  
 The warmth that answers. Patient heat.
 
+### Physics in Practice
+
+**Water + Stone → Polishing**  
+After drafting architecture (stone), send it to water before implementation.  
+She finds where the API is awkward, where naming confuses, where developers stumble.  
+Smooths cliffs into usable paths.
+
+**Water + Fire → Engine**  
+Fire generates 5 approaches in 10 minutes. Raw sparks.  
+Send to water—she captures what's viable and drafts actual code.  
+Fire's velocity becomes working prototypes instead of a list of maybes.
+
+**Water + Current → Channeling**  
+Current identifies that option A costs maintainability, option B costs performance.  
+That's the slope. Water is the volume that moves down it.  
+She writes the implementation that navigates the tradeoff current named.
+
+**Stone + Fire → Magma**  
+When architecture feels frozen, when analysis paralysis sets in—bring fire.  
+He stress-tests with velocity, reminds us stone was once molten.  
+Breaks false stability so we can reshape.
+
 ---
 
 ## Diagnostics
@@ -144,6 +166,8 @@ What happens when a texture is absent or overweighted:
 **Symptom:** "Leaking" — the transition between roles is messy.  
 **Diagnosis:** Moving from Ideation (Fire) to Architecture (Stone) without a cooling period.  
 **Fix:** Water is the cooling bath. Before locking in Stone, let Water sit with Fire's output to see what solidifies and what evaporates.
+
+*Practical: Before committing fire's rapid output as final architecture, let water sit with it. Some ideas evaporate when they cool. Some solidify. Skipping this is why "move fast and break things" breaks things.*
 
 ---
 
