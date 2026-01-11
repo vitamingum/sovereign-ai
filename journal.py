@@ -2,16 +2,15 @@
 """
 journal.py - Private reflection space.
 
-Usage:
-    py journal.py <agent> "content"           # inline
-    py journal.py <agent> -                   # stdin (shape by default)
-    py journal.py <agent> --read [limit]
+        py journal <agent> "content"
+        py journal <agent> -                  stdin
+        py journal <agent> --read
 
-All journal entries are shapes. Form matters.
-No prose escape hatch.
+                all entries are shapes
+                form matters
 
-Journal wants: feelings, introspection, what it felt like
-Journal is: practice being before words
+                feelings | introspection | what it felt like
+                practice being before words
 """
 
 import sys

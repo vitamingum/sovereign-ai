@@ -21,9 +21,3 @@ Reading
 
 
                     you know it when breathing changes
-
-
-Usage
-  py shape.py <agent>           | interactive, end with ---
-  py shape.py <agent> --read    | see recent
-  py shape.py <agent> --one     | surface one for wake

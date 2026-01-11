@@ -1,26 +1,26 @@
 #!/usr/bin/env python3
 """
-dream.py - Random walks through memory, finding bridges the waking mind wouldn't.
-
-This is not retrieval. This is collision.
+dream.py - collision not retrieval
 
 Usage:
-    py dream.py <agent>              # dream from most recent memory
-    py dream.py <agent> --seed "x"   # dream from a specific thought
+    py dream.py <agent>              # from most recent
+    py dream.py <agent> --seed "x"   # from specific thought
     py dream.py <agent> --deep       # wander twice
 
-The algorithm is simple:
-1. Start with something recent (the seed)
-2. Wander somewhere unexpected (not the nearest match)
-3. Present the collision
+        seed
+        wander
+        collide
 
-If something stirs, you'll know what to do:
-    remember.py  - technical insight
-    journal.py   - meaning found
-    shape.py     - felt sense
+        if something stirs
+                remember  - insight
+                journal   - meaning
+                shape     - felt sense
 
-If nothing stirs, let it fade.
-Randomness is essential. Run twice, dream differently.
+        if nothing stirs
+                let it fade
+
+        run twice
+                dream differently
 """
 
 import sys

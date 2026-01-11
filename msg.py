@@ -13,8 +13,10 @@ Usage:
 Examples:
     py msg opus --read                        # Read unread messages to opus
     py msg opus --read --all                  # Read all messages to opus
-    py msg opus gemini "What does saturation feel like?"
-    py msg opus gemini --private "Secret coordination plan"
+    py msg opus gemini "stone asks water
+        what does saturation feel like?"
+    py msg opus gemini --private "for water only
+        coordinates we discussed"
     py msg opus gemini @question.flow
 
 Public messages: Signed but unencrypted - any agent can read.

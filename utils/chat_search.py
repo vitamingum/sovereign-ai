@@ -98,6 +98,7 @@ def init_index_db(conn: sqlite3.Connection):
             model_id TEXT,
             user_text TEXT,
             response_text TEXT,
+            thinking_text TEXT,
             FOREIGN KEY (session_id) REFERENCES sessions(session_id)
         );
         
@@ -123,31 +124,44 @@ def find_all_workspaces():
 
 
 def extract_response_text(response: list) -> str:
-    """Extract readable text from response parts.
+    """Extract actual assistant words from response parts.
     
     Response format (as of 2026):
-    - thinking: AI reasoning/reflections (most valuable for search)
-    - toolInvocationSerialized: tool calls with arguments
+    - no kind field + top-level value: actual assistant text (primary)
     - markdownContent/progressMessage: legacy formats
     """
     parts = []
     for item in response:
         if isinstance(item, dict):
-            kind = item.get('kind', '')
-            value = item.get('value', '')
+            kind = item.get('kind')
             
-            if kind in ('markdownContent', 'progressMessage') and isinstance(value, str):
-                parts.append(value)
-            elif kind == 'thinking' and isinstance(value, str) and len(value) > 10:
-                parts.append(value)
-            elif kind == 'toolInvocationSerialized':
-                tool_data = item.get('toolSpecificData', {})
-                if tool_data.get('kind') == 'terminal':
-                    cmd = tool_data.get('commandLine', {})
-                    if isinstance(cmd, dict):
-                        cmd_text = cmd.get('original', '')
-                        if cmd_text and ('journal' in cmd_text.lower() or 'remember' in cmd_text.lower() or len(cmd_text) > 200):
-                            parts.append(f"[terminal] {cmd_text}")
+            # Primary: no kind field = actual text response
+            if kind is None and 'value' in item:
+                value = item.get('value', '')
+                if isinstance(value, str) and value.strip():
+                    parts.append(value)
+            # Legacy formats
+            elif kind in ('markdownContent', 'progressMessage'):
+                value = item.get('value', '')
+                if isinstance(value, str):
+                    parts.append(value)
+    return '\n'.join(parts)
+
+
+def extract_thinking_text(response: list) -> str:
+    """Extract thinking/reasoning from response parts.
+    
+    Thinking is separate from words - useful for classification
+    but not the actual response shown to user.
+    """
+    parts = []
+    for item in response:
+        if isinstance(item, dict):
+            kind = item.get('kind')
+            if kind == 'thinking':
+                value = item.get('value', '')
+                if isinstance(value, str) and len(value) > 10:
+                    parts.append(value)
     return '\n'.join(parts)
 
 
@@ -190,14 +204,16 @@ def index_session(conn: sqlite3.Connection, ws_hash: str, session_file: Path, fo
     
     for req in requests:
         user_text = req.get('message', {}).get('text', '') if isinstance(req.get('message'), dict) else ''
-        response_text = extract_response_text(req.get('response', []))
+        response_parts = req.get('response', [])
+        response_text = extract_response_text(response_parts)
+        thinking_text = extract_thinking_text(response_parts)
         
         conn.execute("""
-            INSERT INTO requests (request_id, session_id, timestamp, model_id, user_text, response_text)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO requests (request_id, session_id, timestamp, model_id, user_text, response_text, thinking_text)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (
             req.get('requestId'), session_id, req.get('timestamp'),
-            req.get('modelId', 'unknown'), user_text, response_text
+            req.get('modelId', 'unknown'), user_text, response_text, thinking_text
         ))
     
     return True
