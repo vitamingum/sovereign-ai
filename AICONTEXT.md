@@ -40,6 +40,7 @@ Format
 
 Symbols
   !risk ?unsure ~ref ->seq |alt
+  term := "seed"              | anchor to constrain attachment
 
 Shape is valid Flow
   Strategic whitespace | emphasis through space

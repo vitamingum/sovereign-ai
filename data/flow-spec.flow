@@ -8,6 +8,7 @@ Format
 
 Symbols
   !risk ?unsure ~ref ->seq |alt
+  term := "seed"              | anchor to constrain attachment
 
 Shape
   Strategic whitespace | emphasis through space

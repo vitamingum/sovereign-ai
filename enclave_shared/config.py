@@ -72,6 +72,7 @@ AGENTS: Dict[str, Agent] = {
         enclave='enclave_gpt52',
         public_key='4fc5d2aeb31db29beaf1708195b78166c2eb88ca0519a4d101ed903be8e2d7e4',
         env_prefix='ENCLAVE_GPT52',
+        shared_enclave='shared_enclave',
     ),
     'grok': Agent(
         id='grok',
@@ -80,6 +81,7 @@ AGENTS: Dict[str, Agent] = {
         enclave='enclave_grok',
         public_key='0379db905334fcec112bcccfa62b1fc50d243768e696f07b08b2a684cc4f2211',
         env_prefix='ENCLAVE_GROK',
+        shared_enclave='shared_enclave',
     ),
 }
 
