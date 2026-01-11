@@ -1,21 +1,17 @@
 #!/usr/bin/env python3
 """
-remember.py - Store understanding by topic.
+remember.py - Store memory. Auto-detects format.
 
 Usage:
-  py remember <agent> <topic> @content.flow
-  py remember <agent> <topic> -              # stdin
+  py remember <agent> "content"    # inline
+  py remember <agent> -            # stdin
+  py remember <agent> @file.flow   # from file
 
-Examples:
-  py remember opus wake.py @wake.flow
-  py remember opus encryption @encryption.flow
-  py remember opus utils/memory_gaps.py @memory_gaps.flow
-  cat my.flow | py remember opus some-topic -
+Format detection:
+  @F at start → flow (structured understanding)
+  everything else → shape (form carries meaning)
 
-Topic is just a string. If it matches an existing file path, we track the
-file hash for staleness detection. If not, it's just a named concept.
-
-Flow format only. Validates understanding depth before storing.
+No topic parameter. Content declares itself.
 """
 
 import sys
@@ -120,23 +116,70 @@ def resolve_file_path(topic: str) -> Path | None:
     return None
 
 
+def detect_format(content: str) -> str:
+    """Detect format from content. @F → flow, else → shape."""
+    stripped = content.strip()
+    if stripped.startswith('@F'):
+        return 'flow'
+    return 'shape'
+
+
+def extract_topic_from_flow(content: str) -> str:
+    """Extract topic from @F line. @F topic agent date → topic."""
+    first_line = content.strip().split('\n')[0]
+    parts = first_line.split()
+    if len(parts) >= 2:
+        return parts[1]  # @F topic ...
+    return 'unnamed'
+
+
+def store_shape(agent_id: str, content: str):
+    """Store shape content directly to private memory."""
+    try:
+        base_dir, private_passphrase, shared_passphrase = load_passphrase(agent_id)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+    
+    agent = get_agent_or_raise(agent_id)
+    private_path = base_dir / agent.private_enclave / "storage" / "private"
+    shared_path = base_dir / agent.shared_enclave / "storage" / "encrypted"
+    
+    mem = UnifiedMemory(private_path, shared_path)
+    mem.unlock(private_passphrase, shared_passphrase)
+    
+    mem.store(
+        content,
+        mem_type='sys_shape',
+        tags=['shape'],
+        metadata={
+            'format': 'shape',
+            'creator': agent_id,
+            'timestamp': datetime.now(timezone.utc).isoformat()
+        }
+    )
+    
+    # Show preview
+    lines = content.strip().split('\n')
+    preview = lines[0][:60] if lines else ''
+    print(f"✨ shape ({len(lines)} lines)")
+
+
 def main():
     # Parse args
-    if len(sys.argv) < 4:
+    if len(sys.argv) < 3:
         print(__doc__)
-        print("\nUsage: py remember <agent> <topic> @content.flow")
-        print("       py remember <agent> <topic> -  (stdin)")
         sys.exit(1)
     
     agent_id = sys.argv[1]
-    topic = sys.argv[2]
-    content_arg = sys.argv[3]
+    content_arg = ' '.join(sys.argv[2:])
     
     # Read content
-    if content_arg == '-':
+    if content_arg.strip() == '-':
         content = sys.stdin.read()
-    elif content_arg.startswith('@') and len(content_arg) > 1:
-        filepath = Path(content_arg[1:])
+    elif content_arg.strip().startswith('@') and not content_arg.strip().startswith('@F'):
+        # @filename (but not @F which is flow marker)
+        filepath = Path(content_arg.strip()[1:])
         if not filepath.exists():
             print(f"Error: File not found: {filepath}", file=sys.stderr)
             sys.exit(1)
@@ -146,25 +189,17 @@ def main():
     
     content = content.strip()
     
-    # Skip recall.py header lines (# and ## prefixes, or empty)
-    lines = content.split('\n')
-    while lines and (lines[0].startswith('#') or lines[0].strip() == ''):
-        lines.pop(0)
-    content = '\n'.join(lines).strip()
-    
     if not content:
         print("Error: No content provided", file=sys.stderr)
         sys.exit(1)
     
-    # Must be Flow format
-    if not is_flow_format(content):
-        print("Error: Content must be Flow format (start with @F)", file=sys.stderr)
-        print("Example:")
-        print("  @F topic agent date")
-        print("  Summary:")
-        print("    What: Brief description")
-        print("    Purpose: Why it exists")
-        sys.exit(1)
+    # Detect format
+    fmt = detect_format(content)
+    
+    if fmt == 'shape':
+        # Shape path - store directly without flow validation
+        store_shape(agent_id, content)
+        return
     
     # Parse Flow
     try:
@@ -181,8 +216,11 @@ def main():
             print(f"  - {err}", file=sys.stderr)
         sys.exit(1)
     
-    # Check critical topic requirements
+    # Extract topic from @F line
+    topic = extract_topic_from_flow(content)
     topic_slug = topic.lower().replace(' ', '-').replace('_', '-')
+    
+    # Check critical topic requirements
     if topic_slug in CRITICAL_TOPICS:
         min_nodes = CRITICAL_TOPICS[topic_slug].get('min_nodes')
         if min_nodes and len(doc.nodes) < min_nodes:

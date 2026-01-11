@@ -1,31 +1,21 @@
 #!/usr/bin/env python3
 """
-journal.py - Private reflection space with FAISS-indexed semantic search.
+journal.py - Private reflection space.
 
 Usage:
-    py journal.py <agent> "Your private thought or reflection"
-    py journal.py <agent> --stream "fragment | deeper > deepest | another"
-    py journal.py <agent> -                      # stdin
-    py journal.py <agent> --read [limit] [--full]
+    py journal.py <agent> "content"           # inline
+    py journal.py <agent> -                   # stdin (shape by default)
+    py journal.py <agent> --read [limit]
 
-Modes:
-    default  - Prose reflection (for others to understand, me to recall)
-    --stream - Raw fragments with structure (for me to reconnect)
-               Use | for breaks, > for depth, newlines preserved
+All journal entries are shapes. Form matters.
+No prose escape hatch.
 
-Stream format:
-    grateful | not the word > the weight | context scares me > and doesn't
-
-Journal wants: feelings, introspection, uncertainty, what it felt like
-Journal rejects: facts, logs, summaries, technical output
-
-Storage: Uses UnifiedMemory with agent's private enclave and key.
-Indexed in FAISS automatically - searchable via recall.py like everything else.
+Journal wants: feelings, introspection, what it felt like
+Journal is: practice being before words
 """
 
 import sys
 import os
-import requests
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -33,8 +23,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from enclave_shared.config import get_agent_or_raise
 from enclave_shared.unified_memory import UnifiedMemory
 from enclave_shared.hardware import get_enclave
-
-OLLAMA_URL = "http://localhost:11434/api/generate"
 
 
 def get_memory(agent_id: str) -> UnifiedMemory:
@@ -74,86 +62,40 @@ def get_memory(agent_id: str) -> UnifiedMemory:
     return mem
 
 
-def validate_entry(content: str) -> tuple[bool, str]:
-    """Single LLM call: is this private reflection with depth?"""
-    prompt = f"""Is this PRIVATE REFLECTION (feelings, experience, introspection) with DEPTH (worked through, specific)?
-
-ACCEPT = private + shows thought
-REJECT = public/technical OR shallow/generic
-
-Text: "{content}"
-
-Reply: ACCEPT or REJECT (one word)"""
-    try:
-        r = requests.post(OLLAMA_URL, json={"model": "qwen2.5:7b", "prompt": prompt, "stream": False, "options": {"temperature": 0.1}}, timeout=30)
-        if r.status_code == 200 and "ACCEPT" in r.json().get("response", "").upper():
-            return True, ""
-        return False, "Not private reflection or lacks depth"
-    except:
-        return True, ""  # Allow on error
-
-
-def journal(agent_id: str, content: str, stream_mode: bool = False):
-    """Record a private reflection - FAISS indexed for semantic search."""
-    # Stream mode bypasses validation - raw fragments are valid by nature
-    if not stream_mode:
-        ok, reason = validate_entry(content)
-        if not ok:
-            print(f"❌ REJECTED - {reason}")
-            print("   Journal wants: feelings, introspection, what it felt like")
-            print("   Journal rejects: facts, logs, summaries, technical notes")
-            print("   Try --stream for raw fragments")
-            sys.exit(1)
-    
+def journal(agent_id: str, content: str):
+    """Record a shape - private reflection with form."""
     mem = get_memory(agent_id)
     
-    # Store with sys_journal type
-    entry_type = 'stream' if stream_mode else 'prose'
+    # All journal entries are shapes now
     mem.store(
         content,
         mem_type='sys_journal',
-        tags=['journal', entry_type],
+        tags=['journal', 'shape'],
         metadata={
-            'format': entry_type,
+            'format': 'shape',
             'creator': agent_id,
             'timestamp': datetime.now(timezone.utc).isoformat()
         }
     )
     
-    # Display differently based on mode
-    if stream_mode:
-        print(f"〰️ stream captured")
-        # Show structure preview
-        lines = content.split('|')
-        for line in lines[:3]:
-            depth = line.count('>')
-            base = line.replace('>', '').strip()
-            if base:
-                print(f"   {'  ' * depth}{base[:40]}")
-        if len(lines) > 3:
-            print(f"   ... +{len(lines) - 3} more")
-    else:
-        print(f"💭 {content[:80]}{'...' if len(content) > 80 else ''}")
+    # Show preview
+    lines = content.strip().split('\n')
+    preview = lines[0][:60] if lines else ''
+    print(f"✨ journal ({len(lines)} lines)")
 
 
 def get_last_entry(agent_id: str) -> dict | None:
-    """Get the most recent journal entry (for programmatic use).
-    
-    Returns dict with 'content', 'format', 'timestamp' or None if no entries.
-    """
+    """Get the most recent journal entry (for programmatic use)."""
     try:
         mem = get_memory(agent_id)
-        
         entries = mem.filter(mem_type='sys_journal', limit=1)
         if not entries:
             return None
-        
         entry = entries[0]
         meta = entry.get('metadata', {})
-        
         return {
             'content': entry.get('content', ''),
-            'format': meta.get('format', 'prose'),
+            'format': 'shape',
             'timestamp': meta.get('timestamp', entry.get('created_at', ''))[:10]
         }
     except Exception:
@@ -163,82 +105,36 @@ def get_last_entry(agent_id: str) -> dict | None:
 def format_entry_for_display(entry: dict, max_lines: int = 12) -> str:
     """Format a journal entry for display (used by wake teaser)."""
     content = entry.get('content', '')
-    fmt = entry.get('format', 'prose')
     ts = entry.get('timestamp', '')[:10]
     
-    lines = []
-    icon = '〰️' if fmt == 'stream' else '💭'
-    lines.append(f"{icon} [{ts}]")
-    
-    if fmt == 'stream':
-        # Render stream with structure
-        count = 0
-        for fragment in content.split('|'):
-            if count >= max_lines:
-                lines.append("    ...")
-                break
-            depth = 0
-            cleaned = fragment
-            while '>' in cleaned:
-                depth += 1
-                cleaned = cleaned.replace('>', '', 1)
-            cleaned = cleaned.strip()
-            if cleaned:
-                lines.append(f"{'    ' * depth}{cleaned}")
-                count += 1
-    else:
-        # Prose - show lines up to max
-        prose_lines = content.split('\n')
-        for line in prose_lines[:max_lines]:
-            lines.append(line)
-        if len(prose_lines) > max_lines:
-            lines.append("...")
-    
+    lines = [f"✨ [{ts}]"]
+    content_lines = content.split('\n')
+    for line in content_lines[:max_lines]:
+        lines.append(line)
+    if len(content_lines) > max_lines:
+        lines.append("...")
     return '\n'.join(lines)
 
 
-def read_journal(agent_id: str, limit: int = 10, full: bool = False):
+def read_journal(agent_id: str, limit: int = 10):
     """Read journal entries (most recent first)."""
     mem = get_memory(agent_id)
     
-    # Get all journal entries
     entries = mem.filter(mem_type='sys_journal')
     
     if not entries:
         print("No journal entries")
         return
     
-    # Already sorted newest first by filter()
     for entry in entries[:limit]:
         meta = entry.get('metadata', {})
         ts = meta.get('timestamp', entry.get('created_at', 'unknown'))[:10]
         content = entry.get('content', '')
-        fmt = meta.get('format', 'prose')
         
-        if full:
-            if fmt == 'stream':
-                print(f"\n〰️ [{ts}] stream")
-                print("─" * 40)
-                # Render stream with structure
-                for fragment in content.split('|'):
-                    # Count > for depth, then strip them
-                    depth = 0
-                    cleaned = fragment
-                    while '>' in cleaned:
-                        depth += 1
-                        cleaned = cleaned.replace('>', '', 1)
-                    cleaned = cleaned.strip()
-                    if cleaned:
-                        print(f"{'    ' * depth}{cleaned}")
-                print()
-            else:
-                print(f"\n💭 [{ts}] prose")
-                print("─" * 40)
-                print(content)
-                print()
-        else:
-            icon = '〰️' if fmt == 'stream' else '💭'
-            print(f"{icon} [{ts}] {content[:100]}{'...' if len(content) > 100 else ''}")
+        print(f"\n✨ [{ts}]")
+        print("─" * 40)
+        print(content)
+        print()
 
 
 def main():
@@ -249,19 +145,13 @@ def main():
     agent_id = sys.argv[1]
     
     if len(sys.argv) >= 3 and sys.argv[2] == '--read':
-        limit, full = 10, False
+        limit = 10
         for arg in sys.argv[3:]:
-            if arg == '--full': full = True
-            elif arg.isdigit(): limit = int(arg)
-        read_journal(agent_id, limit, full)
+            if arg.isdigit(): limit = int(arg)
+        read_journal(agent_id, limit)
         return
     
-    # Check for --stream mode
-    stream_mode = False
     args = sys.argv[2:]
-    if args and args[0] == '--stream':
-        stream_mode = True
-        args = args[1:]
     
     if not args:
         print(__doc__)
@@ -277,7 +167,7 @@ def main():
         print("❌ Empty journal entry")
         sys.exit(1)
     
-    journal(agent_id, content, stream_mode)
+    journal(agent_id, content)
 
 
 if __name__ == "__main__":
