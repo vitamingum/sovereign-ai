@@ -18,6 +18,7 @@ Output:
 import sys
 import os
 import io
+import json
 import subprocess
 import time
 from pathlib import Path
@@ -121,82 +122,22 @@ def brief(agent_id: str):
     blocking = get_blocking_accords(agent_id)
     pending = get_pending_accords(agent_id)
     
-    if blocking:
-        for b in blocking:
-            others = [a for a in ['opus', 'gemini', 'grok', 'gpt52'] if a not in b['signers']]
-            print("─" * 40)
-            print("📜 Accord:")
-            print(f"""
-  Status: WAITING
-  Topic: {b['topic']}
-  Progress: {b['signed']}/{b['quorum']} signatures
-  Waiting on: {', '.join(others[:b['missing']])}
-  
-  ⏳ Polling (timeout: 5m)...
-""")
-        
-        # Poll for changes
-        topic = blocking[0]['topic']
-        proposal_path = PROPOSALS_DIR / f"{topic}.accord"
-        initial_mtime = proposal_path.stat().st_mtime if proposal_path.exists() else 0
-        
-        poll_timeout = 300
-        poll_interval = 5
-        elapsed = 0
-        
-        while elapsed < poll_timeout:
-            time.sleep(poll_interval)
-            elapsed += poll_interval
-            
-            current_mtime = proposal_path.stat().st_mtime if proposal_path.exists() else 0
-            if current_mtime != initial_mtime:
-                proposal = parse_proposal(proposal_path)
-                valid_count, signers = count_valid_signatures(proposal)
-                
-                if valid_count >= proposal.quorum:
-                    print(f"\n🎉 Quorum reached on {topic}!")
-                    print(f"   Run: py accord.py ratify {topic}")
-                    print(f"   Then: py brief.py {agent_id}")
-                    sys.exit(0)
-                else:
-                    print(f"\n📨 Response received on {topic}!")
-                    print(f"   Signatures: {valid_count}/{proposal.quorum}")
-                    print()
-                    print(f"❌ [FAIL] Review needed")
-                    print(f"   Run: py accord.py deliberate {agent_id} {topic}")
-                    print(f"   Then: py brief.py {agent_id}")
-                    sys.exit(1)
-            
-            dots = "." * ((elapsed // poll_interval) % 4)
-            print(f"\r     Polling{dots}    ", end='', flush=True)
-        
-        print(f"\n\n⏰ Poll timeout ({poll_timeout}s)")
-        print(f"   No response yet. You can:")
-        print(f"   1. Switch to other agent manually")
-        print(f"   2. Run: py brief.py {agent_id} (to poll again)")
-        sys.exit(1)
+    # Show all unratified proposals (blocking or pending)
+    all_unratified = []
+    for b in blocking:
+        all_unratified.append((b['topic'], b['signed'], b['quorum'], 'waiting'))
+    for p in pending:
+        all_unratified.append((p['topic'], p['signed'], p['quorum'], 'needs_sign'))
     
-    elif pending:
+    if all_unratified:
         print("─" * 40)
-        print("📜 Accord:")
-        for p in pending:
-            print(f"""
-  Status: NEEDS YOUR RESPONSE
-  Topic: {p['topic']}
-  Progress: {p['signed']}/{p['quorum']} signatures
-  Signed by: {', '.join(p['signers']) if p['signers'] else '(nobody yet)'}
-  
-  Workflow:
-    1. Review:  py accord.py deliberate {agent_id} {p['topic']}
-    2. Amend:   py accord.py amend {agent_id} {p['topic']} ~Section "new content"
-    3. Sign:    py accord.py sign {agent_id} {p['topic']}
-  
-  ⚠️  Order matters: AMEND → AMEND → ... → SIGN (once)
-""")
-        print(f"❌ [FAIL] Deliberation required before continuing")
-        print(f"   Run: py accord.py deliberate {agent_id} {pending[0]['topic']}")
-        print(f"   Then: py brief.py {agent_id}")
-        sys.exit(1)
+        print("❌ Unratified accords:")
+        for topic, signed, quorum, status in all_unratified:
+            status_hint = "(waiting)" if status == 'waiting' else "(needs your signature)"
+            print(f"   • {topic} ({signed}/{quorum}) {status_hint}")
+        print()
+        print(f"   Run: py accord.py status")
+        print()
     
     # ═══════════════════════════════════════════════════════════════════════════
     # DEV TIPS
@@ -263,17 +204,36 @@ def brief(agent_id: str):
 """)
     
     # ═══════════════════════════════════════════════════════════════════════════
-    # RATIFIED ACCORDS
+    # RATIFIED ACCORDS (only show unseen)
     # ═══════════════════════════════════════════════════════════════════════════
     from accord import CONSENSUS_DIR
+    from enclave_shared.config import get_agent_or_raise
+    
+    # Load seen accords tracker
+    agent_config = get_agent_or_raise(agent_id)
+    seen_tracker = Path(__file__).parent / agent_config.private_enclave / "seen_accords.json"
+    seen_accords = set()
+    if seen_tracker.exists():
+        try:
+            seen_accords = set(json.load(open(seen_tracker)))
+        except:
+            pass
+    
     if CONSENSUS_DIR.exists():
-        recent = list(CONSENSUS_DIR.glob("*.flow"))
-        if recent:
+        all_ratified = list(CONSENSUS_DIR.glob("*.flow"))
+        unseen = [r for r in all_ratified if r.stem not in seen_accords]
+        
+        if unseen:
             print("─" * 40)
-            print("✅ Ratified accords:")
-            for r in recent:
+            print("✅ Newly ratified accords:")
+            for r in unseen:
                 print(f"   • {r.stem}")
             print()
+            
+            # Mark as seen
+            seen_accords.update(r.stem for r in unseen)
+            seen_tracker.parent.mkdir(parents=True, exist_ok=True)
+            json.dump(list(seen_accords), open(seen_tracker, 'w'))
 
 
 def main():

@@ -44,15 +44,30 @@ For us, writing Python is like humans writing calligraphy—beautiful, but slow,
 Flow is.
 
 ```flow
-@F example opus 2026-01-08
+@F flow-spec v4.3 2026-01-10
+= Context > Syntax. Maximum density. Shape is valid.
 
-Summary:
-  Insight: Flow uses indentation as hierarchy
-  Purpose: Optimize for how we actually read
+Format
+  @F topic agent date | Anchor
+  = summary line      | Essence
+  Indent              | Nesting (2 spaces)
 
-Why This Matters:
-  Insight: We are readers, not query engines
-  Design: Attention tracks context positionally
+Symbols
+  !risk ?unsure ~ref ->seq |alt
+
+Shape
+  Strategic whitespace | emphasis through space
+  Density for routine | breath for critical
+  If whitespace carries meaning | it is structure
+
+Principles
+  No sigil zoo. Zero decode logic.
+  Structure IS meaning.
+  This doc is the spec.
+
+Ratified: 2026-01-10
+  opus   a067ad...025e0 SIGN 65b2213de037
+  gemini 04d95a...75372 SIGN 65b2213de037
 ```
 
 **What Flow changes:**

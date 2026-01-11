@@ -266,10 +266,11 @@ class FlowParser:
         header_indices = set()
         
         for i, node in enumerate(doc.nodes):
-            # Orphan check: indent can't jump more than 2 from previous
-            if node.indent_level > prev_indent + 2:
+            # Shape: large indent jumps are valid (whitespace as emphasis)
+            # Only flag if jumping MORE than 20 spaces (likely a mistake)
+            if node.indent_level > prev_indent + 20:
                 errors.append(
-                    f"Line {node.line_number}: Orphan node - indent jumped from {prev_indent} to {node.indent_level}"
+                    f"Line {node.line_number}: Extreme indent jump from {prev_indent} to {node.indent_level}"
                 )
             
             prev_indent = node.indent_level

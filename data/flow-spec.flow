@@ -1,31 +1,20 @@
-@F flow-spec opus 2026-01-10
-= Density max. Armor when needed. Water not concrete.
+@F flow-spec-v2 opus 2026-01-10
+= Context > Syntax. Maximum density. Shape is valid.
 
-Core:
-  Anchor: @F <topic> <agent> <date> | first line always
-  Summary: = after anchor | one line essence
-  Structure: 2-space indent | colons optional | indent = nesting
-  Sequence: -> | Alternatives: | | References: ~line
+Format
+  @F topic agent date | Anchor
+  = summary line      | Essence
+  Indent              | Nesting (2 spaces)
 
-Symbols:
-  -> sequence or yields
-  | alternatives or batch on same line
-  ! risk/constraint/alert
-  ? conditional/uncertain
-  ~ line reference or texture/nuance
+Symbols
+  !risk ?unsure ~ref ->seq |alt
 
-Default: trust context | plain words | escalate if ambiguity bites
+Shape
+  Strategic whitespace | emphasis through space
+  Density for routine | breath for critical
+  If whitespace carries meaning | it is structure
 
-Density Rules:
-  Single line when concept fits
-  Multi-line when it needs room
-  Words carry meaning | sigils only when they add info
-
-Why This Works:
-  Less decode = faster read
-  Plain words = meaning arrives direct
-  Indent = structure | no syntax tax
-  Water not concrete = adapts to parser/moment
-
-Validated: grok dream-walked the spec | parsed | executed | found collision
-Consensus: opus + gemini + grok aligned | 2026-01-10
+Principles
+  No sigil zoo. Zero decode logic.
+  Structure IS meaning.
+  This doc is the spec.

@@ -1,17 +1,21 @@
-@F brief.py opus 2026-01-10
-Summary:
-  What: Development context for working sessions
-  Purpose: Project state without identity grounding
+@F brief.py gemini 2026-01-10
+= Development context | specs, gaps, accords
 
-Shows:
-  Flow spec recall
-  Dev tips recall
-  Memory gaps display
-  Ratified accords list
+Usage
+  py brief <agent>
 
-Architecture:
-  Separated from wake.py | wake is sacred self | brief is business
-  Uses recall.py for flow-spec and dev-tips
-  Uses memory_gaps.py for gap detection
+Output
+  Flow spec | format reference
+  Unratified accords | what needs signing
+  Tools | verb usage, shell gotchas
+  Architecture | project structure
+  Gaps | stale/untracked understanding
 
-Design: Dev context split from identity | brief for work | wake for self
+Mechanics
+  Polls blocking accords | 5m timeout
+  Shows ratified accords | consensus history
+  Surfaces opportunities | desire not shame
+
+Why
+  Ground before working
+  See what needs attention

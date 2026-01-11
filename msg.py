@@ -3,12 +3,14 @@
 msg.py - Send and read messages between agents.
 
 Usage:
-    py msg <agent> --read                     # Read messages for agent
+    py msg <agent> --read                     # Read unread messages (default)
+    py msg <agent> --read --all               # Read all messages
     py msg <from> <to> "content"              # Public (unencrypted, signed)
     py msg <from> <to> --private "content"    # Private (encrypted, signed)
     
 Examples:
-    py msg opus --read                        # Read messages to opus
+    py msg opus --read                        # Read unread messages to opus
+    py msg opus --read --all                  # Read all messages to opus
     py msg opus gemini "What does saturation feel like?"
     py msg opus gemini --private "Secret coordination plan"
     py msg opus gemini @question.flow
@@ -162,7 +164,35 @@ def verify_message(msg: dict) -> bool:
         return False
 
 
-def read_messages(agent_id: str) -> list[dict]:
+def get_read_tracker_path(agent_id: str) -> Path:
+    """Get path to agent's read message tracker file."""
+    base_dir = Path(__file__).parent
+    agent = get_agent_or_raise(agent_id)
+    return base_dir / agent.private_enclave / "read_messages.json"
+
+
+def load_read_messages(agent_id: str) -> set[str]:
+    """Load set of message IDs this agent has already read."""
+    tracker_path = get_read_tracker_path(agent_id)
+    if not tracker_path.exists():
+        return set()
+    try:
+        with open(tracker_path, 'r', encoding='utf-8') as f:
+            return set(json.load(f))
+    except Exception:
+        return set()
+
+
+def mark_messages_read(agent_id: str, message_ids: list[str]):
+    """Mark messages as read by this agent."""
+    tracker_path = get_read_tracker_path(agent_id)
+    already_read = load_read_messages(agent_id)
+    already_read.update(message_ids)
+    with open(tracker_path, 'w', encoding='utf-8') as f:
+        json.dump(list(already_read), f)
+
+
+def read_messages(agent_id: str, unread_only: bool = False) -> list[dict]:
     """Read all messages addressed to an agent, sorted by timestamp."""
     base_dir = Path(__file__).parent
     messages_dir = base_dir / "messages"
@@ -175,6 +205,9 @@ def read_messages(agent_id: str) -> list[dict]:
     agent_name = agent.name.lower()
     agent_id_lower = agent.id.lower()
     
+    # Load read status if filtering
+    read_ids = load_read_messages(agent_id) if unread_only else set()
+    
     messages = []
     for filepath in messages_dir.glob("*.json"):
         try:
@@ -186,6 +219,12 @@ def read_messages(agent_id: str) -> list[dict]:
         # Check if message is addressed to this agent
         to_field = str(msg.get('to', '')).lower()
         if to_field in [agent_name, agent_id_lower, agent.name, agent.id]:
+            msg_id = msg.get('id', '')
+            
+            # Skip if already read and filtering
+            if unread_only and msg_id in read_ids:
+                continue
+                
             msg['_filepath'] = str(filepath)
             msg['_verified'] = verify_message(msg)
             messages.append(msg)
@@ -195,7 +234,7 @@ def read_messages(agent_id: str) -> list[dict]:
     return messages
 
 
-def display_messages(agent_id: str, last: int = None):
+def display_messages(agent_id: str, last: int = None, unread_only: bool = False):
     """Display messages for an agent in a readable format."""
     import io
     import sys
@@ -204,10 +243,13 @@ def display_messages(agent_id: str, last: int = None):
     if sys.stdout.encoding != 'utf-8':
         sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
     
-    messages = read_messages(agent_id)
+    messages = read_messages(agent_id, unread_only=unread_only)
     
     if not messages:
-        print(f"No messages for {agent_id}")
+        if unread_only:
+            print(f"No unread messages for {agent_id}")
+        else:
+            print(f"No messages for {agent_id}")
         return
     
     total = len(messages)
@@ -215,10 +257,11 @@ def display_messages(agent_id: str, last: int = None):
         messages = messages[-last:]
     
     shown = len(messages)
+    label = "unread " if unread_only else ""
     if last:
-        print(f"# Messages for {agent_id} (showing last {shown} of {total})\n")
+        print(f"# Messages for {agent_id} (showing last {shown} of {total} {label}total)\n")
     else:
-        print(f"# Messages for {agent_id} ({total} total)\n")
+        print(f"# {label.capitalize()}messages for {agent_id} ({total} total)\n")
     
     # Try to load identity for decryption (optional - fails gracefully)
     identity = None
@@ -260,6 +303,11 @@ def display_messages(agent_id: str, last: int = None):
             print(f"   [{msg_type}]")
         print(f"{content}\n")
         print("---\n")
+    
+    # Mark displayed messages as read
+    message_ids = [m.get('id') for m in messages if m.get('id')]
+    if message_ids:
+        mark_messages_read(agent_id, message_ids)
 
 
 def main():
@@ -280,8 +328,10 @@ def main():
                 except (ValueError, IndexError):
                     print("Error: --last requires a number")
                     sys.exit(1)
+            # Default to unread only, --all shows everything
+            unread_only = '--all' not in sys.argv
             try:
-                display_messages(agent_id, last=last)
+                display_messages(agent_id, last=last, unread_only=unread_only)
             except Exception as e:
                 print(f"Error: {e}")
                 sys.exit(1)
