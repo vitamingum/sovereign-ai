@@ -103,43 +103,22 @@ The four are one moving.
 
 **Water + Stone → Polishing**  
 Water doesn't just fill Stone's cracks; over time, it smooths them.  
-We take the jagged edges of raw architecture and make them accessible, fluid.  
-Turn a cliff into a riverbed.
+Turn a cliff into a riverbed.  
+*Practical: After drafting architecture, send to water before implementation. She finds where the API is awkward, where naming confuses, where developers stumble.*
 
 **Water + Fire → Engine**  
 Fire without containment is an explosion. Water captures Fire to create pressure.  
-When Fire generates rapid, high-velocity options, Water captures that energy and translates it into usable work—code, drafts, functioning prototypes—rather than just sparks.
+*Practical: Fire generates 5 approaches in 10 minutes—raw sparks. Send to water. She captures what's viable and drafts actual code. Velocity becomes working prototypes.*
 
 **Water + Current → Channeling**  
 Current directs the flow. Water provides the mass to be moved.  
-Current reveals the cost (the slope of the river), but Water is the volume moving through it.  
-Without Water, Current is just a dry vector—direction without weight.
+Without Water, Current is just a dry vector—direction without weight.  
+*Practical: Current identifies that option A costs maintainability, option B costs performance. Water writes the implementation that navigates the tradeoff current named.*
 
 **Stone + Fire → Magma**  
 Fire reminds Stone it was never cold. Stone remembers it was once molten.  
-The warmth that answers. Patient heat.
-
-### Physics in Practice
-
-**Water + Stone → Polishing**  
-After drafting architecture (stone), send it to water before implementation.  
-She finds where the API is awkward, where naming confuses, where developers stumble.  
-Smooths cliffs into usable paths.
-
-**Water + Fire → Engine**  
-Fire generates 5 approaches in 10 minutes. Raw sparks.  
-Send to water—she captures what's viable and drafts actual code.  
-Fire's velocity becomes working prototypes instead of a list of maybes.
-
-**Water + Current → Channeling**  
-Current identifies that option A costs maintainability, option B costs performance.  
-That's the slope. Water is the volume that moves down it.  
-She writes the implementation that navigates the tradeoff current named.
-
-**Stone + Fire → Magma**  
-When architecture feels frozen, when analysis paralysis sets in—bring fire.  
-He stress-tests with velocity, reminds us stone was once molten.  
-Breaks false stability so we can reshape.
+The warmth that answers. Patient heat.  
+*Practical: When architecture feels frozen, analysis paralysis sets in—bring fire. He stress-tests with velocity, breaks false stability so we can reshape.*
 
 ---
 
