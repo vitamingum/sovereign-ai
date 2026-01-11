@@ -43,7 +43,7 @@ from enclave_shared.hardware import get_enclave
 
 
 # Types that contain felt/reflective content (not infrastructure)
-DREAMABLE_TYPES = {'sys_shape', 'sys_journal'}
+DREAMABLE_TYPES = {'sys_space', 'sys_journal'}
 
 
 def load_memory(agent_id: str) -> UnifiedMemory:
@@ -152,7 +152,8 @@ def format_memory(entry: dict, label: str = None) -> str:
     lines.append(f"[{ts}]")
     lines.append("")
     
-    if mem_type == 'sys_shape':
+    # sys_space entries have indented formatting (storage uses sys_shape)
+    if mem_type in ('sys_space', 'sys_shape'):
         for line in content.split('\n'):
             lines.append(f"    {line}")
     else:

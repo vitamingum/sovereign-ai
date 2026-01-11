@@ -132,7 +132,7 @@ def extract_topic_from_flow(content: str) -> str:
 
 
 def store_shape(agent_id: str, content: str):
-    """Store shape content directly to private memory."""
+    """Store space content directly to private memory."""
     try:
         base_dir, private_passphrase, shared_passphrase = load_passphrase(agent_id)
     except ValueError as e:
@@ -148,10 +148,10 @@ def store_shape(agent_id: str, content: str):
     
     mem.store(
         content,
-        mem_type='sys_shape',
-        tags=['shape'],
+        mem_type='sys_space',
+        tags=['space'],
         metadata={
-            'format': 'shape',
+            'format': 'space',
             'creator': agent_id,
             'timestamp': datetime.now(timezone.utc).isoformat()
         }
@@ -160,7 +160,7 @@ def store_shape(agent_id: str, content: str):
     # Show preview
     lines = content.strip().split('\n')
     preview = lines[0][:60] if lines else ''
-    print(f"✨ shape ({len(lines)} lines)")
+    print(f"✨ space ({len(lines)} lines)")
 
 
 def main():

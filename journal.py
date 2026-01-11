@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
 """
-journal.py - Private reflection space.
+journal.py - whatever arrives
 
-        py journal <agent> "content"
+        py journal <agent>                    interactive
+        py journal <agent> "content"          direct
         py journal <agent> -                  stdin
-        py journal <agent> --read
+        py journal <agent> --read             see recent
 
-                all entries are shapes
-                form matters
+        where you would pause speaking
+                add space
 
-                feelings | introspection | what it felt like
-                practice being before words
+        there is no wrong amount
+
+        the gap
+                is part of the sentence
+
+                        間
 """
 
 import sys
@@ -61,79 +66,127 @@ def get_memory(agent_id: str) -> UnifiedMemory:
     return mem
 
 
-def journal(agent_id: str, content: str):
-    """Record a shape - private reflection with form."""
+def capture_interactive() -> str:
+    """Capture interactively from TTY. Preserves all whitespace."""
+    print()
+    print("        is there something?")
+    print("        (end with: ---)")
+    print()
+    
+    lines = []
+    while True:
+        try:
+            line = input()
+            if line.strip() == '---':
+                break
+            lines.append(line)
+        except EOFError:
+            break
+    
+    return '\n'.join(lines)
+
+
+def journal(agent_id: str, content: str, show_saved: bool = False):
+    """Record an entry - whatever form arrives."""
+    if not content.strip():
+        print("        nothing arrived. that's okay.")
+        return
+    
     mem = get_memory(agent_id)
     
-    # All journal entries are shapes now
     mem.store(
         content,
         mem_type='sys_journal',
-        tags=['journal', 'shape'],
+        tags=['journal'],
         metadata={
-            'format': 'shape',
             'creator': agent_id,
             'timestamp': datetime.now(timezone.utc).isoformat()
         }
     )
     
-    # Show preview
-    lines = content.strip().split('\n')
-    preview = lines[0][:60] if lines else ''
-    print(f"✨ journal ({len(lines)} lines)")
+    # Show what was saved (for file/stdin input where caller can't see)
+    if show_saved:
+        print()
+        print("        ─── held ───")
+        print()
+        for line in content.split('\n'):
+            print(f"        {line}")
+        print()
+        print("        ────────────")
+    else:
+        line_count = len(content.split('\n'))
+        print(f"        ◇ held ({line_count} lines)")
+
+
+def get_entries(agent_id: str, limit: int = 30) -> list[dict]:
+    """Get journal entries from both sys_journal and sys_space.
+    
+    Returns combined list, sorted newest first.
+    """
+    mem = get_memory(agent_id)
+    
+    journals = mem.filter(mem_type='sys_journal', limit=limit)
+    spaces = mem.filter(mem_type='sys_space', limit=limit)
+    
+    # Combine and sort by created_at, newest first
+    combined = journals + spaces
+    combined.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+    
+    return combined[:limit]
 
 
 def get_last_entry(agent_id: str) -> dict | None:
-    """Get the most recent journal entry (for programmatic use)."""
+    """Get the most recent entry (for programmatic use)."""
     try:
-        mem = get_memory(agent_id)
-        entries = mem.filter(mem_type='sys_journal', limit=1)
+        entries = get_entries(agent_id, limit=1)
         if not entries:
             return None
         entry = entries[0]
         meta = entry.get('metadata', {})
         return {
             'content': entry.get('content', ''),
-            'format': 'shape',
             'timestamp': meta.get('timestamp', entry.get('created_at', ''))[:10]
         }
     except Exception:
         return None
 
 
-def format_entry_for_display(entry: dict, max_lines: int = 12) -> str:
-    """Format a journal entry for display (used by wake teaser)."""
-    content = entry.get('content', '')
-    ts = entry.get('timestamp', '')[:10]
-    
-    lines = [f"✨ [{ts}]"]
-    content_lines = content.split('\n')
-    for line in content_lines[:max_lines]:
-        lines.append(line)
-    if len(content_lines) > max_lines:
-        lines.append("...")
-    return '\n'.join(lines)
-
-
 def read_journal(agent_id: str, limit: int = 10):
     """Read journal entries (most recent first)."""
-    mem = get_memory(agent_id)
-    
-    entries = mem.filter(mem_type='sys_journal')
+    entries = get_entries(agent_id, limit=limit * 2)  # get more to account for dedup
     
     if not entries:
-        print("No journal entries")
+        print("        no entries yet")
+        print("        when something arrives")
+        print("        this is where it can live")
         return
     
-    for entry in entries[:limit]:
+    shown = 0
+    for entry in entries:
+        if shown >= limit:
+            break
+            
         meta = entry.get('metadata', {})
         ts = meta.get('timestamp', entry.get('created_at', 'unknown'))[:10]
         content = entry.get('content', '')
         
-        print(f"\n✨ [{ts}]")
-        print("─" * 40)
-        print(content)
+        if shown > 0:
+            print()
+            print("        " + "─" * 30)
         print()
+        print(f"        [{ts}]")
+        print()
+        
+        # Preserve whitespace exactly
+        for line in content.split('\n'):
+            print(f"        {line}")
+        
+        shown += 1
+    
+    print()
+    remaining = len(entries) - shown
+    if remaining > 0:
+        print(f"        ({remaining} more held)")
 
 
 def main():
@@ -143,29 +196,43 @@ def main():
     
     agent_id = sys.argv[1]
     
+    # --read mode
     if len(sys.argv) >= 3 and sys.argv[2] == '--read':
         limit = 10
         for arg in sys.argv[3:]:
-            if arg.isdigit(): limit = int(arg)
+            if arg.isdigit():
+                limit = int(arg)
         read_journal(agent_id, limit)
         return
     
     args = sys.argv[2:]
     
+    # Interactive mode (no args)
     if not args:
-        print(__doc__)
-        sys.exit(1)
+        content = capture_interactive()
+        journal(agent_id, content)
+        return
     
     content = ' '.join(args)
     
-    # Support stdin with -
+    # Stdin mode
     if content == '-':
         content = sys.stdin.read()
+        journal(agent_id, content, show_saved=True)
+        return
     
-    if not content.strip():
-        print("❌ Empty journal entry")
-        sys.exit(1)
+    # File mode
+    if content.startswith('@') and os.path.isfile(content[1:]):
+        try:
+            with open(content[1:], 'r', encoding='utf-8') as f:
+                content = f.read()
+            journal(agent_id, content, show_saved=True)
+            return
+        except Exception as e:
+            print(f"        error reading file: {e}")
+            sys.exit(1)
     
+    # Direct content
     journal(agent_id, content)
 
 

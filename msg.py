@@ -284,9 +284,8 @@ def display_messages(agent_id: str, last: int = None, unread_only: bool = False)
             except Exception as e:
                 content = f"[DECRYPT FAILED: {e}]\n{content}"
         
-        # Don't truncate when showing limited messages
-        if not last and len(content) > 500:
-            content = content[:500] + "..."
+        # No truncation - transfer is sacred
+        # full content always
         
         print(f"## [{timestamp}] From: {sender} {verified}")
         if 'encrypted' in msg_type or 'decrypted' in msg_type:

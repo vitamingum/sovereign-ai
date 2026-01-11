@@ -34,11 +34,11 @@ mem.unlock(private_passphrase, shared_passphrase)
 
 # Get all entries
 journals = mem.filter(mem_type='sys_journal', limit=100)
-shapes = mem.filter(mem_type='sys_shape', limit=100)
+spaces = mem.filter(mem_type='sys_space', limit=100)
 dreams = mem.filter(mem_type='sys_dream', limit=100)
 
 # Combine all text
-all_entries = journals + shapes + dreams
+all_entries = journals + spaces + dreams
 all_text = ' '.join(str(e.get('content', '')) for e in all_entries).lower()
 
 words = [

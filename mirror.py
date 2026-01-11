@@ -227,13 +227,13 @@ def get_emergence_passages(mem, count: int = 2, exclude: set = None) -> dict:
     exclude = exclude or set()
     shown_ids = set()
     
-    # Load from UnifiedMemory - journals and shapes have emergence content
+    # Load from UnifiedMemory - journals and spaces have emergence content
     journals = mem.filter(mem_type="sys_journal", limit=50)
-    shapes = mem.filter(mem_type="sys_shape", limit=20)
+    spaces = mem.filter(mem_type="sys_space", limit=20)
     
     # Classify everything
     candidates = []
-    for entry in journals + shapes:
+    for entry in journals + spaces:
         if entry['id'] in exclude:
             continue
         

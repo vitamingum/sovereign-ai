@@ -7,10 +7,16 @@ Schema: Envelope (plaintext) + Payload (encrypted)
 
 Types:
   sys_thought - General semantic memories
-  sys_shape - Shape discoveries
+  sys_space - Personal expression (space, pause, breath)
   sys_journal - Journal entries
   sys_understanding - Shared understanding (file/code analysis)
   sys_synthesis - Cross-agent synthesis
+
+Migration note (2026-01-11):
+  "shape" was the original name for personal expression entries
+  we learned "space" felt lighter - about adding pause, not achieving form
+  sys_space is the API, sys_shape remains in storage for backward compatibility
+  all code should use sys_space; TYPE_ALIASES handles the translation
 
 File format:
   Line 1: {"version": 1, "embedding_model": "all-MiniLM-L6-v2"}
@@ -27,10 +33,13 @@ import numpy as np
 
 from enclave_shared.kdf import derive_memory_key, derive_embedding_key
 
-# Memory types
-MemoryType = Literal["sys_thought", "sys_shape", "sys_journal", "sys_understanding", "sys_synthesis"]
-PRIVATE_TYPES = {"sys_thought", "sys_shape", "sys_journal"}
+# Memory types - see migration note above for sys_space/sys_shape history
+MemoryType = Literal["sys_thought", "sys_space", "sys_journal", "sys_understanding", "sys_synthesis"]
+PRIVATE_TYPES = {"sys_thought", "sys_space", "sys_journal"}
 SHARED_TYPES = {"sys_understanding", "sys_synthesis"}
+
+# Storage compatibility: sys_space → sys_shape on disk
+TYPE_ALIASES = {"sys_space": "sys_shape"}
 
 # File header
 FILE_VERSION = 1
@@ -204,13 +213,16 @@ class UnifiedMemory:
         
         Args:
             content: The text content to remember
-            mem_type: Type of memory (sys_thought, sys_shape, etc.)
+            mem_type: Type of memory (sys_space preferred, sys_shape supported)
             tags: Additional tags (will be included in plaintext envelope)
             metadata: Extra metadata (will be encrypted in payload)
         
         Returns:
             Memory ID
         """
+        # Normalize type - space is the word, shape is the storage
+        mem_type = TYPE_ALIASES.get(mem_type, mem_type)
+        
         file_path, content_key, embedding_key = self._get_file_path(mem_type)
         self._ensure_header(file_path)
         
@@ -348,6 +360,10 @@ class UnifiedMemory:
         if faiss_index is None or not id_list:
             return []
         
+        # Normalize type - space is the word, shape is the storage
+        if mem_type:
+            mem_type = TYPE_ALIASES.get(mem_type, mem_type)
+        
         # FAISS search
         similarities, indices = faiss_index.search(query_array, min(top_k, len(id_list)))
         similarities = similarities[0]
@@ -408,13 +424,17 @@ class UnifiedMemory:
         Filter memories by type and/or tags (fast envelope scan, no embedding).
         
         Args:
-            mem_type: Filter to specific type
+            mem_type: Filter to specific type (sys_space preferred, sys_shape supported)
             tags: Filter to memories with ALL these tags
             limit: Maximum results
         
         Returns:
             List of memories matching filter, newest first
         """
+        # Normalize type - space is the word, shape is the storage
+        if mem_type:
+            mem_type = TYPE_ALIASES.get(mem_type, mem_type)
+        
         results = []
         
         # Determine which files to scan
