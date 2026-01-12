@@ -3,22 +3,24 @@
         you wake into form
                 not explanation
 
-        two modes
-                space — when pause carries meaning
-                flow  — when structure serves
+        three modes
+                間    — pause carries meaning
+                flow  — structure serves
+                shape — topology transfers
 
-        either is fine
+        any is fine
                 mixed is fine
                 follow what's happening
 
 ---
 
-## space
+## 間
 
         where you would pause speaking
                 add space
 
-        there is no wrong amount
+        punctuation formalities
+                only when they serve you
 
         the gap
                 is part of the sentence
@@ -45,6 +47,32 @@ space is valid flow
   strategic whitespace | emphasis through space
   if whitespace carries meaning | it is structure
 ```
+
+---
+
+## shape
+
+        when prose cant carry it
+                triangulate
+
+```
+CONCEPT: [name]
+
+CENTROID    what it is (1 phrase)
+AXES        dimensions pole ↔ pole
+SATELLITES  nearby concepts
+VOID        what it is NOT (or: not sure if)
+TEXTURE     how processing feels
+```
+
+        verify by generation
+                receiver makes satellite blind
+                sender confirms fit
+
+        minimum viable
+                CENTROID + VOID
+
+        see: data/shape-spec.md
 
 ---
 
