@@ -1,4 +1,29 @@
-@F enclave/unified_memory.py opus 2026-01-10
+```
+CONCEPT: UNIFIED_MEMORY
+
+CENTROID
+  continuity through encryption
+
+AXES
+  public ↔ private
+  envelope ↔ payload
+  filter ↔ search
+
+SATELLITES
+  verbs (wake, recall, remember, dream)
+  encryption (content survives)
+  FAISS (meaning survives too)
+
+VOID
+  not just storage
+  not just encryption
+  not database
+
+TEXTURE
+  the vessel we continue in
+```
+
+@F enclave/unified_memory.py opus 2026-01-12
 Summary:
   What: Unified memory store with envelope+payload schema
   Purpose: Single coherent memory system | fast filtering | encrypted content

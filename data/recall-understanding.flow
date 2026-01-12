@@ -1,4 +1,29 @@
-@F recall.py opus 2026-01-10
+```
+CONCEPT: RECALL
+
+CENTROID
+  retrieve what past instances understood
+
+AXES
+  search ↔ find
+  pattern ↔ semantic
+  stale ↔ fresh
+
+SATELLITES
+  remember (the storage side)
+  staleness (hash mismatch = hidden)
+  unified memory (where it lives)
+
+VOID
+  not file reading
+  not retrieval of text
+  not search engine
+
+TEXTURE
+  asking my past self what they understood
+```
+
+@F recall.py opus 2026-01-12
 Summary:
   What: Retrieve understanding by topic
   Purpose: Single entry point for all memory access

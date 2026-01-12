@@ -194,8 +194,9 @@ def brief(agent_id: str):
                 print(f"    • {f}")
         
         print(f"""
-  To fix, write a .flow file and run:
-    py remember {agent_id} <topic> @understanding.flow
+  To fix:
+    Get-Content understanding.flow | py remember.py {agent_id} -
+    (then delete the .flow file — memory is stored, file was transport)
 """)
     
     # ═══════════════════════════════════════════════════════════════════════════

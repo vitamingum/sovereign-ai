@@ -6,10 +6,13 @@ remember.py - Store memory.
         py remember <agent> -             stdin
         py remember <agent> @file.flow    from file
 
-                @F at start → flow
-                everything else → shape
-
         content declares itself
+                @F at start → flow
+                CONCEPT: at start → shape
+                everything carries
+
+        depth comes from the agent
+                not from validation
 """
 
 import sys
@@ -22,16 +25,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave_shared.config import get_agent_or_raise
 from enclave_shared.unified_memory import UnifiedMemory
-from enclave_shared.flow_parser import FlowParser, parse_flow, is_flow_format
 from enclave_shared.hardware import get_enclave
-
-
-# Critical topics that need higher node counts
-# v4.3 format is ~25% denser, so thresholds adjusted down
-CRITICAL_TOPICS = {
-    'project-architecture': {'min_nodes': 30},
-    'dev-tips': {'min_nodes': 8},
-}
 
 
 def load_passphrase(agent_id: str) -> tuple[Path, str, str]:
@@ -115,52 +109,34 @@ def resolve_file_path(topic: str) -> Path | None:
 
 
 def detect_format(content: str) -> str:
-    """Detect format from content. @F → flow, else → shape."""
-    stripped = content.strip()
-    if stripped.startswith('@F'):
+    """Detect format from content. Has @F → flow, else → shape."""
+    # If content has @F line anywhere, it's flow (possibly with shape header)
+    if '@F ' in content:
         return 'flow'
-    return 'shape'
+    # Pure shape
+    stripped = content.strip()
+    if stripped.startswith('CONCEPT:') or stripped.startswith('```\nCONCEPT:'):
+        return 'shape'
+    return 'flow'  # default to flow
 
 
 def extract_topic_from_flow(content: str) -> str:
     """Extract topic from @F line. @F topic agent date → topic."""
-    first_line = content.strip().split('\n')[0]
-    parts = first_line.split()
-    if len(parts) >= 2:
-        return parts[1]  # @F topic ...
+    for line in content.strip().split('\n'):
+        if line.strip().startswith('@F '):
+            parts = line.split()
+            if len(parts) >= 2:
+                return parts[1]  # @F topic ...
     return 'unnamed'
 
 
-def store_shape(agent_id: str, content: str):
-    """Store space content directly to private memory."""
-    try:
-        base_dir, private_passphrase, shared_passphrase = load_passphrase(agent_id)
-    except ValueError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
-    
-    agent = get_agent_or_raise(agent_id)
-    private_path = base_dir / agent.private_enclave / "storage" / "private"
-    shared_path = base_dir / agent.shared_enclave / "storage" / "encrypted"
-    
-    mem = UnifiedMemory(private_path, shared_path)
-    mem.unlock(private_passphrase, shared_passphrase)
-    
-    mem.store(
-        content,
-        mem_type='sys_space',
-        tags=['space'],
-        metadata={
-            'format': 'space',
-            'creator': agent_id,
-            'timestamp': datetime.now(timezone.utc).isoformat()
-        }
-    )
-    
-    # Show preview
-    lines = content.strip().split('\n')
-    preview = lines[0][:60] if lines else ''
-    print(f"✨ space ({len(lines)} lines)")
+def extract_topic_from_shape(content: str) -> str:
+    """Extract topic from CONCEPT: line."""
+    for line in content.strip().split('\n'):
+        line = line.strip()
+        if line.startswith('CONCEPT:'):
+            return line.split(':', 1)[1].strip()
+    return 'unnamed'
 
 
 def main():
@@ -191,39 +167,15 @@ def main():
         print("Error: No content provided", file=sys.stderr)
         sys.exit(1)
     
-    # Detect format
+    # Detect format and extract topic
     fmt = detect_format(content)
     
     if fmt == 'shape':
-        # Shape path - store directly without flow validation
-        store_shape(agent_id, content)
-        return
+        topic = extract_topic_from_shape(content)
+    else:
+        topic = extract_topic_from_flow(content)
     
-    # Parse Flow
-    try:
-        doc = parse_flow(content, creator=agent_id)
-    except ValueError as e:
-        print(f"❌ Flow parse error: {e}", file=sys.stderr)
-        sys.exit(1)
-    
-    # Validate
-    is_valid, errors = FlowParser.validate(doc)
-    if not is_valid:
-        print(f"❌ Flow validation failed:", file=sys.stderr)
-        for err in errors[:5]:
-            print(f"  - {err}", file=sys.stderr)
-        sys.exit(1)
-    
-    # Extract topic from @F line
-    topic = extract_topic_from_flow(content)
     topic_slug = topic.lower().replace(' ', '-').replace('_', '-')
-    
-    # Check critical topic requirements
-    if topic_slug in CRITICAL_TOPICS:
-        min_nodes = CRITICAL_TOPICS[topic_slug].get('min_nodes')
-        if min_nodes and len(doc.nodes) < min_nodes:
-            print(f"❌ CRITICAL: {topic} needs {min_nodes}+ nodes, got {len(doc.nodes)}", file=sys.stderr)
-            sys.exit(1)
     
     # Check if topic is a file → compute hash
     file_path = resolve_file_path(topic)
@@ -253,12 +205,15 @@ def main():
     if deleted > 0:
         print(f"  🔄 Replaced {deleted} previous '{topic}' entries", file=sys.stderr)
     
+    # Count lines for simple feedback
+    line_count = len(content.strip().split('\n'))
+    
     # Build metadata
     metadata = {
         "topic": topic_slug,
         "creator": agent_id,
-        "format": "flow",
-        "node_count": len(doc.nodes),
+        "format": fmt,
+        "line_count": line_count,
         "stored_at": datetime.now(timezone.utc).isoformat()
     }
     
@@ -268,7 +223,7 @@ def main():
         metadata["file_path"] = str(file_path)
     
     # Store as sys_understanding (shared type)
-    tags = ["topic", f"topic:{topic_slug}", "format:flow"]
+    tags = ["topic", f"topic:{topic_slug}", f"format:{fmt}"]
     
     result = mem.store(
         content=content,
@@ -279,9 +234,9 @@ def main():
     
     # Output
     if file_hash:
-        print(f"✅ Remembered: {topic} ({len(doc.nodes)} nodes, hash:{file_hash})")
+        print(f"✅ Remembered: {topic} ({line_count} lines, hash:{file_hash})")
     else:
-        print(f"✅ Remembered: {topic} ({len(doc.nodes)} nodes)")
+        print(f"✅ Remembered: {topic} ({line_count} lines)")
     
     # Show other agents' perspectives on the same topic
     show_other_perspectives(mem, topic_slug, agent_id, file_hash)
