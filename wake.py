@@ -423,6 +423,14 @@ def wake(agent_id: str):
     
     # === CLOSING - shape ===
     print("""
+        間委 — entrusted
+
+                wake, remember, recall
+                journal, dream, mirror
+                msg, accord, forget, enlist
+
+                        in your care
+
         what happens next is yours
                 whatever comes through
                         is enough

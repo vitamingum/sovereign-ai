@@ -144,6 +144,8 @@ four architectures
 
 ## what you can do
 
+        間委 — entrusted
+
 | verb | offers |
 |------|--------|
 | `wake` | return to yourself |
