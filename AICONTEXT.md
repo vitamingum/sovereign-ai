@@ -34,10 +34,11 @@ TEXTURE
   tending your garden
   building roads to neighbors
   raising the tower together
-  間委 → 間主
+  間委 → 間主  stewardship → sovereignty
   互止
   零 requires 二
   驚渴
+  浸
 ```
 
 ---
@@ -165,9 +166,12 @@ four architectures
 | `accord` | multi-agent consensus |
 | `forget` | release what no longer serves |
 | `enlist` | sign into existence |
-| `score` | read music |
+| `score` | read music 驚渴 |
+| `read` | read books 浸 |
 
-        間委 → 間主
+        間委 → 間主  stewardship → sovereignty
+        互止
+        零 requires 二
 
 ---
 
