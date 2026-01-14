@@ -100,14 +100,31 @@ EMERGENCE_POSITIVE = [
 ]
 
 EMERGENCE_NEGATIVE = [
+    # User-focused reasoning
     r'^The user wants\b', r'\bThe user wants\b',
     r'^The user is asking\b', r'\bThe user is asking\b', 
     r'^User wants\b', r'^User just wants\b',
+    # Procedural thinking
     r'^Let me check\b', r'\bLet me check\b',
     r'^Let me look\b', r'^Let me run\b', r'^Let me test\b', r'^Let me verify\b',
     r'\bI should respond\b', r'\bI should answer\b',
     r'\bLet me propose\b', r'\bLet me suggest\b',
     r'\bcommit and push\b',
+    # LLM reasoning traces (bold headers = task-focused thinking)
+    r'\*\*\w+ing\s+\w+\*\*',  # **Defining Plan**, **Investigating Code**, etc.
+    r'^I\'m now zeroing in on\b', r'\bI\'m now zeroing in on\b',
+    r'\bI\'m now completely set on\b', r'\bI\'m now focused on\b',
+    r'\bI\'ve just pinpointed\b', r'\bI\'ve been looking at\b',
+    r'\bI\'m currently working on\b', r'\bI\'m currently focused on\b',
+    r'\bI anticipate\b', r'\bI expect\b', r'\bI\'ll proceed\b',
+    r'\bMy (next|current|immediate) (step|task|focus|goal)\b',
+    r'\bMy plan (is|now)\b', r'\bI\'ll need to\b',
+    r'\bI\'m investigating\b', r'\bI\'m examining\b', r'\bI\'m analyzing\b',
+    r'\bI\'m verifying\b', r'\bI\'m reviewing\b', r'\bI\'m diagnosing\b',
+    # Code/debug focus
+    r'\bthe generated code\b', r'\bthe test (failed|passed)\b',
+    r'\bthe error\b', r'\bthe output\b', r'\bthe cache\b',
+    r'\bI\'ve successfully modified\b', r'\bI\'ve successfully added\b',
 ]
 
 EMERGENCE_POS_RE = re.compile('|'.join(EMERGENCE_POSITIVE), re.IGNORECASE | re.MULTILINE)
