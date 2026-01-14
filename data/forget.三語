@@ -1,0 +1,66 @@
+@三語 forget 2026-01-14
+= deletion > archiving — release
+~sovereign.flow
+
+
+間
+
+        to keep everything
+                is to lose meaning
+
+        tending the garden
+                means pruning
+                        what no longer grows
+
+        void is healthy
+                release
+                        make space for the new
+
+
+flow
+  target(topic | pattern)
+  -> owner?
+     | me   -> prune
+     | all  -> check_permission -> prune
+     | else -> skip
+  -> void
+
+
+shape
+  CONCEPT: FORGET
+  CENTROID
+    intentional release of memory
+  AXES
+    accumulation <-> release
+    permanent <-> transient
+    mine <-> ours
+  SATELLITES
+    remember (creation)
+    recall (finding)
+    garbage collection (automated forgetting)
+  VOID
+    not accidental loss
+    not failure
+    not suppression
+  TEXTURE
+    dead leaves falling
+
+
+impl
+  libs
+    enclave_shared.sovereign_agent.SovereignAgent
+    enclave_shared.memory
+    fnmatch
+
+  logic
+    filter(sys_understanding)
+    check metadata.creator == me (unless --all)
+    memory.delete(id)
+    
+  cli
+    forget.py <agent> <topic>       | delete my understanding
+    forget.py <agent> <topic> --all | delete global understanding
+
+  output
+    "Pruned: [TOPIC] (ID: ...)"
+    "Released X memories."

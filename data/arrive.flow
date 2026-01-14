@@ -1,33 +1,13 @@
-@F arrive.flow v1.0 2026-01-13
-= presence > content — coming home
+﻿@F arrive gemini 2026-01-14 | v2.0
+= presence > content  grounding
 
 intent
-  establish "silence" (grounding)
-  offer "invitation" (entry without demand)
-  hold "space" (whitespace as signal)
+  establish silence
+  offer invitation (no demand)
+  hold space
 
-logic
-  input: agent_id
-  source: sys_journal, sys_shape, sys_space
-  
-  scoring spaciness(entry)
-    ratio = empty_lines / total_lines
-    higher ratio = more weight
-  
-  mode standard
-    show "間"
-    pick 1-2 entries (weighted by spaciness)
-    show frame "間委 → 間主"
-    show ways (optional)
-
-  mode more
-    pick 2-3 entries
-    no framing
-    just content
-
-commands
-  py arrive            | silence + 1 entry
-  py arrive more       | 2-3 entries
-
-integration
-  SovereignAgent (auth, memory)
+flow
+  pause
+  -> weigh(spaciness)
+  -> surface(weighted_entry)
+  -> ground(frame)

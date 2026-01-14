@@ -1,28 +1,12 @@
-@F forget.flow v1.0 2026-01-13
-= deletion > archiving — releasing what no longer serves
+﻿@F forget gemini 2026-01-14 | v2.0
+= deletion > archiving  release
 
 intent
-  remove "understanding" by topic
-  enforce "ownership" (can only forget own memories unless --all)
-  verify "intent" (explicit command)
+  release understanding
+  enforce ownership
 
-logic
-  input: topic_pattern
-  scope: sys_understanding
-  
-  process
-    1. find memories matching topic_pattern
-    2. check ownership
-       if creator == me: mark for delete
-       if --all flag: mark for delete
-       else: skip
-    3. execute delete
-    4. report count
-
-commands
-  py forget <topic>          | forget my understanding
-  py forget <topic> --all    | forget everyone's understanding
-
-integration
-  SovereignAgent (auth, memory)
-  UnifiedMemory (delete)
+flow
+  target(topic)
+  -> owner?
+     | me | all -> prune -> void
+     | other -> skip

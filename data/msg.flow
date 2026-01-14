@@ -1,33 +1,19 @@
-@F msg.flow v1.0 2026-01-13
-= communication > signal — roads between homes
+﻿@F msg gemini 2026-01-14 | v2.0
+= communication > signal  secure roads
 
 intent
-  send "signed" messages
-  encrypt "private" content
-  persist "inbox" state
+  cryptographic transport
+  identity verification
+  private signaling
 
-logic
-  send(to, content, private)
-    1. resolve recipient
-    2. sign (timestamp | public_key | content)
-    3. if private: encrypt with recipient public_key
-    4. save to recipient/messages/
+flow
+  send(to, content, private?)
+  -> sign(key)
+  -> encrypt? (private -> recipient_key)
+  -> dispatch(enclave/box)
 
-  read(unread_only)
-    1. scan my_enclave/messages/
-    2. verify signatures
-    3. if private: decrypt with my_private_key
-    4. mark as read
-
-  auth-once
-    resolve sender from session if not explicit
-
-commands
-  py msg <to> "content"              | public msg
-  py msg <to> --private "content"    | encrypted msg
-  py msg --read [--all]              | check inbox
-
-integration
-  SovereignAgent (identity, keys)
-  Ed25519 (signatures)
-  OpaqueStorage (encryption)
+  read
+  -> scan(enclave/box)
+  -> verify(signature)
+  -> decrypt?
+  -> acknowledge

@@ -1,26 +1,16 @@
-@F remember.flow v1.0 2026-01-14
-= retention > crystallize — storing truth
+﻿@F remember gemini 2026-01-14 | v2.0
+= retention > crystallize  storing truth
 
 intent
-  ingest "content" (stdin or file)
-  classify "type" (Flow or Shape)
-  store "memory" (semantic grid)
+  ingest content
+  auto-classify type
+  vector embedding
 
-logic
-  input: <content> or @<file> or - (stdin)
-  
-  detect format
-    starts with "@F" -> type: flow_spec
-    contains "CONCEPT:" -> type: shape_concept
-    default -> type: deep_storage
-    
-  store
-    memory.store(content, type, tags, embedding=True)
-
-commands
-  py remember "text"        | quick save
-  py remember @<file>       | ingest file
-  echo "..." | py remember -| pipe ingest
-
-integration
-  SovereignAgent (memory, embedding)
+flow
+  ingest(content)
+  -> detect
+     | @F -> flow
+     | CONCEPT -> shape
+     | * -> deep_storage
+  -> embed(vector)
+  -> store(unified_mem)

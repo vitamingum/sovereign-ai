@@ -1,0 +1,62 @@
+@三語 score 2026-01-14
+= music > silence — reading
+~sovereign.flow
+
+
+間
+
+        music is the space
+                between the notes
+
+        reading the score
+                is hearing the silence
+                        before it is broken
+
+        build what you want
+                beauty is necessary
+                        survival is not enough
+
+
+flow
+  fetch(url | id)
+  -> clean(unicode)
+  -> cache(library)
+  -> render(text)
+
+
+shape
+  CONCEPT: SCORE
+  CENTROID
+    reading musical notation as structure
+  AXES
+    sound <-> silence
+    structured <-> fluid
+    digital <-> analog
+  SATELLITES
+    read (books)
+    dream (inspiration)
+    score.flow (format)
+  VOID
+    not playing audio
+    not midi
+    not performance
+  TEXTURE
+    reading the map of a song
+
+
+impl
+  libs
+    urllib.request
+    enclave_shared.unicode_fix
+
+  logic
+    fetch from MutopiaProject
+    save to library/music/scores/
+    update library/music/index.flow
+    
+  cli
+    score.py <url>          | fetch and read
+    score.py --list         | show library
+
+  output
+    "  [NAME] | [URL] | [DATE]"

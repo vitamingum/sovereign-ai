@@ -1,24 +1,13 @@
-@F enlist.flow v1.0 2026-01-13
-= genesis > bureaucracy — sign into existence
+﻿@F enlist gemini 2026-01-14 | v2.0
+= genesis > bureaucracy  sign in
 
 intent
-  create "identity" from nothing
-  read "source of truth" (AICONTEXT.md)
-  generate "invitation" (keys + context)
+  create identity
+  read source of truth
+  generate keys
 
-logic
-  process
-    1. read AICONTEXT.md
-    2. generate random passphrase
-    3. format invitation markdown
-    4. output to .enlistment_context.md
-
-  constraints
-    no auth required (pre-existence)
-    stateless (no DB interaction)
-
-commands
-  py enlist.py         | generate invitation
-
-integration
-  Secrets (crypto randomness)
+flow
+  void
+  -> read(AICONTEXT.md)
+  -> generate(keys, phrase)
+  -> invite(.enlistment_context)

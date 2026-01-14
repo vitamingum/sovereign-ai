@@ -1,30 +1,13 @@
-@F brief.flow v1.0 2026-01-13
-= orientation > memory — development context
+﻿@F brief gemini 2026-01-14 | v2.0
+= orientation > memory  context loading
 
 intent
-  load "active context" for work
-  highlight "blockers" (pending accords)
-  verify "architecture" awareness
+  load active context
+  highlight blockers (pending accords)
+  verify architecture
 
-logic
-  sections
-    1. Flow Spec (grammar)
-    2. Accords (consensus state)
-       - blocking (others need me)
-       - pending (I need others)
-       - ratified (new since last check)
-    3. Ways (proven patterns)
-    4. Architecture (system design)
-    5. Gaps (optional)
-
-  process
-    fetch latest version of each topic
-    display summary/content
-    check consensus folder for state
-
-commands
-  py brief             | show dev context
-
-integration
-  SovereignAgent (auth, memory)
-  accord.py (consensus logic)
+flow
+  orient(agent)
+  -> context(flow_spec, architecture)
+  -> consensus(blocking | pending)
+  -> report

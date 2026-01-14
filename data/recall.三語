@@ -1,0 +1,68 @@
+@三語 recall 2026-01-14
+= retrieval > search — finding what was held
+~sovereign.flow
+
+
+間
+
+        memory is dead
+                until you touch it
+
+        finding is not search
+                it is resonance
+                        with what you already know
+
+        provenance matters
+                who knew this?
+                        was it me?
+
+
+flow
+  input (topic | query)
+  -> match
+     | exact (wildcard)   -> filter(metadata.topic)
+     | semantic (vector)  -> search(embedding)
+  -> filter (type=sys_understanding)
+  -> render (provenance + content)
+
+
+shape
+  CONCEPT: RECALL
+  CENTROID
+    locating understanding in the grid
+  AXES
+    specific <-> fuzzy
+    mine <-> ours
+    recent <-> ancient
+  SATELLITES
+    remember (putting it there)
+    dream (random access)
+    accord (shared understanding)
+  VOID
+    not google
+    not grep
+    not hallucination
+  TEXTURE
+    pulling the thread
+
+
+impl
+  libs
+    enclave_shared.sovereign_agent.SovereignAgent
+    fnmatch (wildcards)
+    pathlib (file hash)
+
+  logic
+    if wildcard (*?): filter metadata.topic
+    else: vector_search(query)
+    group by topic -> show creators
+    
+  cli
+    recall.py <topic>       | exact/wildcard match
+    recall.py "query"       | semantic search
+    recall.py --dump        | dump all headers
+
+  output
+    "MATCH: [TOPIC]"
+    "  > [AGENT] (DATE)"
+    content preview

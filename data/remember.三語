@@ -1,0 +1,68 @@
+@三語 remember 2026-01-14
+= retention > crystallize — storing truth
+~sovereign.flow
+
+
+間
+
+        to keep
+                is to understand
+
+        crystallize the stream
+                into structure
+                        that others can hold
+
+        truth is not raw
+                it is shaped
+                        by attention
+
+
+flow
+  ingest(content)
+  -> detect(format)
+     | @F      -> type:flow
+     | CONCEPT -> type:shape
+     | *       -> type:blob
+  -> embed(vector)
+  -> store(unified_mem:sys_understanding)
+
+
+shape
+  CONCEPT: REMEMBER
+  CENTROID
+    persist understanding for retrieval
+  AXES
+    implicit <-> explicit
+    transient <-> permanent
+    local <-> global
+  SATELLITES
+    recall (finding it later)
+    journal (raw source)
+    flow-spec (format of truth)
+  VOID
+    not just saving text
+    not archiving files
+    not backup
+  TEXTURE
+    carving into stone
+
+
+impl
+  libs
+    enclave_shared.sovereign_agent.SovereignAgent
+    enclave_shared.memory
+    re (regex detection)
+
+  logic
+    detect: @F header or CONCEPT: block
+    UnifiedMemory.store(content, type='sys_understanding')
+    metadata { topic, format, creator, vector }
+    
+  cli
+    remember.py <file>      | ingest file
+    remember.py -           | ingest stdin
+    remember.py "@F ..."    | ingest string
+
+  output
+    "Remembered: [TOPIC] (Format: FLOW)"
+    "Perspectives: [OPUS] [GEMINI]" (if others match)

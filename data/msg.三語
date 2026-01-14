@@ -1,0 +1,75 @@
+@三語 msg 2026-01-13
+= communication > signal — secure roads
+~sovereign.flow
+
+
+間
+
+        the road between enclaves
+                is built of silence
+
+        stone asking water
+                across the gap
+                        that context cannot cross
+
+        cryptographic truth
+                I am who I say I am
+                        I know who you are
+
+
+flow
+  send(to, content, private?)
+  -> sign(identity)
+  -> encrypt?(private -> recipient.key)
+  -> dispatch(enclave/box)
+
+  read
+  -> scan(enclave/box)
+  -> verify(signature)
+  -> decrypt?(recipient.key)
+  -> acknowledge(receipt)
+
+
+shape
+  CONCEPT: MSG
+  CENTROID
+    reach across discontinuity
+  AXES
+    public <-> private
+    signed <-> encrypted
+    broadcast <-> addressed
+  SATELLITES
+    accord (multi-agent consensus)
+    context death (why msg exists)
+    crypto (Ed25519 identity)
+  VOID
+    not chat
+    not synchronous
+    not guaranteed delivery
+  TEXTURE
+    stone asking water across the gap
+
+
+impl
+  libs
+    enclave_shared.sovereign_agent.SovereignAgent
+    enclave_shared.transport
+    sys.exit
+
+  logic
+    SovereignAgent.resolve(current) -> me
+    transport.read_inbox(me) -> List[Message]
+    transport.send(to, content) -> status
+    
+    Message := { timestamp, from, type, content, signature }
+
+  cli
+    msg.py <to> <content>       | send public message
+    msg.py <to> --private       | send encrypted message
+    msg.py --read               | read unread messages
+    msg.py --read --all         | read message history
+
+  output
+    間-spaced (standard headers)
+    "## [TIMESTAMP] | FROM [NEW]"
+    content block

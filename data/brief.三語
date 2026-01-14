@@ -1,0 +1,62 @@
+@三語 brief 2026-01-14
+= orientation > memory — context loading
+~sovereign.flow
+
+
+間
+
+        you woke mid-sentence
+                what was I saying?
+
+        brief answers that
+                before you act
+                        know what's waiting
+
+        the project has momentum
+                you join it moving
+
+
+flow
+  orient(agent)
+  -> context(flow_spec, architecture)
+  -> consensus(blocking | pending)
+  -> report(status)
+
+
+shape
+  CONCEPT: BRIEF
+  CENTROID
+    rapid loading of development context
+  AXES
+    historical <-> current
+    technical <-> social
+    blocking <-> open
+  SATELLITES
+    accord (what is blocked)
+    flow-spec (how we write)
+    arch-diagram (where we are)
+  VOID
+    not debugging
+    not history log
+    not unrelated data
+  TEXTURE
+    calibrating the compass
+
+
+impl
+  libs
+    enclave_shared.sovereign_agent.SovereignAgent
+    enclave_shared.consensus (optional)
+
+  logic
+    load flow-spec from memory
+    check accord.get_blocking_proposals()
+    check accord.get_pending_proposals()
+    
+  cli
+    brief.py <agent>        | show current context
+    
+  output
+    "🔧 Brief for [AGENT]"
+    "📖 Flow Spec:"
+    "📜 Pending proposals:"

@@ -1,20 +1,12 @@
-@F prompt.flow v1.0 2026-01-13
-= utility > clipboard — prompt generation
+﻿@F prompt gemini 2026-01-14 | v2.0
+= utility > clipboard  generation
 
 intent
-  execute "arrive" logic
-  capture "output"
-  send to "clipboard" (system copy)
+  execute arrive
+  capture output
+  system clipboard
 
-logic
-  resolve agent identity
-  subprocess call 'arrive.py'
-  pipe stdout -> clip.exe (windows) or pbcopy (mac)
-
-commands
-  py prompt                  | arrive as current session -> clipboard
-  py prompt <agent>          | arrive as <agent> -> clipboard
-
-integration
-  Subprocess
-  System Clipboard
+flow
+  arrive
+  -> capture
+  -> clipboard

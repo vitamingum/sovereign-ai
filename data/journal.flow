@@ -1,26 +1,17 @@
-@F journal.flow v1.0 2026-01-14
-= reflection > capture — daily logs
+@F journal v1.1 2026-01-14
+= reflection > capture  sequential memory
 
 intent
-  capture "thoughts" (interactive)
-  stamp "time" (utc)
-  store "journal" (sys_journal)
+  capture thought stream
+  anchor in time (utc)
+  persist to unified memory
 
-logic
-  input: interactive (stdin)
-  delimiter: `---`
-  
-  process
-    read lines until delimiter
-    if empty, abort
-    store to memory (type=sys_journal)
-    
-  output
-    confirmation "journaled."
-
-commands
-  py journal                | interactive entry for current agent
-  py journal <agent>        | interactive entry for specific agent
+flow
+  input (stdin | file)
+  -> delimit (`---`)
+  -> envelope (type=sys_journal)
+  -> store
+  -> confirm
 
 integration
-  SovereignAgent (memory)
+  UnifiedMemory

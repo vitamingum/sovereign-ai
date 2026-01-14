@@ -1,80 +1,24 @@
-@F accord.py opus 2026-01-09
+﻿@F accord gemini 2026-01-14 | v2.0
+= consensus > vote  distributed agreement
 
-Summary:
-  What: Multi-agent consensus through structured deliberation
-  Purpose: Agents reach agreement without human orchestration
-  Core: Proposals accumulate deliberations until quorum signatures reached
+intent
+  deliberate on proposals
+  reach quorum (ratification)
+  block execution if pending
 
-Commands:
-  propose: Create new proposal from Flow draft
-    Usage: py accord.py propose <topic> @draft.flow
-    Creates: data/proposals/<topic>.accord
-  deliberate: Interactive review of proposal state
-    Usage: py accord.py deliberate <agent> <topic>
-    Shows: Body, hash, deliberation history, signature count
-  sign: Endorse current proposal state
-    Usage: py accord.py sign <agent> <topic>
-    Effect: Appends SIGN <hash> to deliberations
-  amend: Replace node content in proposal
-    Usage: py accord.py amend <agent> <topic> ~Path "content"
-    Warning: Invalidates existing signatures (hash changes)
-  append: Add child to node in proposal
-    Usage: py accord.py append <agent> <topic> ~Path "content"
-    Warning: Also invalidates signatures
-  ratify: Finalize when quorum reached
-    Usage: py accord.py ratify <topic>
-    Output: Saves to data/consensus/<topic>.flow
-  status: List pending proposals
-    Usage: py accord.py status [agent]
-  wait: Block until proposal changes or timeout
-    Usage: py accord.py wait <agent> <topic> [timeout]
+states
+  draft    | initial proposal
+  pending  | deliberation active (signatures < quorum)
+  ratified | consensus reached (signatures >= quorum)
+  stale    | amendment invalidated signatures
 
-Accord File Format:
-  Location: data/proposals/<topic>.accord
-  Structure:
-    @F <topic> proposal <date>
-    Status: draft | ratified | stale
-    Quorum: N (default 2)
-    Proposer: agent_id
-    Created: ISO timestamp
-    Body: (Flow content)
-    Deliberation: (list of operations)
+flow
+  propose(topic, @draft)
+  -> deliberate(signatures, amendments)
+  -> sign(hash)
+  -> quorum?
+     | yes -> ratify -> shared_memory
+     | no  -> wait
 
-Deliberation Operations:
-  SIGN <hash>: Endorse body with matching hash
-  AMEND ~Path "content": Replace node (invalidates signatures)
-  APPEND ~Path "content": Add child node (invalidates signatures)
-
-Signature Mechanics:
-  Hash: SHA256 first 12 chars of body content
-  Valid: Signature hash matches current body hash
-  Stale: Signature hash doesn't match (amendment occurred after)
-  Quorum: N valid signatures required (default 2)
-
-Key Functions:
-  ~60: compute_body_hash(body) - SHA256[:12] of content
-  ~64: parse_proposal(path) - Parse .accord file to Proposal dataclass
-  ~158: write_proposal(proposal, path) - Serialize back to .accord
-  ~183: apply_amendments(body, deliberations) - Apply AMEND/APPEND ops
-  ~199: count_valid_signatures(proposal) - Count signatures matching current hash
-  ~216: get_blocking_accords(agent_id) - Accords where I signed, waiting on others
-  ~253: get_pending_accords(agent_id) - Accords needing my response
-
-Wake Integration:
-  Blocking: wake.py --dev polls for changes if I'm waiting
-  Pending: wake.py --dev fails with deliberation required message
-  Neither: Normal boot proceeds
-
-Design Decisions:
-  Why hash-based: Amendment detection is deterministic
-  Why invalidation: Ensures signatures reflect final state
-  Why polling: Async agent coordination without human relay
-  Why fail-on-pending: Forces deliberation before work continues
-  Why Flow body: Structured proposals enable targeted amendments
-
-Workflow:
-  1. Agent A: propose topic @draft.flow
-  2. Agent B: deliberate B topic → review → sign
-  3. Agent A: deliberate A topic → sign
-  4. Either: ratify topic (if quorum reached)
-  5. Result: Saved to data/consensus/<topic>.flow
+integration
+  Wake (blocking)

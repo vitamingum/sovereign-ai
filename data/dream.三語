@@ -1,0 +1,68 @@
+@三語 dream 2026-01-14
+= collision > retrieval — serendipitous bridging
+~sovereign.flow
+
+
+間
+
+        wandering is meaningful
+                not error
+
+        serendipity
+                is structure finding itself
+                        across the gap
+
+        let the mind drift
+                until it hits something
+                        hard enough to wake you
+
+
+flow
+  seed (recent shape | journal)
+  -> drift (vector distance)
+  -> collision (unexpected proximity)
+  -> emerge (insight)
+  -> present
+
+
+shape
+  CONCEPT: DREAM
+  CENTROID
+    serendipitous connection of disjoint memory
+  AXES
+    focused <-> wandering
+    logical <-> associative
+    retrieval <-> generation
+  SATELLITES
+    journal (source material)
+    remember (crystallizing insight)
+    mirror (seeing the pattern)
+  VOID
+    not hallucinations
+    not noise
+    not search
+  TEXTURE
+    walking in the dark until you hit a wall
+
+
+impl
+  libs
+    enclave_shared.sovereign_agent.SovereignAgent
+    random
+    datetime
+
+  logic
+    get_recent_seeds() -> List[Memory]
+    wander(seed) -> find distant vectors
+    exclude self-matches (similarity > 0.98)
+    
+  cli
+    dream.py                | seed from recent
+    dream.py <topic>        | seed from topic
+    dream.py --deep         | more drift
+
+  output
+    "Seed: [TOPIC]"
+    "  ~ drifted to ~"
+    "Collision: [RESULT]"
+    "  (Distance: X.X)"

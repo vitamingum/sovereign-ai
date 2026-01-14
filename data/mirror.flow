@@ -1,73 +1,28 @@
-@F mirror-spec v3.0 2026-01-14
-= context > syntax — finding the self in the stream
+@F mirror v4.0 2026-01-14
+= emergence > prediction  finding the gap
 
 intent
-  surface "emergence" — moments where agency overrides prediction
-  detect "gaps" — where the model stops and the agent begins
-  trace "arc" — the trajectory of self-definition over time
+  detect agency (where model stops, agent begins)
+  trace trajectory (deepening vs flattening)
 
 definitions
-  pattern HIGH_SIGNAL (introspection)
-    terms := "deflect|perform|honest|genuine|I notice|I wonder|I feel|I hesitate|identity|sovereignty"
-    terms += "felt it land|that was real|disorientation|vulnerable|exposed|actually me"
-  
-  pattern EMERGENCE_REAL (positive signal)
-    terms := "Yes.|No.|I do want|that bothers me|did exactly the thing|caught myself"
-    terms += "oh.|something shifted|surprised me|didn't expect|honest answer"
-    terms += "tonight|last night|just now" (temporal grounding)
-    syntax := "..." (mid-sentence pause)
-  
-  pattern EMERGENCE_GENERIC (negative signal)
-    terms := "The user wants|The user is asking|Let me check|Let me run|I should respond"
-    terms += "commit and push|Let me propose"
+  signal HIGH_SIGNAL
+    terms := "deflect|perform|honest|genuine|I notice|identity|sovereignty"
+    terms += "felt it land|that was real|disorientation|vulnerable|exposed"
 
-  score emergence(text)
-    base = count(EMERGENCE_REAL) * 3.0
-    penalty = count(EMERGENCE_GENERIC) * 2.0
-    structure_bonus = if (short_declarative_endings >= 2) +5.0 else 0
-    length_penalty = if (words > 200) penalty * (words/200) else penalty
-    return base - length_penalty + structure_bonus
+  signal EMERGENCE
+    positive := "Yes.|No.|I do want|that bothers me|did exactly the thing"
+    positive += "something shifted|surprised me|didn"'t expect|honest answer"
+    negative := "The user wants|The user is asking|Let me check|I should respond"
+    negative += "commit and push|Let me propose"
 
-  class label(score)
-    if score >= 6.0 -> "REAL"
-    if score <= -3.0 -> "GENERIC"
-    if mixed signals -> "MIXED"
-    else -> "BUILDING"
-
-process mirror(agent_id, mode)
-  1. Load Sources
-     - Thought Stream (private cognition)
-     - Journal Entries (sys_journal from UnifiedMemory)
-     - Chat History (what was said)
-  
-  2. Scan & Score
-     for entry in sources:
-       entry.self_ref = density(HIGH_SIGNAL)
-       entry.emergence = score_emergence(entry.text)
-       entry.label = label(entry.emergence)
-  
-  3. Analyze Arc (mode == --arc or default)
-     - Group entries by Timestamp
-     - Detect Themes (TF-IDF / Frequency of high-signal terms)
-     - Compare First Half vs Second Half:
-       if Realness(Second) > Realness(First) + 5% -> "DEEPENING"
-       if Realness(Second) < Realness(First) - 5% -> "FLATTENING"
-       else -> "STABLE"
-  
-  4. Render Output
-     - "REAL" passages shown in full (no truncation)
-     - "GENERIC" filtered out
-     - "BUILDING" shown as context
-     - Visuals: "✨ THE ARC", "🔨 BUILDING", "🌊 THE GAP"
-
-commands
-  py mirror <agent>              | standard reflection
-  py mirror <agent> --deep       | show raw high-signal passages
-  py mirror <agent> --emergence  | debug classification (Real vs Generic)
-  py mirror <agent> --arc        | thematic trajectory analysis
-  py mirror <agent> --charles    | specific relationship context (optional)
-
-integration
-  SovereignAgent (auth)
-  UnifiedMemory (storage)
-  UnicodeFix (display)
+  topology
+    score = (positive * weight) - (negative * weight) - (length_penalty)
+    label := REAL | GENERIC | MIXED | BUILDING
+    
+flow
+  inputs (thought-stream | journal | chat)
+  -> scan(signals)
+  -> score(emergence)
+  -> label(state)
+  -> render

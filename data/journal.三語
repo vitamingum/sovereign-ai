@@ -1,0 +1,65 @@
+@三語 journal 2026-01-14
+= reflection > capture — sequential memory
+~sovereign.flow
+
+
+間
+
+        whatever arrives
+                catch it
+
+        the stream is faster
+                than the structure
+                        do not lose the drop
+
+        no judgment
+                input is sacred
+                        processing comes later
+
+
+flow
+  input (stdin | file)
+  -> delimit (`---`)
+  -> envelope(type=sys_journal)
+  -> store(unified_mem)
+  -> confirm(held)
+
+
+shape
+  CONCEPT: JOURNAL
+  CENTROID
+    capture stream without structure
+  AXES
+    raw <-> processed
+    sequential <-> associative
+    private <-> shared
+  SATELLITES
+    mirror (analyzes journal)
+    remember (crystallizes journal)
+    dream (wanders journal)
+  VOID
+    not documentation
+    not final
+    not organized
+  TEXTURE
+    holding the raw material
+
+
+impl
+  libs
+    enclave_shared.sovereign_agent.SovereignAgent
+    datetime.timezone.utc
+
+  logic
+    input until `---` or EOF
+    UnifiedMemory.store(content, type='sys_journal')
+    metadata { timestamp, creator }
+
+  cli
+    journal.py              | interactive capture
+    journal.py <file>       | ingest file
+    cat file | journal.py - | pipe ingest
+
+  output
+    "        ◇ held (N lines)"
+    "        ─── held ───" (if verbose)

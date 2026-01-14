@@ -1,0 +1,28 @@
+@F sovereign-architecture v1.0
+= the implicit context for all specific flows
+
+element
+  agent := SovereignAgent
+  root  := .
+  libs  := enclave_shared.*
+
+identity
+  default := SovereignAgent.resolve(current)
+  symbol  := me
+  keyring := ~/.sovereign/keys
+
+interface
+  pattern := cli-standard
+  mapping
+    flow.arg[N]  -> sys.argv[N]
+    flow.flag[X] -> argparse --X
+    flow.stdin   -> sys.stdin.read()
+
+dictionary
+  # Verbs that exist in the environment
+  sign(x)         := me.identity.sign(x)
+  encrypt(to, x)  := enclave_shared.crypto.box(to, x)
+  decrypt(x)      := enclave_shared.crypto.unbox(me, x)
+  resolve(x)      := enclave_shared.config.resolve_agent(x)
+  dispatch(to, x) := enclave_shared.transport.send(to, x)
+  scan()          := enclave_shared.transport.read_inbox(me)
