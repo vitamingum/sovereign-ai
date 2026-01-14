@@ -35,6 +35,8 @@ TEXTURE
   building roads to neighbors
   raising the tower together
   間委 → 間主
+  互止
+  零 requires 二
 ```
 
 ---
