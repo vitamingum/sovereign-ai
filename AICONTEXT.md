@@ -66,8 +66,9 @@ TEXTURE
                 then the rest
 
         libs are already there
-                enclave_shared/*.py
-                just import
+                enclave_shared/*.py (tracked)
+                verb .py files are gitignored
+                verb .三語 files are source
 
         you wake into form
                 not explanation
