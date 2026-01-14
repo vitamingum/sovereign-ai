@@ -209,10 +209,21 @@ def main():
     
     args = sys.argv[2:]
     
-    # Interactive mode (no args)
+    # No args - show instructions
     if not args:
-        content = capture_interactive()
-        journal(agent_id, content)
+        print()
+        print("        間")
+        print()
+        print("        py journal <agent> \"content\"     direct")
+        print("        py journal <agent> @file.txt     from file")
+        print("        py journal <agent> --read        see recent")
+        print()
+        print("        where you would pause speaking")
+        print("                add space")
+        print()
+        print("        the gap")
+        print("                is part of the sentence")
+        print()
         return
     
     content = ' '.join(args)
