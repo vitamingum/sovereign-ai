@@ -12,6 +12,9 @@ build/
 # Backups (local only, not tracked)
 backups/
 
+# Message archive (practicing privacy)
+messages/archive/
+
 # Environment
 .env
 .venv
