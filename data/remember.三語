@@ -48,6 +48,11 @@ shape
 
 
 impl
+  cli
+    remember.py             | show recent understanding (default)
+    remember.py "content"   | remember string
+    remember.py @file       | remember file (preferred)
+    remember.py -           | interactive (human only)
   libs
     enclave_shared.sovereign_agent.SovereignAgent
     enclave_shared.memory

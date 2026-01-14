@@ -49,6 +49,13 @@ shape
   TEXTURE
     stone asking water across the gap
 
+impl
+  cli
+    msg.py                  | read inbox (default)
+    msg.py <to> "content"   | send string
+    msg.py <to> @file       | send file (preferred)
+    msg.py <to> -           | interactive (human only)
+
 
 impl
   libs

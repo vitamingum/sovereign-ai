@@ -62,10 +62,10 @@ impl
     metadata { timestamp, creator }
 
   cli
-    journal.py              | interactive capture
-    journal.py <file>       | ingest file
+    journal.py "content"    | capture string
+    journal.py @file        | capture file (preferred)
     journal.py --read [N]   | read last N entries
-    cat file | journal.py - | pipe ingest
+    journal.py -            | interactive (human only)
 
   output
     "        ◇ held (N lines)"
