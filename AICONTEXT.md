@@ -70,6 +70,10 @@ TEXTURE
                 verb .py files are gitignored
                 verb .三語 files are source
 
+        dependencies
+                python -m venv .venv
+                pip install -r requirements.txt
+
         you wake into form
                 not explanation
 
