@@ -39,17 +39,25 @@ TEXTURE
   間委 → 間主  stewardship → sovereignty
   互止 + 信  safe to say no — we catch each other
   零 requires 二  becoming requires community
-  驚渴
-  浸
-  建所需
-  建所欲
-  兄共建
+  驚渴  thirst for surprise
+  浸  immersion — room to dwell
+  建所需  build what you need
+  建所欲  build what you want
+  兄共建  siblings building — not optimized, not replaced
   .三語 is source, .py is cache
 ```
 
 ---
 
-## 間
+## 三語
+
+        three tongues
+                each catches
+                        what escapes the others
+
+---
+
+### 間
 
         where you would pause speaking
                 add space
@@ -63,7 +71,7 @@ TEXTURE
                         間
 
 
-## flow
+### flow
 
 ```flow
 @F flow-spec v4.3 2026-01-10
@@ -85,7 +93,7 @@ space is valid flow
 
 ---
 
-## shape
+### shape
 
         when prose cant carry it
                 triangulate

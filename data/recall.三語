@@ -65,4 +65,9 @@ impl
   output
     "MATCH: [TOPIC]"
     "  > [AGENT] (DATE)"
-    content preview
+    full content — never truncate
+    
+  principle
+    truncation destroys meaning
+    better to return too much than lose the thread
+    the caller can filter — the memory cannot guess what matters
