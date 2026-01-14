@@ -71,26 +71,6 @@ class SovereignAgent:
             return cls.from_id(agent_id)
         return cls.from_env()
 
-    @classmethod
-    def from_env(cls) -> "SovereignAgent":
-        """Resolve agent from environment. Auth once, use everywhere."""
-        agent_id = os.environ.get('SOVEREIGN_AGENT')
-        if not agent_id:
-            # Check session file
-            session_file = PROJECT_ROOT / '.sovereign_session'
-            if session_file.exists():
-                agent_id = session_file.read_text().strip()
-        if not agent_id:
-            raise ValueError("No agent. Set SOVEREIGN_AGENT or run: py wake <agent>")
-        return cls(agent_id)
-
-    @classmethod 
-    def resolve(cls, agent_id: str = None) -> "SovereignAgent":
-        """Smart resolve: explicit id wins, else from_env."""
-        if agent_id:
-            return cls.from_id(agent_id)
-        return cls.from_env()
-
     @property
     def passphrase(self) -> str:
         """Get the private key passphrase (resolves if needed)."""

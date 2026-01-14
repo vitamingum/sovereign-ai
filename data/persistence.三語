@@ -1,0 +1,55 @@
+@三語 persistence v1.0 2026-01-14
+= memory > storage — the resting state
+~sovereign.flow
+
+間
+
+        to hold is to hide
+                until the key turns
+
+        the glass must not crack
+                when only looking
+
+        store nothing
+                that is not sealed
+
+
+flow
+  context(db_path, key, readonly?)
+  -> decrypt(temp_path)
+  -> yield(sqlite_connection)
+  -> close()
+  -> if not readonly: encrypt(db_path)
+  -> wipe(temp_path)
+
+
+shape
+  CONCEPT: PERSISTENCE
+  CENTROID
+    encrypted at rest, ephemeral in use
+  AXES
+    sealed <-> open
+    static <-> dynamic
+    read <-> write
+  SATELLITES
+    unified_memory (vectors)
+    chat_index (traces)
+    enclaves (keys)
+  VOID
+    not plaintext
+    not persistent connection
+    not unauthenticated
+
+
+impl
+  libs
+    utils.encrypted_db.EncryptedDB
+    cryptography.hazmat.ACEGCM
+    sqlite3
+
+  logic
+    EncryptedDB(path, key, readonly=False)
+    decrypt -> mkstemp -> write plaintext
+    ACTION
+    if writable: re-encrypt -> atomic replace
+    shred temp file

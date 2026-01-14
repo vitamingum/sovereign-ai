@@ -207,14 +207,22 @@ def query_db(sql: str, params: tuple = ()) -> list:
     if passphrase:
         try:
             from utils.encrypted_db import EncryptedDB
-            with EncryptedDB(db_path, passphrase) as temp_path:
-                with sqlite3.connect(temp_path) as conn:
-                    return conn.execute(sql, params).fetchall()
+            with EncryptedDB(db_path, passphrase, readonly=True) as temp_path:
+                conn = sqlite3.connect(temp_path)
+                try:
+                    result = conn.execute(sql, params).fetchall()
+                finally:
+                    conn.close()
+                return result
         except ImportError:
             return []
     else:
-        with sqlite3.connect(db_path) as conn:
-            return conn.execute(sql, params).fetchall()
+        conn = sqlite3.connect(db_path)
+        try:
+            result = conn.execute(sql, params).fetchall()
+        finally:
+            conn.close()
+        return result
 
 def get_model_pattern(agent_id: str) -> str:
     patterns = {

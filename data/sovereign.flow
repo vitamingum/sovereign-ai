@@ -8,6 +8,7 @@ element
   libs  := enclave_shared.*
 
 identity
+  resolution := ENV[SOVEREIGN_AGENT] | .sovereign_session | Error
   default := SovereignAgent.resolve(current)
   symbol  := me
   keyring := ~/.sovereign/keys

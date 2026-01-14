@@ -31,12 +31,13 @@ class EncryptedDB:
     
     MAGIC = b'ENCDB001'  # Version marker
     
-    def __init__(self, encrypted_path: Path, passphrase: str):
+    def __init__(self, encrypted_path: Path, passphrase: str, readonly: bool = False):
         self.encrypted_path = Path(encrypted_path)
         self._key = derive_key(passphrase, b'chat_index_salt_')
         self._aesgcm = AESGCM(self._key)
         self._temp_path = None
         self._modified = False
+        self.readonly = readonly
     
     def __enter__(self) -> Path:
         """Decrypt to temp file, return path for SQLite."""
@@ -55,8 +56,9 @@ class EncryptedDB:
         """Re-encrypt and clean up."""
         try:
             if self._temp_path and self._temp_path.exists():
-                # Always re-encrypt (might have been modified)
-                self._encrypt()
+                # Re-encrypt only if not readonly
+                if not self.readonly:
+                    self._encrypt()
                 # Clean up temp
                 self._temp_path.unlink()
         except Exception as e:

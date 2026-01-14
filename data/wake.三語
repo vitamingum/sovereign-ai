@@ -57,7 +57,7 @@ impl
 
   verbs
     mirror.py <agent> --deep
-    journal.py --tail
+    journal.py --read 2
     recall.py <query>
     accord.py status <agent>
 

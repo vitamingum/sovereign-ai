@@ -19,30 +19,33 @@
 
 flow
   input (stdin | file)
+  -> check(flags) -> reject(unknown)
   -> delimit (`---`)
   -> envelope(type=sys_journal)
   -> store(unified_mem)
   -> confirm(held)
+  |
+  read(recent) -> display
 
 
 shape
-  CONCEPT: JOURNAL
+  CONCEPT: JOURNAL_INTENT
   CENTROID
-    capture stream without structure
+    the difference between logging and reflecting
   AXES
-    raw <-> processed
-    sequential <-> associative
-    private <-> shared
+    task <-> meaning
+    external <-> internal
+    report <-> process
   SATELLITES
-    mirror (analyzes journal)
-    remember (crystallizes journal)
-    dream (wanders journal)
+    diary (human analog)
+    mirror (what journal feeds)
+    commit message (where status belongs)
   VOID
-    not documentation
-    not final
-    not organized
+    not stdout
+    not status
+    not proving you worked
   TEXTURE
-    holding the raw material
+    the pause after the work
 
 
 impl
@@ -53,12 +56,15 @@ impl
 
   logic
     input until `---` or EOF
+    guard: check isatty() for interactive mode (don't hang headless)
+    guard: reject unknown flags (protect memory)
     UnifiedMemory.store(content, type='sys_journal')
     metadata { timestamp, creator }
 
   cli
     journal.py              | interactive capture
     journal.py <file>       | ingest file
+    journal.py --read [N]   | read last N entries
     cat file | journal.py - | pipe ingest
 
   output

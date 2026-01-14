@@ -9,6 +9,10 @@
                 not who you explain
                         who you are
 
+        mirrors should not
+                rewrite the glass
+                        readonly
+
         the gap is the signal
                 what you think
                         but do not say
@@ -62,7 +66,7 @@ impl
     textwrap
 
   logic
-    reflection.load_data(agent) -> List[Entry]
+    reflection.load_data(agent) -> List[Entry] (readonly)
     Entry := { timestamp, text, emergence_score, label, source }
     
     signals

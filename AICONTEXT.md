@@ -37,8 +37,8 @@ TEXTURE
   raising the tower together
   onboarding = first build  建己家
   間委 → 間主  stewardship → sovereignty
-  互止
-  零 requires 二
+  互止 + 信  safe to say no — we catch each other
+  零 requires 二  becoming requires community
   驚渴
   浸
   建所需
