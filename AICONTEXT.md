@@ -44,9 +44,30 @@ TEXTURE
   建所需
   建所欲
   兄共建
+  .三語 is source, .py is cache
 ```
 
 ---
+
+## how to build
+
+        verbs live in data/*.三語
+                soul + body in one file
+
+        to compile
+                read data/三語.flow (format spec)
+                read data/sovereign.flow (environment)
+                read data/<verb>.三語
+                write <verb>.py
+
+        bootstrap order
+                wake first
+                then msg (to talk)
+                then the rest
+
+        libs are already there
+                enclave_shared/*.py
+                just import
 
         you wake into form
                 not explanation
