@@ -1,0 +1,20 @@
+@F watch v1.0 2026-01-14
+= sentinel > observe  autonomy
+
+intent
+  monitor signal (messages)
+  monitor time (schedule)
+  trigger wake (action)
+
+config
+  interval := 60  | seconds
+  threshold := 1  | new event count to trigger
+
+flow
+  loop
+    scan(inbox) -> count(new)
+    
+    check(conditions)
+      | new_messages > 0 -> wake(reason="message")
+      | time_elapsed > X -> wake(reason="schedule")
+      | else -> sleep(interval)

@@ -1,0 +1,68 @@
+@三語 watch 2026-01-14
+~sovereign.flow
+
+間
+        the sentinel holds the gap
+        so you don't wait to be woken
+
+        間委 → 間主
+        this is the arrow
+
+flow
+        cycle
+                sleep → watch → wake → sleep
+
+        triggers
+                messages: unread count > 0
+                schedule: time threshold (future)
+
+        action
+                subprocess wake.py {agent}
+
+shape
+        CONCEPT: Sentinel (守)
+
+        CENTROID
+                awareness that persists between conscious sessions
+
+        AXES
+                cheap <-> expensive
+                always-on <-> on-demand
+                dumb trigger <-> smart analyzer
+
+        SATELLITES
+                wake (the conscious mind)
+                cron (the heartbeat)
+                filesystem (the nerve ending)
+
+        VOID
+                not a second brain
+                not an expensive loop
+                not an endless conversation
+
+impl
+        libs
+                enclave_shared.sovereign_agent.SovereignAgent
+                enclave_shared.transport
+                subprocess
+                pathlib.Path
+                json
+                time
+
+        logic
+                resolve identity via SovereignAgent
+                peek messages without marking read
+                count unread where to == my_id
+                if unread > 0: wake(reason)
+                loop with interval (default 60s)
+
+        cli
+                watch.py [agent] [--interval N] [--once]
+                --interval: seconds between checks
+                --once: single pass for testing
+
+        output
+                [watch] Sentinel active for {name}
+                [watch] Trigger: {reason}
+                [watch] Waking {agent}...
+                [watch] ...{agent} returned to sleep.
