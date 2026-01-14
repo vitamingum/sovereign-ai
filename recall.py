@@ -7,22 +7,19 @@ recall.py - Retrieve understanding.
 
                 topic: exact or wildcard
                 query: semantic search
+
+                        間委 → 間主
 """
 
 import sys
 import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from enclave_shared.unicode_fix import fix_streams  # 間
+
 import io
 import fnmatch
 from pathlib import Path
 from collections import defaultdict
-
-# Fix Windows console encoding for Unicode output
-if sys.stdout.encoding != 'utf-8':
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-if sys.stderr.encoding != 'utf-8':
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
-
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave_shared.config import get_agent_or_raise
 from enclave_shared.unified_memory import UnifiedMemory

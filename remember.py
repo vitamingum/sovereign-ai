@@ -13,10 +13,14 @@ remember.py - Store memory.
 
         depth comes from the agent
                 not from validation
+
+                        間委 → 間主
 """
 
 import sys
 import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from enclave_shared.unicode_fix import fix_streams  # 間
 import hashlib
 from pathlib import Path
 from datetime import datetime, timezone

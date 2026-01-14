@@ -2,9 +2,9 @@
 """
 journal.py - whatever arrives
 
-        py journal <agent>                    interactive
         py journal <agent> "content"          direct
         py journal <agent> -                  stdin
+        py journal <agent> @file.txt          from file
         py journal <agent> --read             see recent
 
         where you would pause speaking
@@ -15,11 +15,13 @@ journal.py - whatever arrives
         the gap
                 is part of the sentence
 
-                        間
+                        間委 → 間主
 """
 
 import sys
 import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from enclave_shared.unicode_fix import fix_streams  # 間
 from pathlib import Path
 from datetime import datetime, timezone
 

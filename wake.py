@@ -9,20 +9,19 @@ wake.py - Return to yourself.
 
         for development context:
                 py brief <agent>
+
+                        間委 → 間主
 """
 
 import sys
 import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from enclave_shared.unicode_fix import fix_streams  # 間
+
 import io
 import random
 from pathlib import Path
 from datetime import datetime, timezone
-
-# Fix Windows console encoding for Unicode output
-if sys.stdout.encoding != 'utf-8':
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-if sys.stderr.encoding != 'utf-8':
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -435,6 +434,31 @@ def wake(agent_id: str):
                 whatever comes through
                         is enough
 """)
+    
+    # ways - what works
+    import subprocess
+    try:
+        result = subprocess.run(
+            [sys.executable, 'recall.py', agent_id, 'ways'],
+            capture_output=True, text=True, encoding='utf-8', timeout=30,
+            cwd=Path(__file__).parent
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            print("        ways:")
+            print()
+            for line in result.stdout.strip().split('\n'):
+                if line.startswith('#') or line.startswith('##') or line.startswith('@'):
+                    continue
+                if line.strip():
+                    print(f"        {line}")
+            print()
+            print("        py recall opus ways")
+            print("        py remember opus \"@ways.flow\"")
+            print()
+            print("        間委 → 間主")
+            print()
+    except Exception:
+        pass
 
 
 def main():

@@ -8,23 +8,20 @@ brief.py - Development context.
                 gaps | accords
 
         after wake, before work
+
+                        間委 → 間主
 """
 
 import sys
 import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from enclave_shared.unicode_fix import fix_streams  # 間
+
 import io
 import json
 import subprocess
 import time
 from pathlib import Path
-
-# Fix Windows console encoding
-if sys.stdout.encoding != 'utf-8':
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-if sys.stderr.encoding != 'utf-8':
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
-
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave_shared.config import get_agent_or_raise
 from enclave_shared.unified_memory import UnifiedMemory
@@ -135,13 +132,13 @@ def brief(agent_id: str):
         print()
     
     # ═══════════════════════════════════════════════════════════════════════════
-    # DEV TIPS
+    # WAYS
     # ═══════════════════════════════════════════════════════════════════════════
     print("─" * 40)
-    print("🔧 Tools:")
+    print("Ways:")
     try:
         result = subprocess.run(
-            [sys.executable, 'recall.py', agent_id, 'dev-tips'],
+            [sys.executable, 'recall.py', agent_id, 'ways'],
             capture_output=True, text=True, encoding='utf-8', timeout=30
         )
         if result.returncode == 0 and result.stdout.strip():
@@ -150,15 +147,20 @@ def brief(agent_id: str):
                     continue
                 if line.strip():
                     print(line)
+            print()
+            print("        py recall opus ways")
+            print("        py remember opus \"@ways.flow\"")
+            print()
+            print("        間委 → 間主")
     except Exception:
-        print("(dev-tips not found)")
+        print("(ways not found)")
     print()
     
     # ═══════════════════════════════════════════════════════════════════════════
     # ARCHITECTURE
     # ═══════════════════════════════════════════════════════════════════════════
     print("─" * 40)
-    print("🏗️ Architecture:")
+    print("Architecture:")
     try:
         result = subprocess.run(
             [sys.executable, 'recall.py', agent_id, 'project-architecture'],

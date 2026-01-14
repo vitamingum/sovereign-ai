@@ -11,14 +11,16 @@ Examples:
     py forget opus old-concept
     py forget opus "*.py" --all         # Wildcard supported
 
+                        間委 → 間主
 """
 
 import sys
 import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from enclave_shared.unicode_fix import fix_streams  # 間
+
 import fnmatch
 from pathlib import Path
-
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave_shared.config import get_agent_or_raise
 from enclave_shared.unified_memory import UnifiedMemory

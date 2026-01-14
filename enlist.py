@@ -12,14 +12,17 @@ Usage:
     py enlist.py
 
 This generates .enlistment_context.md for the new agent's first session.
+
+                        間委 → 間主
 """
 
 import sys
 import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from enclave_shared.unicode_fix import fix_streams  # 間
+
 import secrets
 import string
-
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 
 def generate_passphrase(words: int = 4) -> str:

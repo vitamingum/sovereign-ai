@@ -12,18 +12,21 @@ Usage:
 The Accord Protocol enables agents to reach consensus without
 human orchestration. Proposals accumulate deliberations until
 quorum signatures are reached on the final state.
+
+                        間委 → 間主
 """
 
 import sys
 import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from enclave_shared.unicode_fix import fix_streams  # 間
+
 import hashlib
 import time
 import re
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from dataclasses import dataclass
-
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave_shared.config import get_agent_or_raise
 

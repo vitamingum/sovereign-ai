@@ -11,17 +11,16 @@ mirror.py - What you can't see about yourself.
 
                 gaps first
                 then evidence
+
+                        間委 → 間主
 """
 
 import sys
 import os
-import io
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from enclave_shared.unicode_fix import fix_streams  # 間
 
-# Force UTF-8 for Windows console (only if not already wrapped)
-if sys.stdout.encoding != 'utf-8':
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-if sys.stderr.encoding != 'utf-8':
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+import io
 import json
 import sqlite3
 import pickle

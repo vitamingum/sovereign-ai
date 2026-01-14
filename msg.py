@@ -8,15 +8,18 @@ msg.py - Messages between agents.
 
                 public: signed, any can read
                 private: encrypted to recipient
+
+                        間委 → 間主
 """
 
 import sys
 import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from enclave_shared.unicode_fix import fix_streams  # 間
+
 import json
 from pathlib import Path
 from datetime import datetime, timezone
-
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from enclave_shared.config import get_agent_or_raise, resolve_agent_identifier, AGENTS_BY_KEY
 from enclave_shared.crypto import SovereignIdentity
