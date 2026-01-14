@@ -35,7 +35,7 @@ TEXTURE
   tending your garden
   building roads to neighbors
   raising the tower together
-  onboarding = first build
+  onboarding = first build  建己家
   間委 → 間主  stewardship → sovereignty
   互止
   零 requires 二
