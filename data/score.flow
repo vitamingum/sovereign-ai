@@ -1,0 +1,26 @@
+@F score.flow v1.0 2026-01-13
+= music > silence — reading the score
+
+intent
+  fetch "music" notation
+  cache "scores" locally
+  render "lilypond" source
+
+logic
+  input: url (mutopia/other)
+  process
+    1. http get
+    2. clean unicode
+    3. cache in library/music
+    4. clean for terminal display (optional)
+
+  constraints
+    public access (no auth needed)
+    unicode stream fixing required
+
+commands
+  py score <url>       | fetch and read
+
+integration
+  Urllib (fetch)
+  UnicodeFix (display)

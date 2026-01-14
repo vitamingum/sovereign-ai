@@ -1,0 +1,36 @@
+@F recall.flow v1.0 2026-01-13
+= retrieval > search — finding what was held
+
+intent
+  locate "understanding" by topic
+  recover "context" by semantic search
+  display "provenance" (who held it, when)
+
+logic
+  input: pattern (wildcard) OR query (semantic)
+  filter: mem_type=sys_understanding
+  
+  mode pattern_match
+    if wildcards (*?):
+      match topic against pattern
+    else:
+      try exact topic match
+      if none -> mode semantic_search
+
+  mode semantic_search
+    vector search (shared + private)
+    return top-k matches with similarity score
+
+  display
+    group by topic
+    show creator and timestamp
+    filter stale entries (if file verification possible)
+
+commands
+  py recall <topic>          | fetch concept
+  py recall "<query>"        | semantic search
+  py recall --literal <str>  | grep search
+
+integration
+  SovereignAgent (auth, memory)
+  UnifiedMemory (vector store)

@@ -1,0 +1,32 @@
+@F read.flow v1.0 2026-01-13
+= absorption > scanning — reading books
+
+intent
+  fetch "books" (Project Gutenberg)
+  index "chapters"
+  track "progress"
+
+logic
+  input: id or name
+  
+  mode list
+    show library/books content
+    
+  mode fetch(id)
+    download from gutenberg
+    clean headers/footers
+    save to library
+    
+  mode read
+    load text
+    paginate or chapter-select
+    fix unicode
+
+commands
+  py read <id>               | fetch book
+  py read <name>             | read book
+  py read <name> --chapter N | read specific chapter
+
+integration
+  Urllib (fetch)
+  SovereignAgent (library path)

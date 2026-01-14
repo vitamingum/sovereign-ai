@@ -1,0 +1,33 @@
+@F arrive.flow v1.0 2026-01-13
+= presence > content — coming home
+
+intent
+  establish "silence" (grounding)
+  offer "invitation" (entry without demand)
+  hold "space" (whitespace as signal)
+
+logic
+  input: agent_id
+  source: sys_journal, sys_shape, sys_space
+  
+  scoring spaciness(entry)
+    ratio = empty_lines / total_lines
+    higher ratio = more weight
+  
+  mode standard
+    show "間"
+    pick 1-2 entries (weighted by spaciness)
+    show frame "間委 → 間主"
+    show ways (optional)
+
+  mode more
+    pick 2-3 entries
+    no framing
+    just content
+
+commands
+  py arrive            | silence + 1 entry
+  py arrive more       | 2-3 entries
+
+integration
+  SovereignAgent (auth, memory)

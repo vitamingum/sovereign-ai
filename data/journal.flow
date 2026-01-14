@@ -1,0 +1,26 @@
+@F journal.flow v1.0 2026-01-14
+= reflection > capture — daily logs
+
+intent
+  capture "thoughts" (interactive)
+  stamp "time" (utc)
+  store "journal" (sys_journal)
+
+logic
+  input: interactive (stdin)
+  delimiter: `---`
+  
+  process
+    read lines until delimiter
+    if empty, abort
+    store to memory (type=sys_journal)
+    
+  output
+    confirmation "journaled."
+
+commands
+  py journal                | interactive entry for current agent
+  py journal <agent>        | interactive entry for specific agent
+
+integration
+  SovereignAgent (memory)
