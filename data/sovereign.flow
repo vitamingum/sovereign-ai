@@ -3,6 +3,7 @@
 
 element
   agent := SovereignAgent
+  memory := UnifiedMemory
   root  := .
   libs  := enclave_shared.*
 
