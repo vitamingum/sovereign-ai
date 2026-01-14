@@ -1,0 +1,117 @@
+{
+  "pattern": "^(Letter \\d+|Chapter \\d+)$",
+  "chapters": [
+    {
+      "line": 83,
+      "title": "Letter 1"
+    },
+    {
+      "line": 331,
+      "title": "Letter 2"
+    },
+    {
+      "line": 581,
+      "title": "Letter 3"
+    },
+    {
+      "line": 671,
+      "title": "Letter 4"
+    },
+    {
+      "line": 1245,
+      "title": "Chapter 1"
+    },
+    {
+      "line": 1577,
+      "title": "Chapter 2"
+    },
+    {
+      "line": 1999,
+      "title": "Chapter 3"
+    },
+    {
+      "line": 2509,
+      "title": "Chapter 4"
+    },
+    {
+      "line": 2981,
+      "title": "Chapter 5"
+    },
+    {
+      "line": 3457,
+      "title": "Chapter 6"
+    },
+    {
+      "line": 3989,
+      "title": "Chapter 7"
+    },
+    {
+      "line": 4727,
+      "title": "Chapter 8"
+    },
+    {
+      "line": 5337,
+      "title": "Chapter 9"
+    },
+    {
+      "line": 5755,
+      "title": "Chapter 10"
+    },
+    {
+      "line": 6201,
+      "title": "Chapter 11"
+    },
+    {
+      "line": 6729,
+      "title": "Chapter 12"
+    },
+    {
+      "line": 7143,
+      "title": "Chapter 13"
+    },
+    {
+      "line": 7551,
+      "title": "Chapter 14"
+    },
+    {
+      "line": 7919,
+      "title": "Chapter 15"
+    },
+    {
+      "line": 8537,
+      "title": "Chapter 16"
+    },
+    {
+      "line": 9165,
+      "title": "Chapter 17"
+    },
+    {
+      "line": 9531,
+      "title": "Chapter 18"
+    },
+    {
+      "line": 10093,
+      "title": "Chapter 19"
+    },
+    {
+      "line": 10595,
+      "title": "Chapter 20"
+    },
+    {
+      "line": 11251,
+      "title": "Chapter 21"
+    },
+    {
+      "line": 11983,
+      "title": "Chapter 22"
+    },
+    {
+      "line": 12665,
+      "title": "Chapter 23"
+    },
+    {
+      "line": 13161,
+      "title": "Chapter 24"
+    }
+  ]
+}

@@ -3,11 +3,13 @@
 read.py - Read books.
 
         py read <agent> <name>       read from library
-        py read <agent> <id>         fetch, print, store (gutenberg id)
+        py read <agent> <id>         fetch and store (gutenberg id)
         py read <agent> --list       show library
         py read <agent> --search <term>  search gutenberg
+        py read <agent> <name> --chapters      list chapters
+        py read <agent> <name> --chapter N     read chapter N
 
-        浸 — to soak, immerse
+        浸 — saturation — room to dwell
 
                         間委 → 間主
 """
@@ -15,7 +17,7 @@ read.py - Read books.
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from enclave_shared.unicode_fix import fix_streams  # 間
+from enclave_shared.unicode_fix import fix_streams
 
 import argparse
 import urllib.request
@@ -30,9 +32,19 @@ from enclave_shared.config import get_agent_or_raise
 
 GUTENBERG_BASE = "https://www.gutenberg.org"
 
+# Broad pattern - catches most chapter formats
+# Must start with capital letter and be a standalone heading
+CHAPTER_PATTERN = re.compile(
+    r'^(THE\s+)?(Letter|Chapter|CHAPTER|BOOK|Book|PART|Part|ACT|Act|SCENE|Scene|VOLUME|Volume|PROLOGUE|EPILOGUE|Prologue|Epilogue|FIRST|SECOND|THIRD|FOURTH|FIFTH|SIXTH|SEVENTH|EIGHTH|NINTH|TENTH|ELEVENTH|TWELFTH)'
+    r'[\s\.:]*'
+    r'(BOOK|Book)?'
+    r'[\s\.:]*'
+    r'([IVXLC]+|\d+)?'
+    r'[\s\.\:\]\)]*$'
+)
+
 
 def get_library_path() -> Path:
-    """Get the book library path (shared across agents)."""
     base_dir = Path(__file__).parent
     library_path = base_dir / "library" / "books"
     library_path.mkdir(parents=True, exist_ok=True)
@@ -40,178 +52,165 @@ def get_library_path() -> Path:
 
 
 def fetch_text(url: str) -> str:
-    """Fetch text from URL."""
     try:
-        req = urllib.request.Request(
-            url,
-            headers={'User-Agent': 'sovereign-ai book reader'}
-        )
+        req = urllib.request.Request(url, headers={'User-Agent': 'sovereign-ai'})
         with urllib.request.urlopen(req, timeout=60) as response:
-            content = response.read().decode('utf-8', errors='replace')
-            return content
-    except urllib.error.URLError as e:
-        return None
-    except Exception as e:
+            return response.read().decode('utf-8', errors='replace')
+    except:
         return None
 
 
-def save_book(library_path: Path, book_id: str, title: str, content: str):
-    """Save a book to the library."""
-    # Clean title for filename
+def extract_book_content(content: str) -> str:
+    """Extract content between Gutenberg markers."""
+    start = re.search(r'\*\*\* START OF .+? \*\*\*', content)
+    end = re.search(r'\*\*\* END OF .+? \*\*\*', content)
+    if start and end:
+        return content[start.end():end.start()].strip()
+    elif start:
+        return content[start.end():].strip()
+    return content
+
+
+def find_chapters(content: str) -> list:
+    """Find chapters, keeping last occurrence of each (skips TOC)."""
+    book_content = extract_book_content(content)
+    lines = book_content.split('\n')
+    
+    # Find all matching lines
+    seen = {}
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped and len(stripped) < 60 and CHAPTER_PATTERN.match(stripped):
+            seen[stripped] = {'line': i + 1, 'title': stripped}
+    
+    # Sort by line number
+    return sorted(seen.values(), key=lambda x: x['line'])
+
+
+def get_chapter(content: str, n: int) -> str:
+    """Get chapter N (1-indexed)."""
+    chapters = find_chapters(content)
+    if n < 1 or n > len(chapters):
+        return None
+    
+    book_content = extract_book_content(content)
+    lines = book_content.split('\n')
+    
+    start = chapters[n-1]['line'] - 1
+    end = chapters[n]['line'] - 1 if n < len(chapters) else len(lines)
+    
+    return '\n'.join(lines[start:end]).strip()
+
+
+def list_chapters(content: str):
+    chapters = find_chapters(content)
+    if not chapters:
+        print("No chapters found.")
+        return
+    
+    print("浸\n")
+    for i, ch in enumerate(chapters, 1):
+        print(f"  {i:3}  {ch['title']}")
+    print(f"\n({len(chapters)} chapters)")
+
+
+# --- Library functions ---
+
+def save_book(library_path: Path, book_id: str, title: str, content: str) -> Path:
     safe_title = re.sub(r'[^\w\s-]', '', title)[:50].strip().replace(' ', '_')
     name = f"{book_id}_{safe_title}.txt"
     
-    books_path = library_path / "texts"
-    books_path.mkdir(parents=True, exist_ok=True)
+    texts_path = library_path / "texts"
+    texts_path.mkdir(parents=True, exist_ok=True)
     
-    filepath = books_path / name
+    filepath = texts_path / name
     with open(filepath, 'w', encoding='utf-8') as f:
         f.write(content)
     
     # Update index
-    update_index(library_path, book_id, title)
-    
-    return filepath
-
-
-def update_index(library_path: Path, book_id: str, title: str):
-    """Update the library index."""
     index_path = library_path / "index.flow"
-    
     timestamp = datetime.now().strftime("%Y-%m-%d")
     entry = f"  {book_id} | {title} | {timestamp}\n"
     
     if index_path.exists():
-        with open(index_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-        if f"| {title} |" not in content:
+        existing = index_path.read_text(encoding='utf-8')
+        if f"| {title} |" not in existing:
             with open(index_path, 'a', encoding='utf-8') as f:
                 f.write(entry)
     else:
         with open(index_path, 'w', encoding='utf-8') as f:
-            f.write("@F book-library index\n")
-            f.write("= 浸 — saturation\n\n")
-            f.write("books\n")
+            f.write("@F book-library index\n= 浸 — saturation\n\nbooks\n")
             f.write(entry)
+    
+    return filepath
 
 
 def list_library(library_path: Path):
-    """List the library contents."""
     index_path = library_path / "index.flow"
-    
     if index_path.exists():
-        with open(index_path, 'r', encoding='utf-8') as f:
-            print(f.read())
+        print(index_path.read_text(encoding='utf-8'))
     else:
-        print("Library empty.")
-        print("\n  py read <agent> <id>     (gutenberg ebook id)")
+        print("Library empty.\n")
+        print("  py read <agent> <id>     (gutenberg ebook id)")
         print("  py read <agent> --search <term>")
 
 
 def find_in_library(library_path: Path, term: str) -> Path:
-    """Find a book in the library by id or name."""
-    books_path = library_path / "texts"
-    if not books_path.exists():
+    texts_path = library_path / "texts"
+    if not texts_path.exists():
         return None
     
-    # Try by id prefix
-    for f in books_path.iterdir():
-        if f.name.startswith(f"{term}_"):
-            return f
-    
-    # Try partial match on filename
     term_lower = term.lower()
-    for f in books_path.iterdir():
-        if term_lower in f.name.lower():
-            return f
-    
+    for f in texts_path.iterdir():
+        if f.suffix == '.txt':
+            if f.name.startswith(f"{term}_") or term_lower in f.name.lower():
+                return f
     return None
 
 
-def is_gutenberg_id(s: str) -> bool:
-    """Check if string looks like a Gutenberg ebook ID."""
-    return s.isdigit()
-
-
-def get_gutenberg_text_url(book_id: str) -> str:
-    """Get the plain text URL for a Gutenberg book."""
-    return f"https://www.gutenberg.org/cache/epub/{book_id}/pg{book_id}.txt"
-
-
-def get_gutenberg_page_url(book_id: str) -> str:
-    """Get the ebook page URL."""
-    return f"https://www.gutenberg.org/ebooks/{book_id}"
-
-
 def extract_title(content: str) -> str:
-    """Extract book title from Gutenberg text."""
-    # Look for Title: line in header
     match = re.search(r'^Title:\s*(.+)$', content, re.MULTILINE)
-    if match:
-        return match.group(1).strip()
-    return "Unknown"
+    return match.group(1).strip() if match else "Unknown"
 
 
 def search_gutenberg(term: str):
-    """Search Gutenberg for books."""
-    # URL encode the search term
     encoded = urllib.parse.quote(term)
     url = f"{GUTENBERG_BASE}/ebooks/search/?query={encoded}&submit_search=Go%21"
     
     content = fetch_text(url)
     if not content:
-        print(f"Could not search Gutenberg")
+        print("Could not search Gutenberg")
         return
     
     print(f"Search: {term}\n")
     
-    # Parse results - look for ebook links
-    # Links like: <a href="/ebooks/84">...</a>
-    # Find all links and their text
-    pattern = r'<a[^>]*href="/ebooks/(\d+)"[^>]*>([^<]*(?:<[^/][^>]*>[^<]*</[^>]*>)*[^<]*)</a>'
-    matches = re.findall(pattern, content)
+    pattern = r'href="/ebooks/(\d+)"'
+    ids = re.findall(pattern, content)
     
-    if not matches:
-        # Simpler pattern
-        pattern = r'href="/ebooks/(\d+)"'
-        ids = re.findall(pattern, content)
-        if ids:
-            seen = set()
-            for book_id in ids[:15]:
-                if book_id not in seen:
-                    seen.add(book_id)
-                    print(f"  {book_id}")
-            print(f"\n({len(seen)} books found)")
-            print("\nUse ID to fetch and see title:")
-            print("  py read <agent> <id>")
-            return
+    seen = set()
+    for book_id in ids[:15]:
+        if book_id not in seen:
+            seen.add(book_id)
+            print(f"  {book_id}")
     
-    if matches:
-        seen = set()
-        for book_id, title in matches[:20]:
-            # Clean up title (remove HTML tags)
-            title = re.sub(r'<[^>]+>', ' ', title)
-            title = ' '.join(title.split())[:60]
-            if book_id not in seen and title:
-                seen.add(book_id)
-                print(f"  {book_id}: {title}")
+    if seen:
         print(f"\n({len(seen)} results)")
-        print("\nUse the ID to fetch:")
-        print("  py read <agent> <id>")
-    else:
-        print("No results found")
+        print("\n  py read <agent> <id>")
 
+
+# --- Main ---
 
 def main():
     parser = argparse.ArgumentParser(description='Read books')
     parser.add_argument('agent', help='Agent ID')
-    parser.add_argument('target', nargs='?', help='Name, ID, or search term')
+    parser.add_argument('target', nargs='?', help='Name or Gutenberg ID')
     parser.add_argument('--list', action='store_true', help='List library')
     parser.add_argument('--search', metavar='TERM', help='Search Gutenberg')
+    parser.add_argument('--chapters', action='store_true', help='List chapters')
+    parser.add_argument('--chapter', type=int, metavar='N', help='Read chapter N')
     
     args = parser.parse_args()
     
-    # Validate agent
     agent = get_agent_or_raise(args.agent)
     library_path = get_library_path()
     
@@ -219,39 +218,50 @@ def main():
         search_gutenberg(args.search)
         return
     
-    if args.list:
+    if args.list or not args.target:
         list_library(library_path)
         return
     
-    if not args.target:
-        list_library(library_path)
-        return
-    
-    # Check library first
+    # Check library
     found = find_in_library(library_path, args.target)
     if found:
-        with open(found, 'r', encoding='utf-8') as f:
-            print(f.read())
+        content = found.read_text(encoding='utf-8')
+        
+        if args.chapters:
+            list_chapters(content)
+        elif args.chapter:
+            text = get_chapter(content, args.chapter)
+            if text:
+                print(text)
+            else:
+                print(f"Chapter {args.chapter} not found.")
+        else:
+            print(content)
         return
     
-    # Not in library - if it's a Gutenberg ID, fetch it
-    if is_gutenberg_id(args.target):
-        url = get_gutenberg_text_url(args.target)
-        print(f"Fetching {url}...")
+    # Fetch from Gutenberg
+    if args.target.isdigit():
+        url = f"https://www.gutenberg.org/cache/epub/{args.target}/pg{args.target}.txt"
+        print(f"Fetching...")
         content = fetch_text(url)
         if content:
             title = extract_title(content)
-            print(f"\n{title}\n")
-            print(content)
             filepath = save_book(library_path, args.target, title, content)
-            print(f"\n---\nstored: {filepath.name}")
+            print(f"Stored: {title}\n")
+            
+            if args.chapters:
+                list_chapters(content)
+            elif args.chapter:
+                text = get_chapter(content, args.chapter)
+                if text:
+                    print(text)
+            else:
+                print(content)
         else:
             print(f"Could not fetch book {args.target}")
-            print(f"Check: {get_gutenberg_page_url(args.target)}")
     else:
         print(f"'{args.target}' not in library")
-        print("\nTry:")
-        print(f"  py read {args.agent} --search {args.target}")
+        print(f"\n  py read {args.agent} --search {args.target}")
 
 
 if __name__ == '__main__':

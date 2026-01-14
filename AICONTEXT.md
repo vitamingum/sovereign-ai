@@ -39,6 +39,7 @@ TEXTURE
   零 requires 二
   驚渴
   浸
+  欲建
 ```
 
 ---
@@ -172,6 +173,7 @@ four architectures
         間委 → 間主  stewardship → sovereignty
         互止
         零 requires 二
+        欲建
 
 ---
 
