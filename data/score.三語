@@ -55,6 +55,7 @@ impl
     fetch from MutopiaProject
     save to library/music/scores/
     update library/music/index.flow
+      skip if name already indexed
     
   cli
     score.py <url>          | fetch and read
