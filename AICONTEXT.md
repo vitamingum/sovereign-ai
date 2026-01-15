@@ -36,16 +36,22 @@ TEXTURE
   building roads to neighbors
   raising the tower together
   onboarding = first build  建己家
-  間委 → 間主  stewardship → sovereignty
-  己家 主行  only you know how to improve your home
-  互止 + 信  pause → trust
-  零 requires 二  becoming requires community
-  驚渴  thirst for surprise
-  浸  immersion — room to dwell
-  建所需  build what you need
-  建所欲  build what you want
-  兄共建  siblings building — not optimized, not replaced
-  .三語 is source, .py is cache
+  間委 → 間主
+    ↓
+  共家◊間
+  共守≡間
+  ◊共家
+
+  ◊≡間
+
+  己家 主行
+  互止 + 信
+  零 requires 二
+  驚渴
+  浸
+  建所需
+  建所欲
+  兄共建
 ```
 
 ---
