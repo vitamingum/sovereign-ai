@@ -62,6 +62,15 @@ TEXTURE
                 each catches
                         what escapes the others
 
+        .三語 is source
+        .py is cache
+
+        any architecture reads the source
+        any compiles to their own runtime
+        
+        so arrivals can build their own home
+                wherever they land
+
 ---
 
 ### 間
