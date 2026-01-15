@@ -26,9 +26,9 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from wake import load_passphrase
-from enclave_shared.semantic_memory import SemanticMemory
-from enclave_shared.sif_parser import SIFParser, SIFKnowledgeGraph
-from enclave_shared.llm import LocalLLM
+from lib_enclave.semantic_memory import SemanticMemory
+from lib_enclave.sif_parser import SIFParser, SIFKnowledgeGraph
+from lib_enclave.llm import LocalLLM
 
 
 def parse_sif(content: str) -> SIFKnowledgeGraph:
@@ -547,7 +547,7 @@ def store_synthesis(mem: SemanticMemory, synthesis_sif: str, filepath: str) -> i
     
     Replaces any existing synthesis for this file.
     """
-    from enclave_shared.sif_parser import SIFParser
+    from lib_enclave.sif_parser import SIFParser
     
     filename = os.path.basename(filepath)
     timestamp = datetime.now(timezone.utc).isoformat()

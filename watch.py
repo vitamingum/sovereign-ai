@@ -22,8 +22,8 @@ from pathlib import Path
 # Context: sovereign.flow -> environment.libs
 sys.path.insert(0, str(Path(__file__).parent))
 
-from enclave_shared.sovereign_agent import SovereignAgent
-from enclave_shared import transport
+from lib_enclave.sovereign_agent import SovereignAgent
+from lib_enclave import transport
 
 def wake(agent_id, reason, with_messages=False):
     """Trigger the wake cycle."""

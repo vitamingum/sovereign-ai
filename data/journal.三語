@@ -50,8 +50,8 @@ shape
 
 impl
   libs
-    enclave_shared.sovereign_agent.SovereignAgent
-    enclave_shared.unified_memory.UnifiedMemory
+    lib_enclave.sovereign_agent.SovereignAgent
+    lib_enclave.unified_memory.UnifiedMemory
     datetime.timezone.utc
 
   logic

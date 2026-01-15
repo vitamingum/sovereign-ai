@@ -24,10 +24,10 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from enclave_shared.config import get_agent_or_raise, resolve_agent_identifier, AGENTS_BY_KEY
-from enclave_shared.crypto import SovereignIdentity
-from enclave_shared.sif_parser import SIFParser
-from enclave_shared.opaque import OpaqueStorage
+from lib_enclave.config import get_agent_or_raise, resolve_agent_identifier, AGENTS_BY_KEY
+from lib_enclave.crypto import SovereignIdentity
+from lib_enclave.sif_parser import SIFParser
+from lib_enclave.opaque import OpaqueStorage
 
 
 def load_credentials(agent_id: str) -> tuple[Path, SovereignIdentity]:

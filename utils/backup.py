@@ -13,9 +13,9 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from enclave_shared.config import AGENTS, get_agent_or_raise
-from enclave_shared.crypto import SovereignIdentity
-from enclave_shared.backup import BackupClient
+from lib_enclave.config import AGENTS, get_agent_or_raise
+from lib_enclave.crypto import SovereignIdentity
+from lib_enclave.backup import BackupClient
 
 def main():
     if len(sys.argv) < 2:

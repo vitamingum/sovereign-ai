@@ -27,25 +27,25 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from enclave_shared.config import get_agent_or_raise
-from enclave_shared.semantic_memory import SemanticMemory
-from enclave_shared.sif_parser import SIFParser, SIFKnowledgeGraph, SIFNode, SIFEdge
+from lib_enclave.config import get_agent_or_raise
+from lib_enclave.semantic_memory import SemanticMemory
+from lib_enclave.sif_parser import SIFParser, SIFKnowledgeGraph, SIFNode, SIFEdge
 
 
 def load_passphrase(agent_id: str) -> tuple[str, str]:
     """Load shared passphrase from env.
     
-    Returns (shared_enclave_dir, shared_passphrase).
+    Returns (enclave_shared_dir, shared_passphrase).
     Understanding graphs go to SHARED enclave so all agents can see
     and compare each other's perspectives on the same code.
     Uses SHARED_ENCLAVE_KEY so all agents can read/write shared knowledge.
     """
     agent = get_agent_or_raise(agent_id)
     
-    # Use shared_enclave for understanding graphs - no fallback
-    if not agent.shared_enclave:
-        raise ValueError(f"No shared_enclave configured for {agent_id}")
-    enclave_dir = agent.shared_enclave
+    # Use enclave_shared for understanding graphs - no fallback
+    if not agent.enclave_shared:
+        raise ValueError(f"No enclave_shared configured for {agent_id}")
+    enclave_dir = agent.enclave_shared
     
     # Get shared passphrase - no fallback
     passphrase = os.environ.get('SHARED_ENCLAVE_KEY')
@@ -707,7 +707,7 @@ def main():
             sys.exit(1)
         
         # Normalize to auto-count format (accept flexible input, store canonical)
-        from enclave_shared.sif_parser import SIFParser
+        from lib_enclave.sif_parser import SIFParser
         sif_content = SIFParser.to_autocount(sif_content)
         
         # Validate depth
@@ -752,7 +752,7 @@ def main():
         sif_text = sif_arg
     
     # Normalize to auto-count format (accept flexible input, store canonical)
-    from enclave_shared.sif_parser import SIFParser
+    from lib_enclave.sif_parser import SIFParser
     sif_text = SIFParser.to_autocount(sif_text)
     
     # Handle comma-separated multi-file input

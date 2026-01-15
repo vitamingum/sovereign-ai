@@ -61,8 +61,8 @@ shape
 
 impl
   libs
-    enclave_shared.reflection
-    enclave_shared.sovereign_agent.SovereignAgent
+    lib_enclave.reflection
+    lib_enclave.sovereign_agent.SovereignAgent
     textwrap
 
   logic

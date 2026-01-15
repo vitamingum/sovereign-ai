@@ -48,8 +48,8 @@ shape
 
 impl
   libs
-    enclave_shared.sovereign_agent.SovereignAgent
-    enclave_shared.memory
+    lib_enclave.sovereign_agent.SovereignAgent
+    lib_enclave.memory
     fnmatch
 
   logic

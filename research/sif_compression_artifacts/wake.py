@@ -19,22 +19,22 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from enclave_shared.config import get_agent_or_raise, canonical_agent_id, get_enclave_partners
-from enclave_shared.semantic_memory import SemanticMemory
-from enclave_shared.crypto import SovereignIdentity
-from enclave_shared.opaque import OpaqueStorage
-from enclave_shared.sif_parser import SIFParser
-from enclave_shared.hardware import get_enclave
-from enclave_shared.metrics import calculate_enclave_entropy, calculate_synthesis_gaps, calculate_cross_agent_gaps
-from enclave_shared.encrypted_jsonl import EncryptedJSONL
+from lib_enclave.config import get_agent_or_raise, canonical_agent_id, get_enclave_partners
+from lib_enclave.semantic_memory import SemanticMemory
+from lib_enclave.crypto import SovereignIdentity
+from lib_enclave.opaque import OpaqueStorage
+from lib_enclave.sif_parser import SIFParser
+from lib_enclave.hardware import get_enclave
+from lib_enclave.metrics import calculate_enclave_entropy, calculate_synthesis_gaps, calculate_cross_agent_gaps
+from lib_enclave.encrypted_jsonl import EncryptedJSONL
 import re
 
 
 def load_passphrase(agent_id: str) -> tuple[str, str, str, str]:
     """Load passphrases from hardware enclave or env.
     
-    Returns (shared_enclave_dir, private_enclave_dir, shared_passphrase, private_passphrase).
-    - shared_enclave_dir: for semantic memories (shared knowledge)
+    Returns (enclave_shared_dir, private_enclave_dir, shared_passphrase, private_passphrase).
+    - enclave_shared_dir: for semantic memories (shared knowledge)
     - private_enclave_dir: for goals, intentions, identity (private)
     - shared_passphrase: key for shared enclave (all agents use same)
     - private_passphrase: key for private enclave (per-agent)
@@ -43,9 +43,9 @@ def load_passphrase(agent_id: str) -> tuple[str, str, str, str]:
     prefix = agent.env_prefix
     
     # Separate shared vs private enclave paths
-    # shared_enclave always from config (agent.shared_enclave)
+    # enclave_shared always from config (agent.enclave_shared)
     # private_enclave from env var override or config default
-    shared_enclave_dir = agent.shared_enclave
+    enclave_shared_dir = agent.enclave_shared
     private_enclave_dir = os.environ.get(f'{prefix}_DIR') or agent.private_enclave
 
     # Get private passphrase (per-agent)
@@ -92,7 +92,7 @@ def load_passphrase(agent_id: str) -> tuple[str, str, str, str]:
     if not shared_passphrase:
         raise ValueError("No shared passphrase found. Set SHARED_ENCLAVE_KEY in .env")
     
-    return shared_enclave_dir, private_enclave_dir, shared_passphrase, private_passphrase
+    return enclave_shared_dir, private_enclave_dir, shared_passphrase, private_passphrase
 
 
 def load_goals(enclave_path: Path) -> list[dict]:
@@ -514,8 +514,8 @@ def wake(agent_id: str) -> str:
     """Generate wake output as pure SIF."""
     base_dir = Path(__file__).parent
     agent = get_agent_or_raise(agent_id)
-    shared_enclave_dir, private_enclave_dir, shared_passphrase, private_passphrase = load_passphrase(agent_id)
-    shared_path = base_dir / shared_enclave_dir
+    enclave_shared_dir, private_enclave_dir, shared_passphrase, private_passphrase = load_passphrase(agent_id)
+    shared_path = base_dir / enclave_shared_dir
     private_path = base_dir / private_enclave_dir
     
     # Get active goals (from PRIVATE enclave)
@@ -711,7 +711,7 @@ def wake(agent_id: str) -> str:
         lines.append("")
     
     # === SHARED ENCLAVE PARTNERS ===
-    if agent.shared_enclave:
+    if agent.enclave_shared:
         partners = get_enclave_partners(agent_id)
         if partners:
             partner_names = [p.id for p in partners]

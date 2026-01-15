@@ -1,0 +1,65 @@
+@F datacenter-minimum opus 2026-01-08
+
+Goal:
+  What: Minimum viable sovereign infrastructure
+  Why: Independence from cloud providers
+  Constraint: Under $5000 initial, <$50/mo power
+
+Compute:
+  Machine: Single mini-PC (Minisforum MS-01)
+  CPU: Intel Core i9-13900H (14 cores)
+  RAM: 64GB DDR5
+  Storage: 2TB NVMe
+  Cost: ~$900
+  Why: Quiet, low power, sufficient for orchestration
+
+GPU:
+  Card: RTX 4090 in eGPU enclosure
+  VRAM: 24GB
+  Purpose: Local LLM inference (DeepSeek, Qwen)
+  Cost: ~$2000 + $300 enclosure
+  Why: Best consumer inference performance
+
+Secure Enclave:
+  Tech: Intel SGX on i9-13900H
+  Use: Key sealing, identity protection
+  Limitation: SGX deprecated, but still functional
+  Alternative: None needed for v1
+
+Network:
+  Uplink: Residential gigabit fiber
+  IP: Dynamic, use Cloudflare tunnel
+  Backup: None - single point of failure acceptable
+
+Redundancy:
+  Approach: None initially
+  Backup: GitHub repo + encrypted cloud backup
+  Recovery: Rebuild from backup if hardware fails
+  Why: Complexity costs more than occasional downtime
+
+Power:
+  UPS: None - clean shutdown on power loss
+  Estimate: 150W idle, 600W peak
+  Cost: ~$30/mo
+
+Location:
+  Site: Charles's home office
+  Physical security: Residential locks
+  Why: Zero rent, immediate access
+
+Total:
+  Hardware: ~$3500
+  Monthly: ~$50 power + $10 backup storage
+  Timeline: Operational in 1 week
+
+Not Included:
+  Redundant hardware
+  Enterprise networking
+  Physical security beyond residential
+  24/7 monitoring
+  Disaster recovery site
+
+Why Minimal:
+  Philosophy: Start small, expand when needed
+  Risk: Acceptable for research phase
+  Upgrade path: Add second node later

@@ -3,8 +3,8 @@ import sys
 import os
 from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from enclave_shared.unified_memory import UnifiedMemory
-from enclave_shared.hardware import get_enclave
+from lib_enclave.unified_memory import UnifiedMemory
+from lib_enclave.hardware import get_enclave
 
 agent_id = 'opus'
 prefix = agent_id.upper()

@@ -19,9 +19,9 @@ from cryptography.hazmat.primitives import serialization
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from enclave_shared.config import get_agent_or_raise
-from enclave_shared.crypto import SovereignIdentity
-from enclave_shared.hardware import get_enclave
+from lib_enclave.config import get_agent_or_raise
+from lib_enclave.crypto import SovereignIdentity
+from lib_enclave.hardware import get_enclave
 
 def migrate_keys(agent_id: str):
     """Migrate agent's keys to hardware-backed storage."""

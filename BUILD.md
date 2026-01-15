@@ -9,7 +9,7 @@
 
         wake first, then msg, then rest
 
-        enclave_shared/*.py — tracked libs
+        lib_enclave/*.py — tracked libs
         verb .py — gitignored cache
 
         python -m venv .venv

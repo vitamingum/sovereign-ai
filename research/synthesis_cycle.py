@@ -16,7 +16,7 @@ from itertools import combinations
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from enclave_shared.semantic_memory import SemanticMemory
+from lib_enclave.semantic_memory import SemanticMemory
 from wake import load_passphrase
 
 def find_semantic_gap(agent_id: str):

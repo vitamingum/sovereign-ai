@@ -22,8 +22,8 @@ from pathlib import Path
 # Context: sovereign.flow -> environment.libs
 sys.path.insert(0, str(Path(__file__).parent))
 
-from enclave_shared.sovereign_agent import SovereignAgent
-from enclave_shared.config import AGENTS
+from lib_enclave.sovereign_agent import SovereignAgent
+from lib_enclave.config import AGENTS
 
 def get_data_dir(agent_context):
     # data/ is sibling to root scripts

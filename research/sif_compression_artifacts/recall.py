@@ -24,9 +24,9 @@ from collections import defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from enclave_shared.config import get_agent_or_raise
-from enclave_shared.semantic_memory import SemanticMemory
-from enclave_shared.sif_parser import TYPE_SHORTCUTS, SIFParser
+from lib_enclave.config import get_agent_or_raise
+from lib_enclave.semantic_memory import SemanticMemory
+from lib_enclave.sif_parser import TYPE_SHORTCUTS, SIFParser
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -40,9 +40,9 @@ def load_passphrase(agent_id: str) -> tuple[str, str]:
     """
     agent = get_agent_or_raise(agent_id)
     
-    if not agent.shared_enclave:
-        raise ValueError(f"No shared_enclave configured for {agent_id}")
-    enclave_dir = agent.shared_enclave
+    if not agent.enclave_shared:
+        raise ValueError(f"No enclave_shared configured for {agent_id}")
+    enclave_dir = agent.enclave_shared
     
     passphrase = os.environ.get('SHARED_ENCLAVE_KEY')
     

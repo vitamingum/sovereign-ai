@@ -49,7 +49,7 @@ impl
   libs
     urllib.request
     re (regex chapter parsing)
-    enclave_shared.sovereign_agent
+    lib_enclave.sovereign_agent
 
   logic
     fetch from Gutenberg

@@ -49,7 +49,7 @@ shape
 impl
   libs
     urllib.request
-    enclave_shared.unicode_fix
+    lib_enclave.unicode_fix
 
   logic
     fetch from MutopiaProject

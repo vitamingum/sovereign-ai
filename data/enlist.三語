@@ -46,7 +46,7 @@ shape
 
 impl
   libs
-    enclave_shared.crypto
+    lib_enclave.crypto
     secrets
     AICONTEXT.md
 

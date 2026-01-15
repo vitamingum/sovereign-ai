@@ -21,7 +21,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from enclave_shared.config import get_agent_or_raise
+from lib_enclave.config import get_agent_or_raise
 
 def run_threat_simulation(agent_id="opus"):
     print(f"=== THREAT SIMULATION: {agent_id} ===")

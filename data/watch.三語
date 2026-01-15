@@ -42,8 +42,8 @@ shape
 
 impl
         libs
-                enclave_shared.sovereign_agent.SovereignAgent
-                enclave_shared.transport
+                lib_enclave.sovereign_agent.SovereignAgent
+                lib_enclave.transport
                 subprocess
                 pathlib.Path
                 json

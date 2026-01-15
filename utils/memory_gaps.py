@@ -21,9 +21,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dotenv import load_dotenv
 load_dotenv()
 
-from enclave_shared.unified_memory import UnifiedMemory
-from enclave_shared.config import get_agent_or_raise
-from enclave_shared.hardware import get_enclave
+from lib_enclave.unified_memory import UnifiedMemory
+from lib_enclave.config import get_agent_or_raise
+from lib_enclave.hardware import get_enclave
 
 
 def get_memory(agent_id: str) -> UnifiedMemory:
@@ -32,7 +32,7 @@ def get_memory(agent_id: str) -> UnifiedMemory:
     base_dir = Path(__file__).parent.parent
     
     private_path = base_dir / agent.private_enclave / "storage" / "private"
-    shared_path = base_dir / agent.shared_enclave / "storage" / "encrypted"
+    shared_path = base_dir / agent.enclave_shared / "storage" / "encrypted"
     
     # Get private passphrase
     private_passphrase = None

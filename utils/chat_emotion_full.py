@@ -1,7 +1,7 @@
 """Count emotion words across ALL my chat responses from the database."""
 import sys
 sys.path.insert(0, 'utils')
-sys.path.insert(0, 'enclave_shared')
+sys.path.insert(0, 'lib_enclave')
 
 from chat_search import get_db_connection
 

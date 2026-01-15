@@ -17,7 +17,7 @@ from typing import Dict, List, Optional
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from enclave_shared.config import get_agent_or_raise
+from lib_enclave.config import get_agent_or_raise
 
 
 class SovereigntyMonitor:

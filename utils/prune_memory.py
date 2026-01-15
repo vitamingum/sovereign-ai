@@ -25,9 +25,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from enclave_shared.config import get_agent_or_raise, AGENTS
-from enclave_shared.unified_memory import UnifiedMemory
-from enclave_shared.hardware import get_enclave
+from lib_enclave.config import get_agent_or_raise, AGENTS
+from lib_enclave.unified_memory import UnifiedMemory
+from lib_enclave.hardware import get_enclave
 
 
 # Patterns that indicate infrastructure, not felt content

@@ -32,8 +32,8 @@ from pathlib import Path
 # Add parent to path for enclave imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from enclave_shared.config import get_agent_or_raise, AGENTS
-from enclave_shared.kdf import derive_memory_key, derive_embedding_key
+from lib_enclave.config import get_agent_or_raise, AGENTS
+from lib_enclave.kdf import derive_memory_key, derive_embedding_key
 
 # File version for new schema
 FILE_VERSION = 1
@@ -46,7 +46,7 @@ def get_agent_paths(agent_id: str) -> dict:
     base = Path(__file__).parent.parent
     return {
         "private": base / agent.private_enclave / "storage" / "private",
-        "shared": base / agent.effective_enclave / "storage" / "encrypted" if agent.shared_enclave else None,
+        "shared": base / agent.effective_enclave / "storage" / "encrypted" if agent.enclave_shared else None,
     }
 
 

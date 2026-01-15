@@ -46,7 +46,7 @@ shape
 
 impl
   libs
-    enclave_shared.sovereign_agent.SovereignAgent
+    lib_enclave.sovereign_agent.SovereignAgent
     subprocess (verb chaining)
     argparse (CLI)
 

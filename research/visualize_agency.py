@@ -3,7 +3,7 @@ import os
 import time
 import shutil
 from pathlib import Path
-from enclave_shared.risk import calculate_risk_metrics
+from lib_enclave.risk import calculate_risk_metrics
 
 def simulate_agency_landscape():
     """

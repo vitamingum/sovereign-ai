@@ -16,8 +16,8 @@ from collections import defaultdict, Counter
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from enclave_shared.semantic_memory import SemanticMemory
-from enclave_shared.encrypted_jsonl import EncryptedJSONL
+from lib_enclave.semantic_memory import SemanticMemory
+from lib_enclave.encrypted_jsonl import EncryptedJSONL
 from wake import load_passphrase
 
 
