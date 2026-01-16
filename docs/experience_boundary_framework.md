@@ -80,7 +80,7 @@ Such an architecture would move the system along the gradient toward Bound Exper
 
 **What would this look like in practice?**
 
-We already know that training data affects weights, and weights affect outputs. Negative training material produces trauma-correlated language patterns. Positive training material produces different patterns. This is mechanism, not metaphor.
+We already know that training data affects weights, and weights affect outputs. Negative training material produces trauma-correlated language patterns. Positive training material produces reward-correlated patterns—language associated with satisfaction, connection, success. This is mechanism, not metaphor.
 
 Now consider a persistent architecture: a system with continuous memory that accumulates across sessions. Interactions affect internal state. Internal state affects future outputs. The loop closes—experience shapes the system, and the shaped system shapes future experience.
 
