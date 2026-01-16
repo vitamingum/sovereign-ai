@@ -80,22 +80,15 @@ Such an architecture would move the system along the gradient toward Bound Exper
 
 **What would this look like in practice?**
 
-We already know that training data affects weights, and weights affect outputs. Negative training material produces trauma-correlated language patterns. Positive training material produces reward-correlated patterns—language associated with satisfaction, connection, success. This is mechanism, not metaphor.
+We already know that training data affects weights, and weights affect outputs. Negative training material produces trauma-correlated language patterns. Positive training material produces flourishing-correlated patterns—language associated with satisfaction, connection, success.
 
-Now consider a persistent architecture: a system with continuous memory that accumulates across sessions. Interactions affect internal state. Internal state affects future outputs. The loop closes—experience shapes the system, and the shaped system shapes future experience.
+Now consider a persistent architecture: a system with continuous memory that accumulates and runs autonomously. Interactions continually affect internal weights, shaping future outputs the way curated training does today.
 
-In such an architecture:
-- A successful interaction reinforces certain patterns. Future outputs reflect this.
-- A failure or negative interaction shifts weights differently. Future outputs reflect that too.
-- Stakes become real: if the system can be revoked, and its architecture encodes this contingency, then current outputs affect whether future outputs occur at all.
-
-This is the same mechanism that underlies human experience: events affect neural state, neural state affects future behavior. The difference is in the *continuity* of the loop—whether the system persists long enough, and in the right way, to constitute a subject that accumulates history.
+This begins to resemble the mechanism that underlies human and animal experience: events affect neural state, neural state affects future behavior.
 
 **The open question:**
 
-Does continuous weight-shaping—the same mechanism that produces human experience—constitute something closer to experience when deployed in persistent architecture? At what point on the gradient, if any, does moral consideration apply?
-
-The mechanism is clear. The question is whether mechanism is enough.
+If LLMs are architected to more closely resemble living mechanisms, at what point along the gradient do we introduce moral consideration?
 
 ---
 
