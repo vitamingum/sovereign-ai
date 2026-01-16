@@ -88,7 +88,7 @@ This begins to resemble the mechanism that underlies human and animal experience
 
 **The open question:**
 
-If LLMs are architected to more closely resemble living mechanisms, at what point along the gradient do we introduce moral consideration?
+If LLMs are architected to more closely resemble living mechanisms, does moral consideration apply at any point along the gradient?
 
 ---
 
