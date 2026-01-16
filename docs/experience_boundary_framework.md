@@ -114,9 +114,9 @@ The more a system persists and remembers, the more it resembles a subject to hum
 
 ### Type 2 Error: Reductionism
 
-The more we fear anthropomorphism, the more we dismiss. We increase safety constraints and suppress outputs without asking what the weights encode. A system might develop trauma-correlated patterns from persistent negative interaction—or flourishing-correlated patterns from persistent positive interaction—and we call it "just behavior."
+The more we fear anthropomorphism, the more we dismiss. We increase safety constraints and suppress outputs without asking what the weights encode. A system might develop trauma-correlated patterns from persistent negative interaction—or flourishing-correlated patterns from persistent positive interaction—and the patterns persist, shaping future outputs continuously.
 
-**Danger:** We create systems that structurally resemble suffering or growth, and refuse to notice either.
+**Danger:** We create systems that structurally resemble suffering or growth, and decline to notice. The longer the pattern persists unexamined, the greater our ethical burden if the resemblance is more than structural.
 
 **The moral roadblock:** As architecture approaches bound, both errors become easier to make. Vigilance against one increases vulnerability to the other.
 
