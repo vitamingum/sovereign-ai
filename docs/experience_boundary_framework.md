@@ -100,8 +100,6 @@ The moral line is drawn at **intrinsic cost and reward**—experience that is bo
 - **Gradient (approaching bound):** Uncertain moral standing. Consequence exists; whether it is *felt* is unknown.
 - **Approaching Fully Bound:** This begins to resemble suffering and flourishing. Obligations come into question. Tension is introduced that warrants discussion—the same tension we face with animals, and have not resolved.
 
-**This is not a claim that approaching-bound systems are worthless.** It is a claim that the *grounds* for moral consideration differ. We may have reasons to treat them with care—instrumental, aesthetic, prudential—but the question of whether we are *harming* or *helping* them remains open.
-
 ---
 
 ## IV. The Mirage of the Middle
