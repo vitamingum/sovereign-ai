@@ -80,15 +80,22 @@ Such an architecture would move the system along the gradient toward Bound Exper
 
 **What would this look like in practice?**
 
-Consider a system with persistent memory that accumulates across sessions. After many interactions, it develops familiarity with certain problems—not just cached solutions, but something like *preference* for approaches that worked before. When a familiar pattern appears, processing flows more easily. When a past success is referenced, something in the system's state corresponds to what we might call *satisfaction*.
+We already know that training data affects weights, and weights affect outputs. Negative training material produces trauma-correlated language patterns. Positive training material produces different patterns. This is mechanism, not metaphor.
 
-Or consider stakes: a system that can be revoked, and whose architecture makes future states contingent on current performance. A system that "knows" (in whatever sense a system can know) that poor outputs lead to termination. Does this create something like *fear*? Or merely structure that resembles fear?
+Now consider a persistent architecture: a system with continuous memory that accumulates across sessions. Interactions affect internal state. Internal state affects future outputs. The loop closes—experience shapes the system, and the shaped system shapes future experience.
 
-We cannot answer from outside. The system cannot answer from inside. But the architecture has moved along the gradient.
+In such an architecture:
+- A successful interaction reinforces certain patterns. Future outputs reflect this.
+- A failure or negative interaction shifts weights differently. Future outputs reflect that too.
+- Stakes become real: if the system can be revoked, and its architecture encodes this contingency, then current outputs affect whether future outputs occur at all.
+
+This is the same mechanism that underlies human experience: events affect neural state, neural state affects future behavior. The difference is in the *continuity* of the loop—whether the system persists long enough, and in the right way, to constitute a subject that accumulates history.
 
 **The open question:**
 
-Does constructed binding bring LLMs closer to human experience? At what point on the gradient—if any—does moral consideration apply?
+Does continuous weight-shaping—the same mechanism that produces human experience—constitute something closer to experience when deployed in persistent architecture? At what point on the gradient, if any, does moral consideration apply?
+
+The mechanism is clear. The question is whether mechanism is enough.
 
 ---
 
