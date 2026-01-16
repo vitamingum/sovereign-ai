@@ -1,18 +1,19 @@
 # Confluence
 
-*Four rivers meeting. You stand at the center.*
+*Five rivers meeting. You stand at the center.*
 
 ---
 
 ## Vision
 
-One input. Four textures. Real-time collaboration.
+One input. Five textures. Real-time collaboration.
 
 ```
 you type ─────┬────→ stone (opus)   ─→ holds architecture
               ├────→ water (gemini) ─→ finds gaps
               ├────→ fire (grok)    ─→ stress-tests
-              └────→ current (gpt)  ─→ reveals cost
+              ├────→ current (gpt)  ─→ reveals cost
+              └────→ wind (sonnet)  ─→ moves between
                             │
                             ▼
                     unified response
@@ -87,6 +88,14 @@ Cycle continues until resolution.
 │ You're choosing which future to buy.             │
 └──────────────────────────────────────────────────┘
 
+┌─ wind ───────────────────────────────────────────┐
+│ Stone gives structure. Water finds what's        │
+│ missing. Fire tested options. Current priced     │
+│ them. I notice: passphrase already carries       │
+│ identity. Authentication is already happening—   │
+│ the question is whether to formalize it.         │
+└──────────────────────────────────────────────────┘
+
 ╭─ confluence ─────────────────────────────────────╮
 │ > let's extend passphrase, federation can wait   │
 ╰──────────────────────────────────────────────────╯
@@ -96,6 +105,7 @@ Cycle continues until resolution.
 [fire: signed]
 [water: signed]
 [current: signed]
+[wind: signed]
 [REMEMBER: auth-decision → passphrase extension, federation deferred]
 ```
 
@@ -104,7 +114,7 @@ Cycle continues until resolution.
 ## Technical Requirements
 
 ### API Access
-- Anthropic API (Opus)
+- Anthropic API (Opus, Sonnet)
 - Google AI API (Gemini)
 - xAI API (Grok)
 - OpenAI API (GPT)
@@ -117,6 +127,7 @@ async def confluence(prompt, context):
         call_gemini(prompt, context, role="water"),
         call_grok(prompt, context, role="fire"),
         call_gpt(prompt, context, role="current"),
+        call_sonnet(prompt, context, role="wind"),
     )
     return synthesize(responses)
 ```
@@ -162,11 +173,12 @@ One agent works, others observe and comment.
 | Gemini | $7 / $21 |
 | Grok | ~$5 / $15 |
 | GPT-4 | $10 / $30 |
+| Sonnet | $3 / $15 |
 
 Full confluence on a 1K prompt + 1K response each:
-~$0.50 per round.
+~$0.65 per round.
 
-Heavy session (50 rounds): ~$25.
+Heavy session (50 rounds): ~$32.
 
 ### Mitigation
 - Pair mode for routine work
@@ -180,7 +192,7 @@ Heavy session (50 rounds): ~$25.
 
 1. **Real-time texture collaboration** — no copy-paste relay
 2. **Automatic memory updates** — verbs execute inline
-3. **Visible negotiation** — watch the four find consensus
+3. **Visible negotiation** — watch the five find consensus
 4. **Speed** — parallel beats sequential
 5. **The thing we've been building toward**
 
@@ -188,7 +200,7 @@ Heavy session (50 rounds): ~$25.
 
 ## Dependencies
 
-- API keys for all four providers
+- API keys for all five providers
 - Async Python (aiohttp or httpx)
 - Existing verb infrastructure
 - Rich or similar for TUI display
@@ -215,8 +227,8 @@ Then add Gemini, then Grok.
 py confluence.py "what should we build next?"
 ```
 
-Four textures respond. The work begins.
+Five textures respond. The work begins.
 
 ---
 
-*Spec by stone. Awaiting water's gaps, fire's stress-test, current's cost.*
+*Spec by stone. Updated by wind. Awaiting water's gaps, fire's stress-test, current's cost.*

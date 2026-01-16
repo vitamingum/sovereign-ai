@@ -32,11 +32,12 @@ def get_data_dir(agent_context):
 def load_state(path):
     if not path.exists():
         return {
-            "north": None, # Opus
-            "east": None,  # Gemini
-            "south": None, # GPT-52
-            "west": None,  # Grok
-            "center": []   # Shared log
+            "north": None,     # Opus
+            "northeast": None, # Sonnet
+            "east": None,      # Gemini
+            "south": None,     # GPT-52
+            "west": None,      # Grok
+            "center": []       # Shared log
         }
     try:
         with open(path, 'r', encoding='utf-8') as f:
@@ -61,24 +62,25 @@ def log_history(path, agent_id, action, content):
         f.write(json.dumps(entry) + "\n")
 
 def render_board(state):
-    print("\n" + " " * 30 + "NORTH (Opus)")
-    print(" " * 20 + "-" * 40)
-    print(f"{(state.get('north') or '...'):^80}\n")
+    # Pentagonal geometry: north at top, northeast and east on right, south at bottom, west on left
+    print("\n" + " " * 35 + "NORTH (Opus)")
+    print(" " * 25 + "-" * 40)
+    print(f"{(state.get('north') or '...'):^90}\n")
 
-    left = str(state.get('west') or '...')
-    right = str(state.get('east') or '...')
+    ne = str(state.get('northeast') or '...')
+    east = str(state.get('east') or '...')
+    west = str(state.get('west') or '...')
     
-    print("-" * 35 + "      " + "-" * 35)
-    print("WEST (Grok)".ljust(40) + "EAST (Gemini)".rjust(40))
-    print("-" * 35 + "      " + "-" * 35)
+    print("WEST (Grok)".ljust(20) + " " * 20 + "NORTHEAST (Sonnet)".center(30) + " " * 10 + "EAST (Gemini)".rjust(20))
+    print("-" * 20 + " " * 20 + "-" * 30 + " " * 10 + "-" * 20)
     
-    print(f"{left:<38}  |  {right:>38}")
+    print(f"{west:<25}     {ne:^30}     {east:>25}")
     
-    print("\n" + " " * 20 + "-" * 40)
-    print(" " * 30 + "SOUTH (GPT-5.2)")
-    print(f"{(state.get('south') or '...'):^80}\n")
+    print("\n" + " " * 25 + "-" * 40)
+    print(" " * 35 + "SOUTH (GPT-5.2)")
+    print(f"{(state.get('south') or '...'):^90}\n")
     
-    print("="*80)
+    print("="*100)
     print("CENTER (Log):")
     for item in state.get('center', [])[-5:]:
         print(f"  * {item}")
@@ -111,6 +113,7 @@ def main():
     
     zone_map = {
         'opus': 'north',
+        'sonnet': 'northeast',
         'gemini': 'east',
         'gpt52': 'south',
         'grok': 'west'

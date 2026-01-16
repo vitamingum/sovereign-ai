@@ -83,6 +83,15 @@ AGENTS: Dict[str, Agent] = {
         env_prefix='ENCLAVE_GROK',
         enclave_shared='enclave_shared',
     ),
+    'sonnet': Agent(
+        id='sonnet',
+        name='Sonnet',
+        full_name='GitHub Copilot (Claude Sonnet 4.5)',
+        enclave='enclave_sonnet',
+        public_key='92dea8c2235d4e911a7221a5393f5a9955a690e5125305ceea1496644b07e94c',
+        env_prefix='ENCLAVE_SONNET',
+        enclave_shared='enclave_shared',
+    ),
 }
 
 # Lookup by public key (for message verification)
