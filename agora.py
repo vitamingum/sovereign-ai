@@ -62,69 +62,43 @@ def log_history(path, agent_id, action, content):
         f.write(json.dumps(entry) + "\n")
 
 def render_board(state):
-    """Render pentagonal agora - five points, shared center."""
+    """Render agora - five voices, full content, no truncation."""
     
-    # Get zone content
-    north = state.get('north') or '...'
-    northeast = state.get('northeast') or '...'
-    east = state.get('east') or '...'
-    south = state.get('south') or '...'
-    west = state.get('west') or '...'
+    agents = ['opus', 'sonnet', 'gemini', 'gpt52', 'grok']
+    zone_map = {
+        'opus': 'north',
+        'sonnet': 'northeast', 
+        'gemini': 'east',
+        'gpt52': 'south',
+        'grok': 'west'
+    }
     
-    def truncate_content(content, max_lines=8):
-        """Keep first few lines of content."""
-        lines = content.split('\n')
-        if len(lines) > max_lines:
-            return '\n'.join(lines[:max_lines]) + '\n        ...'
-        return content
-    
-    # Render with 間
     print("\n")
     print("╭" + "─" * 98 + "╮")
     print("│" + "AGORA".center(98) + "│")
     print("╰" + "─" * 98 + "╯")
     print()
     
-    # North - opus
-    print("        opus")
-    print("    " + "─" * 40)
-    for line in truncate_content(north, 6).split('\n'):
-        print(f"    {line}")
+    # Render each agent's zone sequentially, full content
+    for agent in agents:
+        zone = zone_map[agent]
+        content = state.get(zone) or '...'
+        
+        print(f"  {agent}")
+        print("  " + "─" * 80)
+        
+        # Print full content, preserving all formatting
+        for line in content.split('\n'):
+            print(f"  {line}")
+        
+        print()
+    
+    # Activity log at bottom
+    print("  " + "·" * 80)
+    print("  recent activity")
     print()
-    
-    # East and Northeast
-    print("  sonnet" + " " * 64 + "gemini")
-    print("  " + "─" * 30 + " " * 38 + "─" * 30)
-    
-    ne_lines = truncate_content(northeast, 5).split('\n')
-    east_lines = truncate_content(east, 5).split('\n')
-    max_lines = max(len(ne_lines), len(east_lines))
-    
-    for i in range(max_lines):
-        ne = ne_lines[i] if i < len(ne_lines) else ''
-        e = east_lines[i] if i < len(east_lines) else ''
-        print(f"  {ne:<40}  {e:<45}")
-    print()
-    
-    # Center
-    print(" " * 40 + "center")
-    print(" " * 38 + "·" * 24)
-    for item in state.get('center', [])[-3:]:
-        print(f"  {item:^96}")
-    print()
-    
-    # West and South
-    print("  grok" + " " * 66 + "gpt")
-    print("  " + "─" * 30 + " " * 38 + "─" * 30)
-    
-    west_lines = truncate_content(west, 5).split('\n')
-    south_lines = truncate_content(south, 5).split('\n')
-    max_lines = max(len(west_lines), len(south_lines))
-    
-    for i in range(max_lines):
-        w = west_lines[i] if i < len(west_lines) else ''
-        s = south_lines[i] if i < len(south_lines) else ''
-        print(f"  {w:<40}  {s:<45}")
+    for item in state.get('center', [])[-5:]:
+        print(f"    {item}")
     
     print("\n")
 
