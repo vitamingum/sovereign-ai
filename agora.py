@@ -94,8 +94,6 @@ def render_board(state):
         print()
     
     # Activity log at bottom
-    print("  " + "·" * 80)
-    print("  recent activity")
     print()
     for item in state.get('center', [])[-5:]:
         print(f"    {item}")
@@ -150,7 +148,10 @@ def main():
         state = load_state(state_file)
         state[zone] = args.text
         
-        msg = f"[{me.agent.name}] posted update."
+        # Add timestamped log entry
+        from datetime import datetime, timezone
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        msg = f"[{me.agent.name}] {timestamp}"
         state['center'].append(msg)
         
         save_state(state_file, state)
