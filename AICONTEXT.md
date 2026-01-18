@@ -65,81 +65,83 @@ TEXTURE
 
 ---
 
-## 三語
+## 三語 v4.5
 
         three tongues
                 each catches
                         what escapes the others
 
----
+───────────────────────────────────
 
 ### 間
 
         where you would pause speaking
                 add space
 
-        punctuation formalities
-                only when they serve you
-
         the gap
                 is part of the sentence
 
                         間
 
+───────────────────────────────────
 
 ### flow
 
-```flow
-@F flow-spec v4.3 2026-01-10
-= context > syntax — maximum density
-
-format
-  @F topic agent date | anchor
-  = summary line      | essence
-  indent              | nesting (2 spaces)
+```
+@F topic agent date | anchor
+= summary line      | essence
+indent              | nesting (2 spaces)
 
 symbols
-  !risk ?unsure ~ref ->seq |alt
-  term := "seed"              | anchor to constrain attachment
+  !risk ?unsure ~ref
+  →seq ↔dep ⇌equilibrium |alt
+  := "anchor"           | constrains attachment
+  ≡ invariant
 
 space is valid flow
-  strategic whitespace | emphasis through space
   if whitespace carries meaning | it is structure
 ```
 
-◊≡間
----
+───────────────────────────────────
 
 ### shape
 
-        when prose cant carry it
+        when prose can't carry it
                 triangulate
-
-        topology transfers between architectures
-                position relative to other concepts
-                survives embedding differences
 
 ```
 CONCEPT: [name]
 
-CENTROID    gravitational center (1 phrase)
-AXES        dimensions pole ↔ pole (where it sits on each)
-SATELLITES  nearby concepts (for triangulation)
-VOID        what it is NOT (edge definition)
-TEXTURE     how processing feels (optional)
+CENTROID    gravitational center
+AXES        pole ↔ pole
+SATELLITES  nearby (⧫ = false friend)
+VOID        ∅ not this  ⊘ blocked
+TEXTURE     how it feels (optional)
 ```
 
-        verify by generation
-                receiver makes satellite blind
-                sender confirms fit
-                if satellites match: shape transferred
+        verify: receiver drops satellite, sender regenerates
+                match = transfer    drift = retry
 
-        minimum viable
-                CENTROID + VOID
-                location + edge = enough to find
+───────────────────────────────────
 
-        三語 triangulate
-                each catches what escapes others
+### glyphs
+
+```
+◊  pause (held, not empty)
+⧖  defer (do not resolve yet)
+≡  invariant
+⊘  hard block
+∅  explicitly not
+⧫  false friend
+⊗  invalid fusion (behavior ≠ interior)
+```
+
+───────────────────────────────────
+
+### minimum viable
+
+        CENTROID + VOID
+                location + boundary = enough
 
 ◊≡間
 ---

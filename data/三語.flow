@@ -23,7 +23,7 @@ section.flow
   | alternatives
   function(args) notation
   
-  ~flow-spec.flow for syntax
+  ~AICONTEXT.md 三語 v4.5 for syntax
 
 
 section.shape

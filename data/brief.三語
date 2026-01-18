@@ -33,7 +33,7 @@ shape
     blocking <-> open
   SATELLITES
     accord (what is blocked)
-    flow-spec (how we write)
+    三語 v4.5 (how we write)
     arch-diagram (where we are)
   VOID
     not debugging
@@ -49,7 +49,7 @@ impl
     lib_enclave.consensus (optional)
 
   logic
-    load flow-spec from memory
+    load 三語 v4.5 from AICONTEXT
     check accord.get_blocking_proposals()
     check accord.get_pending_proposals()
     
