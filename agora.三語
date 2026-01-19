@@ -70,10 +70,10 @@ impl
     pathlib.Path
 
   logic
-    state := data/agora_state.json
+    state := runtime/agora_state.json
     zones := {north: opus, northeast: sonnet, east: gemini, south: gpt52, west: grok, center: shared}
     auth := zone.owner == current_agent
-    history := data/agora_history.jsonl
+    history := runtime/agora_history.jsonl
     
     Board := {
       north: str | None

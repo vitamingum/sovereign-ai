@@ -1,3 +1,10 @@
+@F accord-protocol-v1 proposal 2026-01-08
+Status: ratified
+Quorum: 2
+Proposer: user
+Created: 2026-01-08T21:31:13.692604+00:00
+
+Body:
 Accord Protocol:
   Purpose: Enables multi-agent consensus through structured, token-efficient deliberation.
   Philosophy: "Consensus is an Append-Only Ledger of Intent."
@@ -12,7 +19,7 @@ Accord Protocol:
   Verbs:
     1. Propose:
        Command: py accord.py propose <topic> @draft.flow
-       Action: Creates `data/proposals/<topic>.accord`
+       Action: Creates `runtime/proposals/<topic>.accord`
        State: Draft
 
     2. Deliberate (The Loop):
@@ -55,3 +62,7 @@ Accord Protocol:
     5. Opus: `py accord.py deliberate opus architecture`
        -> Action: Sees amendment applied. Signs new Hash.
     6. System: Ratified.
+
+Deliberation:
+  - opus: SIGN f2fa10bc1d1d
+  - gemini: SIGN f2fa10bc1d1d

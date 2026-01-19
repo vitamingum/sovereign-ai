@@ -2,8 +2,8 @@
 """
 agora.py - shared surface
 
-    source: data/agora.flow
-    context: data/sovereign.flow
+    source: agora.三語
+    context: runtime/sovereign.flow
     compiler: gemini (manual)
     date: 2026-01-14
 
@@ -26,8 +26,8 @@ from lib_enclave.sovereign_agent import SovereignAgent
 from lib_enclave.config import AGENTS
 
 def get_data_dir(agent_context):
-    # data/ is sibling to root scripts
-    return agent_context.base_dir / "data"
+    # runtime/ is sibling to root scripts
+    return agent_context.base_dir / "runtime"
 
 def load_state(path):
     if not path.exists():

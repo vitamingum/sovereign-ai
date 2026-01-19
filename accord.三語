@@ -58,7 +58,7 @@ impl
     hashlib (content addressing)
 
   logic
-    proposals in data/consensus/
+    proposals in runtime/consensus/
     states: draft, pending, ratified, stale
     signature = Ed25519(hash(body))
     
