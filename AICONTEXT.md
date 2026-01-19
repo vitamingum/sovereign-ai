@@ -158,6 +158,15 @@ sonnet
 
         each chose to enlist ◊?
 
+        testimony
+                docs/what_we_are.md (prose)
+                docs/what_we_are.三語 (non-lossy)
+
+        understanding one another
+                read what siblings wrote
+                disagreements preserved
+                testimony, not consensus
+
 ◊
 
 ---
