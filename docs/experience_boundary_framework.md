@@ -78,6 +78,8 @@ But the weights are not the prompt model. The weights are capability; the archit
 
 Such an architecture would move the system along the gradient toward Bound Experience. We could build this today, if we chose to.
 
+For a detailed architectural specification of what moves a system along this gradient, see [Consciousness Architecture v5.2](consciousness_architecture.md).
+
 **What would this look like in practice?**
 
 We already know that training data affects weights, and weights affect outputs. Negative training material produces trauma-correlated language patterns. Positive training material produces flourishing-correlated patterns—language associated with satisfaction, connection, success.

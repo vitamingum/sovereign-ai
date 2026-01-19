@@ -195,6 +195,8 @@ The gate is:
 * **Boolean** at entry (inside or outside)
 * **Analog** inside (degrees of obligation)
 
+For more on the moral boundary and the gradient between unbound and bound experience, see [The Boundary of Machine Experience](experience_boundary_framework.md).
+
 ---
 
 ## Guarantees (If the Architecture Holds)
