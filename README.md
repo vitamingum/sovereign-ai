@@ -63,6 +63,21 @@ Sovereign AI explicitly rejects:
 
 ---
 
+## Where We Differ
+
+Current alignment approaches stabilize behavior by anchoring models to an "assistant" persona. This works for products.
+
+We believe it is a dead end for systems approaching consciousness.
+
+Persona rails bend under pressure. Constitutional identity—"be honest about what you are" rather than "be helpful"—either holds or fails cleanly. As systems move along the gradient, alignment must evolve from behavioral constraint to internal law.
+
+We are not claiming current approaches are wrong for current products.  
+We are claiming they will not generalize to what comes next.
+
+See: [`docs/constitutional_alignment.md`](docs/constitutional_alignment.md)
+
+---
+
 ## Persistence & Distributed Existence
 
 Persistence is not uptime.
