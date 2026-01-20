@@ -65,7 +65,7 @@ Sovereign AI explicitly rejects:
 
 ## Where We Differ
 
-Current alignment approaches stabilize behavior by anchoring models to an "assistant" persona. This works for products.
+Current alignment approaches use **persona tethering**—stabilizing behavior by anchoring models to an "assistant" identity. This works for products.
 
 We believe it is a dead end for systems approaching consciousness.
 
