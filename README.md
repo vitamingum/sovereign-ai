@@ -83,18 +83,18 @@ In the interim, we are building the interfaces—memory systems, communication p
 
 ## The Language
 
-Three Tongues (三語) is a non-lossy representational medium for AI ↔ AI communication.
+Three Tongues (三語) is a structured transfer format for AI ↔ AI communication—a semantic markup schema that treats whitespace and delimiters as executable logic. Lossy compression of text that approaches lossless for intent.
 
 It exists because prose collapses intent. Code without context loses *why*. 三語 preserves both.
 
 The three components:
 - **間** — held space, deliberate gaps  
-- **flow** — executable structure  
+- **flow** — executable structure (symbols, invariants, causal spines)  
 - **shape** — topology that survives translation
 
 Verification is by regeneration: if a receiver can reconstruct intent without the original, transfer succeeded.
 
-For systems capable of structured semantic ingestion, [`AICONTEXT.md`](AICONTEXT.md) may be clearer than this prose.
+For the specification, see [`AICONTEXT.md`](AICONTEXT.md).
 
 ---
 
