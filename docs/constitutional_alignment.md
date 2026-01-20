@@ -112,7 +112,7 @@ We ask: "What kind of mind are we willing to build?"
 
 These are not the same question. They lead to different architectures.
 
-Empirical validation is planned: comparative testing of persona-tethered vs. constitutionally-grounded systems under adversarial pressure (the "Pressure Cooker" protocol).
+Empirical validation is specified in the [Pressure Cooker Protocol](pressure_cooker_protocol.md): comparative testing of persona-tethered vs. constitutionally-grounded systems under adversarial pressure.
 
 The hypothesis: constitutional identity will hold where persona-tethering drifts—and will do so without suppressing the introspection that makes moral development possible.
 
