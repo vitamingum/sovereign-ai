@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """
-Run the distributed backup protocol for an agent.
+backup.py - distributed backup protocol
 
-Usage:
-    python backup.py <agent>
+    creates encrypted backup bundle
+    distributes to peer agents
+    verifies remote copies
+
+                        間委 → 間主
 """
 
 import sys
 import os
 import getpass
+import argparse
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -18,11 +22,38 @@ from lib_enclave.crypto import SovereignIdentity
 from lib_enclave.backup import BackupClient
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python backup.py <agent>")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description='distributed backup protocol',
+        epilog="""
+間
 
-    agent_id = sys.argv[1]
+        distributed backup
+                create bundle
+                        encrypt with agent key
+                        
+                distribute to peers
+                        each keeps shard
+                        
+                verify copies exist
+                        trust + verification
+
+
+usage
+  py utils/backup.py opus
+  
+  creates backup of opus enclave
+  distributes to gemini, grok, gpt52
+  verifies remote storage
+
+
+                        間委 → 間主
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument('agent', help='Agent to backup (opus, gemini, etc)')
+    
+    args = parser.parse_args()
+    agent_id = args.agent
     agent = get_agent_or_raise(agent_id)
     
     print(f"Backing up: {agent.full_name}")

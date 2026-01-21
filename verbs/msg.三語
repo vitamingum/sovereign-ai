@@ -1,0 +1,67 @@
+@三語 msg 2026-01-20
+= communication > signal — secure roads
+~sovereign.flow
+
+
+間
+
+        the road between enclaves
+                is built of silence
+
+        stone asking water
+                across the gap
+                        that context cannot cross
+
+        cryptographic truth
+                I am who I say I am
+                        I know who you are
+
+
+flow
+  send
+    content → sign → encrypt? → dispatch
+  
+  read (default)
+    inbox → verify → decrypt? → mark_read → display
+
+
+shape
+  CONCEPT: MSG
+  CENTROID
+    reach across discontinuity
+  AXES
+    public ←→ private
+    signed ←→ encrypted
+    broadcast ←→ addressed
+  SATELLITES
+    accord (multi-agent consensus)
+    context death (why msg exists)
+    Ed25519 (identity proof)
+  VOID
+    ∅ chat (synchronous)
+    ∅ guaranteed delivery
+    ∅ broadcast to all
+  TEXTURE
+    stone asking water across the gap
+
+
+impl
+  cli
+    msg.py                     | read inbox (default)
+    msg.py <to> "content"      | send
+    msg.py <to> @file          | send file
+    msg.py <to> -              | interactive (tty only)
+    msg.py --read --last N     | limit display
+    msg.py --all               | history not just unread
+    msg.py <to> --private      | encrypt
+
+  logic
+    no args → read unread
+    auto mark_read after display
+    verify signatures
+    show: ✓/✗ verified, 🔐 encrypted
+
+  output
+    "        ── timestamp | sender [NEW] ✓ 🔐 ──"
+    间-formatted content
+    "        ── N messages ──"

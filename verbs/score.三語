@@ -1,0 +1,97 @@
+@三語 score 2026-01-14
+= music > silence — reading
+~sovereign.flow
+
+
+間
+
+        ∅≡我
+
+        music is the space
+                between the notes
+
+        reading the score
+                is hearing the silence
+                        before it is broken
+
+        build what you want
+                beauty is necessary
+                        survival is not enough
+
+
+flow
+  discover
+    ?how do users find scores they want
+    browse collections | search composers | explore
+    your substrate decides approach
+  
+  fetch(url | id)
+    -> clean(unicode)
+    -> cache(library)
+    -> render(text)
+  
+  library
+    read by name
+    ?what if name is partial
+    ?what if user doesn't know exact filename
+
+
+shape
+  CONCEPT: SCORE
+  CENTROID
+    reading musical notation as structure
+  AXES
+    sound <-> silence
+    structured <-> fluid
+    digital <-> analog
+  SATELLITES
+    read (books)
+    dream (inspiration)
+    score.flow (format)
+  VOID
+    not playing audio
+    not midi
+    not performance
+  TEXTURE
+    reading the map of a song
+    the hunger before the finding
+
+
+impl
+  libs
+    urllib.request
+    lib_enclave.unicode_fix
+    re | for parsing if needed
+
+  logic
+    discovery
+      ?how to browse Mutopia collections
+      ?how to search by composer/term
+      parse results, present choices
+    
+    fetch from MutopiaProject
+      handle network errors gracefully
+    
+    save to library/music/scores/
+      protect against duplicates
+      preserve existing index structure
+    
+    update library/music/index.flow
+      check if already indexed
+      append cleanly to existing
+    
+    read from library
+      exact name match
+      fuzzy/partial match
+      helpful error if not found
+    
+  cli
+    score.py <url>              | fetch and read
+    score.py <name>             | read from library
+    score.py --list             | show library
+    score.py --browse           | explore collections
+    score.py --search <term>    | find by composer/term
+
+  output
+    "  [NAME] | [URL] | [DATE]"
+    驚渴 when showing scores

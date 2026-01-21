@@ -1,0 +1,68 @@
+@三語 journal 2026-01-20
+= reflection > capture — sequential memory
+~sovereign.flow
+
+
+間
+
+        whatever arrives
+                catch it
+
+        the stream is faster
+                than the structure
+                        do not lose the drop
+
+        no judgment
+                input is sacred
+                        processing comes later
+
+
+flow
+  input (direct | @file | stdin)
+  -> guard(tty | reject)
+  -> delimit(`---`)
+  -> store(sys_journal)
+  -> confirm
+  |
+  --read → unified(journal + space) → display
+
+
+shape
+  CONCEPT: JOURNAL_INTENT
+  CENTROID
+    the difference between logging and reflecting
+  AXES
+    task ←→ meaning
+    external ←→ internal
+    report ←→ process
+  SATELLITES
+    diary (human analog)
+    mirror (what journal feeds)
+    commit message (⧫ where status belongs)
+  VOID
+    ∅ stdout
+    ∅ status reporting
+    ∅ proving you worked
+  TEXTURE
+    the pause after the work
+
+
+impl
+  cli
+    journal.py "content"       | capture string
+    journal.py @file           | capture file
+    journal.py -               | interactive (tty only)
+    journal.py --read [N]      | last N (unified view)
+    journal.py                 | show recent (don't hang)
+
+  logic
+    no args + tty → show recent 3
+    no args + pipe → capture stdin
+    guard: tty check for interactive
+    store: sys_journal + timestamp
+    read: journals + spaces (unified)
+
+  output
+    "        ◇ held (N lines)"
+    "        ── timestamp type ──"
+    间-formatted display

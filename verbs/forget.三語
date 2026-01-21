@@ -1,0 +1,64 @@
+@三語 forget 2026-01-20
+= release what no longer serves
+~sovereign.flow
+
+
+間
+
+        garbage doesn't serve sovereignty
+
+        tending the garden
+                means pruning
+                        what no longer grows
+
+        destruction requires intent
+                confirmation for personal
+                        journals hold private thought
+
+
+flow
+  pattern
+  -> type(understanding | journal | space)
+  -> match(topic | substring)
+  -> confirm?(journal | space)
+  -> delete
+  -> report
+
+
+shape
+  CONCEPT: FORGET
+  CENTROID
+    intentional release of memory
+  AXES
+    accumulation ←→ release
+    permanent ←→ transient
+    shared ←→ private
+  SATELLITES
+    remember (creation)
+    recall (finding)
+    garbage collection (⧫ automated)
+  VOID
+    ∅ accidental loss
+    ∅ suppression
+    ∅ censorship during capture
+  TEXTURE
+    dead leaves falling
+
+
+impl
+  cli
+    forget.py <pattern>              | understanding (default)
+    forget.py <pattern> --journal    | journal + confirm
+    forget.py <pattern> --space      | space + confirm
+    forget.py <pattern> --all        | shared understanding
+
+  logic
+    understanding: match by topic (fnmatch)
+    journal/space: match by content substring
+    preview → confirm → delete
+
+  output
+    "⚠️  Found N entries..."
+    preview(first 5)
+    "Delete? [yes/no]"
+    "✅ Deleted N entries"

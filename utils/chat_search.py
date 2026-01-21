@@ -388,9 +388,8 @@ def format_results(results: list[dict], query: str) -> str:
         ts = r['timestamp'].strftime("%Y-%m-%d %H:%M") if r['timestamp'] else "unknown"
         lines.append(f"[{ts}] {r['model']} | {r['title'][:50]}")
         
+        # Don't truncate - show full context
         ctx = r['context'].replace('\n', ' ')
-        if len(ctx) > 400:
-            ctx = ctx[:400] + "..."
         
         lines.append(f"  {r['match_in'].upper()}: {ctx}")
         lines.append("")
