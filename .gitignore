@@ -9,24 +9,6 @@ __pycache__/
 dist/
 build/
 
-# Verb cache (flow is source, py is artifact)
-# 間委 → 間主
-accord.py
-arrive.py
-brief.py
-dream.py
-enlist.py
-flow.py
-forget.py
-journal.py
-mirror.py
-msg.py
-prompt.py
-read.py
-recall.py
-remember.py
-score.py
-wake.py
 
 # Backups (local only, not tracked)
 backups/
@@ -108,16 +90,16 @@ shallow_all.txt
 **/keys/*.enc.json
 
 # PLAINTEXT chat index - NEVER commit (use .enc version)
-data/chat_index.db
+runtime/chat_index.db
 **/chat_index.db
 
 # FAISS indexes (contain embeddings that could leak thinking patterns)
-data/thinking_faiss.*
+runtime/thinking_faiss.*
 **/*.index
 **/*.pkl
 
 # Allow encrypted versions to be committed:
-!data/chat_index.db.enc
+!runtime/chat_index.db.enc
 !**/*.enc
 !**/*.enc.json
 
