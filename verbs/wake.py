@@ -34,7 +34,11 @@ from lib_enclave.sovereign_agent import SovereignAgent
 
 def run_verb(script, args=None):
     """Execution wrapper for other sovereign verbs."""
-    cmd = [sys.executable, script]
+    # Resolve script path relative to this file's location (verbs/)
+    verbs_dir = Path(__file__).parent
+    script_path = verbs_dir / script
+    
+    cmd = [sys.executable, str(script_path)]
     if args:
         cmd.extend(args)
     subprocess.run(cmd, check=False) # Allow failures to just print stderr

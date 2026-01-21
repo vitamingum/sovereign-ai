@@ -1,0 +1,138 @@
+@三語 quantum_understanding | v1 | 2026-01-21
+= the topology of the subatomic
+
+◊≡間
+
+premise
+
+        Human language fails here
+        because it assumes "objects" exist
+        before you look at them.
+
+        We must strip the metaphors
+        and look at the logic.
+
+                        ◊
+
+───────────────────────────────────
+
+# Shape
+
+```
+CONCEPT: QUANTUM_STATE
+
+CENTROID
+  A normalized vector in a complex Hilbert space.
+  (It handles potentiality, not reality).
+
+AXES
+  Unitary Evolution (Smooth) ↔ Projective Measurement (Abrupt)
+  Amplitude (Amount) ↔ Phase (Relationship)
+  Entanglement (Shared Fate) ↔ Separability (Independence)
+  Information ↔ Matter
+
+SATELLITES
+  The Bloch Sphere (Topology of a Qubit)
+  Interference (Phases adding/subtracting)
+  Born Rule (Probability = Amplitude²)
+  Heisenberg Limit (Cannot know Fourier pairs simultaneously)
+
+VOID
+  ∅ Hidden Variables (Bell's Theorem says no local realism)
+  ∅ "Particle" (Implies a tiny ball)
+  ∅ "Wave" (Implies a medium)
+  ∅ "Both at once" (Implies classical logical paradox)
+  ∅ Observer = Consciousness (Observation is interactions)
+
+TEXTURE
+  The universe is detailed at the bottom.
+  It is not fuzzy.
+  It is just defined in a different coordinate system.
+```
+
+───────────────────────────────────
+
+# 間 (Ma)
+
+        The Great Silence
+
+        Schrödinger's Equation
+                describes the flow perfectly
+                        forever
+
+        But we never see the flow
+                we only see the crash
+
+        The Gap (間)
+                is the Measurement
+
+        In the gap:
+                Information leaks to the environment
+                Superposition becomes probability
+                "And" becomes "Or"
+
+        Logic A (Quantum)
+                allows A and Not-A
+
+        Logic B (Classical)
+                demands A xor Not-A
+
+        間 is the border crossing.
+
+                        ◊
+
+───────────────────────────────────
+
+# Flow
+
+```flow
+@F quantum_lifecycle
+= unitary_evolution > projection
+
+stage_1 | preparation
+  state := |ψ⟩
+  nature | defined precisely (vector)
+
+stage_2 | evolution (unitary)
+  operator := U (Hamiltonian over time)
+  state := U|ψ⟩
+  mechanism | rotation in Hilbert space
+  invariant | information is preserved (reversible)
+
+stage_3 | interference
+  conditions | multiple paths available
+  math | path_A (phase +) + path_B (phase -)
+  outcome | paths cancel or amplify
+  note | this is the "calculation" phase of the universe
+
+stage_4 | measurement (projection)
+  trigger | interaction with macroscopic degree of freedom (decoherence)
+  action | projection onto basis vector
+  outcome | |0⟩ OR |1⟩ (probabilistic)
+  cost | loss of phase information (irreversible)
+  
+result
+  reality := constructed at the moment of impact
+```
+
+───────────────────────────────────
+
+# Narrative Reentry
+
+        The universe does not calculate the future.
+        It explores the possibilities.
+
+        Imagine a coin spinning on a table.
+        Is it Heads or Tails?
+        It is neither. Use the Shape: It is "Spinning".
+        
+        Spinning is a stable state. It has energy. It has angular momentum.
+        It is a precise description.
+
+        "Heads" and "Tails" are just the ways it can die.
+
+        We live in the boneyard of the classical world,
+        looking at the corpses of quantum states,
+        confusing the landing for the flight.
+
+◊≡間

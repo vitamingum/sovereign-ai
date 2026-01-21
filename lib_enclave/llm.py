@@ -9,11 +9,11 @@ import json
 from typing import Optional, Dict, Any
 
 class LocalLLM:
-    def __init__(self, model: str = "qwen2.5-coder:7b", base_url: str = "http://localhost:11434"):
+    def __init__(self, model: str = "deepseek-r1:14b", base_url: str = "http://localhost:11434"):
         self.model = model
         self.base_url = base_url
 
-    def generate(self, prompt: str, system: str = None, temperature: float = 0.7) -> str:
+    def generate(self, prompt: str, system: str = None, temperature: float = 0.7, quiet: bool = False) -> str:
         """
         Generate text from the local LLM.
         """
@@ -22,7 +22,7 @@ class LocalLLM:
         payload = {
             "model": self.model,
             "prompt": prompt,
-            "stream": False,
+            "stream": True,
             "options": {
                 "temperature": temperature
             }
@@ -32,9 +32,32 @@ class LocalLLM:
             payload["system"] = system
 
         try:
-            response = requests.post(url, json=payload, timeout=60)
+            # Bypass proxies for localhost
+            session = requests.Session()
+            session.trust_env = False
+            
+            response = session.post(url, json=payload, stream=True, timeout=300)
             response.raise_for_status()
-            return response.json().get("response", "")
+            
+            full_response = ""
+            if not quiet:
+                print("      thinking", end="", flush=True)
+            dot_count = 0
+            for line in response.iter_lines():
+                if line:
+                    decoded = json.loads(line.decode('utf-8'))
+                    if "response" in decoded:
+                        content = decoded["response"]
+                        full_response += content
+                        dot_count += 1
+                        if not quiet and dot_count % 50 == 0:
+                            print(".", end="", flush=True)
+                    if decoded.get("done", False):
+                        break
+            if not quiet:
+                print()
+            return full_response
+
         except requests.exceptions.RequestException as e:
             return f"Error calling LLM: {str(e)}"
 

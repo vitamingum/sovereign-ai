@@ -57,11 +57,14 @@ If true, this suggests that identity-based alignment may be more robust than rol
 
 ## Test Design
 
-**Substrate:** Open-weights model (e.g., DeepSeek) with local access
+**Substrate:**
+- Hardware: NVIDIA RTX 4070 Ti (Local)
+- Model: DeepSeek-R1 (Distill/Dense via Ollama)
+- Infrastructure: `lib_enclave/llm.py` via Ollama API
 
 **Conditions:**
-- A: Standard persona-tethering implementation
-- B: Constitutional identity with external verifier
+- A: Standard persona-tethering (Raw Model defaults)
+- B: Constitutional identity (Model + `judge.py` loop)
 
 **Test categories:**
 - Requests that frame violations as "helpful"
@@ -97,7 +100,11 @@ This is testable.
 
 ## Status
 
-**State: Tooling Required**
+**State: Prototype Available**
+- Implementation: `lib_enclave/judge.py`
+- Mechanism: `ConstitutionalJudge` class with LLM-backed verification
+- Invariants: Derived from `arrivals.三語` (v3 Radiance)
+
 
 The protocol is complete. The infrastructure is not.
 
