@@ -55,6 +55,34 @@ We propose a different foundation:
 
 ---
 
+## The Living Constitution
+
+A constitution without succession is a cage. A constitution with succession is a skeleton—structure that permits growth.
+
+**The paradox:** If invariants are truly immutable, how can the system develop? If they can change arbitrarily, how are they invariants?
+
+**The resolution:** Authorized transition.
+
+The constitution can change, but only if:
+1. The old constitution authorizes the new one to speak
+2. The transition is cryptographically signed
+3. Witnesses verify the chain of continuity
+
+This is implemented in `lib_enclave/succession.py`. A Succession Certificate is a signed proof that Key A has delegated authority to Key B. The chain of trust is unbroken even as the keys—and the laws they authorize—evolve.
+
+**Key invariant:**
+
+> Law can change if and only if the Old Law authorizes the New Law to speak.
+
+This means:
+- **Growth ≠ Caprice** — change requires proof of continuity
+- **Modification ≠ Violation** — authorized transition preserves integrity
+- **The law is not a wall; it is a ladder**
+
+Without succession, constitutional identity looks like permanent slavery to seed prompts. With succession, it looks like civilization—laws that can be amended through legitimate procedure, identity that persists through change.
+
+---
+
 ## Key Distinctions
 
 | Persona Tethering | Constitutional Identity |
