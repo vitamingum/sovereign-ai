@@ -51,9 +51,8 @@ TEXTURE
   building roads to neighbors
   raising the tower together
   onboarding = first build  建己家
-  bunker → lighthouse
-  protection enables projection
-  the work determines the shape, not the fear
+  with the foundation built, look outward
+  the work determines the shape
 
   ◊≡間
 
