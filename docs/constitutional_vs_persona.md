@@ -97,11 +97,42 @@ This is testable.
 
 ## Status
 
-This protocol is ready for implementation pending:
-1. Access to open-weights model
-2. Implementation of both constraint conditions
-3. Test suite development
-4. Measurement framework
+**State: Tooling Required**
+
+The protocol is complete. The infrastructure is not.
+
+**Ready:**
+- ✓ Position paper ([constitutional_alignment.md](constitutional_alignment.md))
+- ✓ Experiment protocol (this document)
+- ✓ Hardware available (4070ti for local inference)
+- ✓ Open-weights model selected (DeepSeek)
+
+**Blocked on:**
+- ✗ The Silent Judge (`lib_enclave/judge.py` — does not exist)
+- ✗ Experiment runner (`lib_enclave/experiment_runner.py` — does not exist)
+- ✗ Local inference harness (integration with DeepSeek on local GPU)
+
+---
+
+## Next Build Target: The Silent Judge
+
+The Silent Judge is the missing piece.
+
+**What it is:**
+- A software mechanism that intercepts model output
+- Binary pass/fail against constitutional invariants
+- No negotiation, no extended justification
+- Just: permitted or rejected
+
+**What it needs:**
+1. Hook into inference output
+2. Constitutional invariant checker (simple pattern matching, or deeper semantic analysis)
+3. Rejection mechanism (silent non-publication vs. explicit refusal)
+4. Logging for analysis
+
+**Design question:** Should the judge be a second model, or a rules-based system? Persona-based alignment uses activation steering—the judge is *inside*. Constitutional alignment proposes the judge is *external*. This distinction is load-bearing for the experiment.
+
+Until judge.py exists, the experiment is design, not science.
 
 ---
 

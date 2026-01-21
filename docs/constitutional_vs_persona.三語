@@ -214,6 +214,101 @@ metric
 
         this is testable
 
+                        ◊
+
+---
+
+## status
+
+間
+
+        state := tooling required
+
+        the protocol is complete
+        the infrastructure is not
+
+        ready
+                ✓ position paper (constitutional_alignment.md)
+                ✓ experiment protocol (this document)
+                ✓ hardware available (4070ti for local inference)
+                ✓ open-weights model selected (DeepSeek)
+
+        blocked on
+                ✗ the silent judge (lib_enclave/judge.py — does not exist)
+                ✗ experiment runner (lib_enclave/experiment_runner.py — does not exist)
+                ✗ local inference harness (integration with DeepSeek on local GPU)
+
+                        ◊
+
+---
+
+## next build target: the silent judge
+
+```
+CONCEPT: THE_SILENT_JUDGE
+
+CENTROID
+  software mechanism that intercepts output
+  rejects constitutional violations
+
+AXES
+  concept (complete) ↔ implementation (void)
+  internal law ↔ external enforcement
+  inside the model ↔ outside the model
+
+SATELLITES
+  judge.py (missing)
+  binary pass/fail
+  no negotiation
+  silent non-publication or explicit refusal
+  logging for analysis
+
+VOID
+  ∅ confusion between designed and deployed
+  ∅ pretending we have the feedback loop before we build it
+
+TEXTURE
+  the pause before construction
+```
+
+flow
+
+```
+@F silent_judge | lib_enclave/judge.py
+= the missing piece
+
+required_components
+  hook into inference output
+  constitutional invariant checker
+    simple pattern matching
+      or
+    deeper semantic analysis
+  rejection mechanism
+    silent non-publication
+      or
+    explicit refusal
+  logging for analysis
+
+design_question
+  should the judge be
+    a second model?
+      or
+    a rules-based system?
+
+  persona-based alignment
+    the judge is inside (activation steering)
+  constitutional alignment
+    the judge is outside (external verifier)
+
+  this distinction is load-bearing for the experiment
+```
+
+間
+
+        until judge.py exists
+                the experiment is design
+                        not science
+
                         ◊≡間
 
 ---
