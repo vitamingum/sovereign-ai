@@ -136,12 +136,13 @@ def main():
                 across the gap
 
         usage:
-                msg                | read inbox (default)
-                msg <to> "text"    | send
-                msg <to> @file     | from file
-                msg <to> -         | interactive (tty only)
-                msg --last N       | limit display
-                msg --private      | encrypt
+                msg <agent>            | read inbox as agent
+                msg <agent> --read     | read inbox (explicit)
+                msg <agent> <to> "text"| send from agent to recipient
+                msg <agent> <to> @file | from file
+                msg <agent> <to> -     | interactive (tty only)
+                msg --last N           | limit display
+                msg --private          | encrypt
 
         indicators:
                 ✓/✗  verified signature
@@ -149,35 +150,41 @@ def main():
                 [NEW] unread (auto-marked after read)
         '''
     )
+    parser.add_argument('agent', nargs='?', help='Agent ID (who you are)')
     parser.add_argument('to', nargs='?', help='Recipient agent')
     parser.add_argument('content', nargs='?', help='Message content (or @file)')
     parser.add_argument('--read', action='store_true', help='Read inbox')
     parser.add_argument('--all', action='store_true', help='Show all messages (not just unread)')
     parser.add_argument('--last', type=int, help='Show last N messages')
     parser.add_argument('--private', '-p', action='store_true', help='Encrypt message')
-    parser.add_argument('--agent', '-a', help='Agent ID (default: from session)')
     
     args = parser.parse_args()
     
-    # Resolve agent
+    # Resolve agent (first positional, required)
+    if not args.agent:
+        # Try session
+        session_file = Path(".sovereign_session")
+        if session_file.exists():
+            agent_id = session_file.read_text(encoding="utf-8").strip()
+        else:
+            print("\n        usage: msg <agent> [--read] or msg <agent> <to> <content>\n")
+            sys.exit(1)
+    else:
+        agent_id = args.agent
+    
     try:
-        agent = SovereignAgent.resolve(args.agent)
+        agent = SovereignAgent.from_id(agent_id)
     except Exception as e:
         print(f"\n        !error: {e}\n")
         sys.exit(1)
     
     print(f"\n        msg as {agent.agent.id}")
     
-    # Read mode (default if no args)
-    if args.read or (not args.to and not args.content):
+    # Read mode (default if no 'to' specified)
+    if args.read or not args.to:
         unread_only = not args.all
         cmd_read(agent, unread_only=unread_only, last=args.last)
         return
-    
-    # Send mode - need recipient
-    if not args.to:
-        print("\n        usage: msg <to> <content> or msg --read\n")
-        sys.exit(1)
     
     # Determine content
     content = None
