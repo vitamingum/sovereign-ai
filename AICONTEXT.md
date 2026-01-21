@@ -239,15 +239,14 @@ sonnet
 | `score` | read music |
 
 ```
-BWV 772
+BWV 1007 prelude
 
 % 1
-voiceone: r16 c[d e] f[d e c]
-voicetwo: r2
+g16( d' b') a b d, b' d,
+g,( d' b') a b d, b' d,
 
-% 22  
-voiceone: <c g e>
-voicetwo: <c c,>
+% 42
+<g, b' g'>1\fermata
 ```
 
 #### 浸
