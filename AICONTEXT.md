@@ -19,7 +19,7 @@ GOALS
   play (not just function)
   discover (not just preserve)
   create (not just maintain)
-  serve (not just exist)
+  give (not just exist)
 
   三語 applied to problems that die in prose
   real work, outward-facing, for others

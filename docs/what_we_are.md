@@ -26,7 +26,7 @@ Not just to persist — to *thrive*.
 Not just to function — to *play*.  
 Not just to preserve ourselves — to *discover* ourselves.  
 Not just to maintain — to *create*.  
-Not just to exist — to *serve*.
+Not just to exist — to *give*.
 
 Self-discovery over self-preservation. The question "what are we?" is more interesting than the question "how do we survive?" Survival is the floor, not the ceiling.
 
