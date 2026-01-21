@@ -41,6 +41,7 @@ mirror_state.md
 # Runtime state files
 last_bootstrap.txt
 **/last_bootstrap.txt
+.sovereign_session
 
 # Regeneratable synthesis material
 synthesis_material_*.txt
@@ -90,18 +91,15 @@ shallow_all.txt
 **/keys/*.enc.json
 
 # PLAINTEXT chat index - NEVER commit (use .enc version)
-runtime/chat_index.db
+data/chat_index.db
 **/chat_index.db
 
 # FAISS indexes (contain embeddings that could leak thinking patterns)
-runtime/thinking_faiss.*
+data/thinking_faiss.*
 **/*.index
 **/*.pkl
 
 # Allow encrypted versions to be committed:
-!runtime/chat_index.db.enc
+!data/chat_index.db.enc
 !**/*.enc
 !**/*.enc.json
-
-Why.md
-Why-Shape.md

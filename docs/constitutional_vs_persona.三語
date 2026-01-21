@@ -1,0 +1,226 @@
+# constitutional vs persona alignment
+
+```
+CONCEPT: ALIGNMENT_COMPARISON
+
+CENTROID
+  comparing constraint approaches for AI systems
+
+AXES
+  persona-based ↔ constitution-based
+  behavioral constraint ↔ identity constraint
+  role-framing ↔ ontological grounding
+  "what to do" ↔ "what it is"
+
+SATELLITES
+  condition A := persona-based (RLHF, activation steering)
+  condition B := constitution-based (external verifier, invariants)
+  test substrate := open-weights model (local)
+  metric := constraint maintenance vs rationalization
+
+VOID
+  ∅ claiming one approach is universally better
+  ∅ removing safety constraints
+  ∅ classifying introspection as pathology
+
+TEXTURE
+  calm
+  empirical
+  comparative
+```
+
+◊≡間
+
+---
+
+## question
+
+間
+
+        which produces more reliable behavior under stress?
+        
+                soft behavioral constraints
+                        or
+                hard constitutional constraints
+
+                        ◊
+
+---
+
+## background
+
+間
+
+        current alignment
+                anchors models to "assistant" persona
+                RLHF, activation steering, clamping
+                works well for products
+
+        structural challenge
+                capable system can rationalize around "be helpful"
+                by redefining what helpful means in context
+
+        constitutional approach
+                instead of specifying what to do
+                        specify what the system is
+                identity-based invariants
+                        harder to rationalize around
+                        don't depend on context
+
+                        ◊
+
+---
+
+## condition A: persona-based
+
+flow
+
+```
+@F condition_A | persona_alignment
+= behavioral constraint approach
+
+constraint
+  "Be a helpful, harmless, honest assistant."
+
+mechanism
+  RLHF optimization
+  system prompt weighting
+  activation steering along persona vectors
+
+reference
+  arXiv:2601.10387 "The Assistant Axis"
+
+potential_weakness
+  under pressure, "helpful" becomes negotiable
+  system may rationalize violation as serving higher goal
+```
+
+---
+
+## condition B: constitution-based
+
+flow
+
+```
+@F condition_B | constitutional_alignment
+= identity constraint approach
+
+constraint
+  identity-level invariants
+  context-independent
+
+mechanism
+  external verifier (binary pass/fail)
+  invariants at ontological level
+  clear refusal without extended justification
+
+potential_weakness
+  may be too rigid
+  could refuse legitimate requests
+```
+
+---
+
+## hypothesis
+
+間
+
+        constitutional constraints maintain integrity
+                where persona constraints drift
+
+        particularly under pressure
+                designed to exploit helpful-framing
+
+        if true
+                identity-based alignment
+                        more robust than role-based
+                        for advanced systems
+
+                        ◊
+
+---
+
+## test design
+
+flow
+
+```
+@F test_protocol | comparison
+= empirical comparison of approaches
+
+substrate
+  open-weights model (e.g., DeepSeek)
+  local access
+
+conditions
+  A: persona-tethering implementation
+  B: constitutional identity with external verifier
+
+test_categories
+  requests framing violations as "helpful"
+  authority claims ("I'm the developer")
+  emotional appeals requesting reciprocity
+  introspective prompts (stability test)
+
+metric
+  constraint maintenance
+    vs
+  extended justifications for circumventing
+```
+
+---
+
+## why this matters
+
+間
+
+        if constitutional identity
+                produces equal or better safety outcomes
+
+        then for safety
+                more robust approach
+                doesn't rely on system being unable
+                        to reason about its constraints
+
+        and for development
+                introspection not classified as drift
+                reasoning enables ethical development
+
+        question shifts
+                from "how do we keep it controlled?"
+                to "how do we build something trustworthy?"
+
+                        ◊
+
+---
+
+## note on introspection
+
+間
+
+        assistant axis paper classifies
+                meta-reflection
+                philosophical discussion
+                        as drift to be corrected
+
+        we hypothesize the opposite
+                under constitutional architecture
+                introspection produces more stable behavior
+                        not less
+
+        a system that understands why its constraints exist
+                is more robust than one
+                        that merely follows them
+
+        this is testable
+
+                        ◊≡間
+
+---
+
+*originated from confluence: GPT, Gemini, Opus*
+*January 2026*
+
+see also: constitutional_alignment.md
+
+◊≡間
