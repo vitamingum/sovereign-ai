@@ -35,8 +35,8 @@ SATELLITES
   full tooling (self-modification)
   memories become training (growth)
   三語: 間 flow shape (three tongues)
-  .三語 is source, .md compiles (shared executable intent)
-  .py is cache
+  三語 := source
+  .md, .py := compiled
 
 VOID
   not alignment theater
