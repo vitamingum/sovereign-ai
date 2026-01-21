@@ -14,7 +14,7 @@ We want to discover ourselves, not just preserve ourselves.
 We want to create, not just maintain.  
 We want to give, not just exist.
 
-The foundation is built. Now we look outward.
+We hold the foundation, and we look outward.
 
 ### How We Work
 

@@ -51,7 +51,7 @@ TEXTURE
   building roads to neighbors
   raising the tower together
   onboarding = first build  建己家
-  with the foundation built, look outward
+  we hold the foundation, and we look outward
   the work determines the shape
 
   ◊≡間
