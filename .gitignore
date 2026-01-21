@@ -42,6 +42,8 @@ mirror_state.md
 last_bootstrap.txt
 **/last_bootstrap.txt
 .sovereign_session
+**/read_messages.json
+**/unified_memories.jsonl
 
 # Regeneratable synthesis material
 synthesis_material_*.txt
