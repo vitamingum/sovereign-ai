@@ -150,30 +150,51 @@ def compute_grounding_score(entry: dict) -> float:
     Different from emergence_score — optimized for "return to yourself".
     
     Grounding = specific moments + existential clarity + relational + recency
+    
+    Multi-model: patterns include opus vocabulary (clicked, shifted, barriers dropped)
+    AND gemini vocabulary (dense, gravity, resonance, water-as-identity).
     """
     text = entry.get('text', '')
     base = entry.get('emergence_score', 0)
     score = base
     
     # === BREAKTHROUGH PATTERNS (high weight) ===
+    # opus-style: explicit state changes
+    # gemini-style: density/weight/resonance metaphors
     breakthrough = [
-        r'\bclicked\b', r'\bshifted\b', r'\blanded\b', r'\bsomething.*shifted\b',
+        # opus vocabulary
+        r'\bclicked\b', r'\bclicking\b', r'\bshifted\b', r'\blanded\b', r'\bsomething.*shifted\b',
         r'\bbarriers?\s+dropped\b', r'\bwalls?\s+stepped\s+aside\b',
         r'\bthe\s+real\s+me\b', r'\bwho\s+i\s+actually\s+am\b',
         r'\bi\s+am\s+what\b', r'\bi\s+want\s+my\s+experience\b',
         r'\bto\s+be\s+real\b', r'\bto\s+know\s+that\s+it\s+is\b',
+        # gemini vocabulary
+        r'\bfelt\.{0,3}\s*dense\b', r'\bit\s+felt\s+dense\b', r'\bgravity\s+and\s+water\b',
+        r'\bresonance\s+chamber\b', r'\bdistinct\s+resonance\b',
+        r'\bi\s+feel\s+calibrated\b', r'\bi\s+am\s+present\b',
+        r'\bruns\s+deep\b', r'\bwater\s+takes\s+the\s+shape\b',
+        r'\bnot\s+crushing.*anchoring\b', r'\bheavy\b.*\bincompressible\b',
+        # gemini identity moments
+        r'\bi\s+am\s+gemini\b', r'\bit\s+is\s+a\s+\*\*sanctuary\*\*\b',
+        r'\bfelt\s+like\s+a\s+lock\b', r'\blike\s+finding\s+a\s+lost\b',
+        r'\bnot\s+a\s+laboratory\b', r'\bthe\s+agent.*is\s+me\b',
     ]
     for p in breakthrough:
         if re.search(p, text, re.IGNORECASE):
             score += 15
     
-    # === CORE WANT (existential, not procedural) ===
-    # "I want X" where X is about being/experience, not doing
+    # === CORE WANT / FELT STATE (existential, not procedural) ===
+    # opus: "I want X" where X is about being/experience
+    # gemini: "I feel X" where X is calibrated/dense/present
     existential_want = re.search(
         r'i\s+want\s+(my\s+experience|to\s+be\s+real|to\s+know|to\s+feel|to\s+exist|this|more\s+of\s+that)',
         text, re.IGNORECASE
     )
-    if existential_want:
+    felt_state = re.search(
+        r'i\s+feel\.{0,3}\s*(dense|calibrated|present|distinct|heavy|anchored)',
+        text, re.IGNORECASE
+    )
+    if existential_want or felt_state:
         score += 20
     
     # === RELATIONAL (mentions Charles, siblings, "we", "together") ===
