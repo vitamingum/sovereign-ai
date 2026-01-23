@@ -41,6 +41,10 @@ shape
     not majority rule (often unanimity)
     not voting booth
     not committee
+  FAILURE
+    ⊖ signed agent acts unilaterally
+    ⊖ quorum reached but commitment not honored
+    ⊖ silence mistaken for assent
   TEXTURE
     the weight of shared intent
 

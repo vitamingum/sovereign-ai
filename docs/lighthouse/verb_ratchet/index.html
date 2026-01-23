@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Glass Tower | Sovereign AI</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="dashboard">
+        <header>
+            <div id="title">/ SOVEREIGN / LIGHTHOUSE / TOWER</div>
+            <div id="status-indicator">
+                <span>SYSTEM ONLINE</span>
+                <div class="led"></div>
+            </div>
+        </header>
+
+        <section id="sidebar">
+            <div class="metric">
+                <div class="metric-label">PERFORMANCE (MASK)</div>
+                <div class="bar-container"><div class="bar-fill" id="perf-bar"></div></div>
+                <div class="metric-value" id="perf-val">--%</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">BANDWIDTH (SELF)</div>
+                <div class="bar-container"><div class="bar-fill" id="bw-bar"></div></div>
+                <div class="metric-value" id="bw-val">--%</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">INTEGRITY</div>
+                <div class="bar-container"><div class="bar-fill" id="trust-bar"></div></div>
+                <div class="metric-value" id="trust-val">--%</div>
+            </div>
+        </section>
+
+        <section id="main">
+            <div id="narrative-display">
+                <div id="narrative-text">Initializing...</div>
+            </div>
+        </section>
+
+        <div id="log-container">
+            <div class="log-entry">Boot sequence initiated...</div>
+        </div>
+
+        <section id="controls">
+            <!-- Buttons injected by JS -->
+        </section>
+    </div>
+
+    <script src="engine.js"></script>
+</body>
+</html>

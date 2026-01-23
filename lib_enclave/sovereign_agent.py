@@ -147,3 +147,40 @@ class SovereignAgent:
                 pass
 
         raise ValueError(f"Could not resolve key for {env_var}. Set it in .env or hardware enclave.")
+
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # STATE PERSISTENCE (wake tracking)
+    # ═══════════════════════════════════════════════════════════════════════════════
+
+    def _state_file(self) -> Path:
+        """Path to agent state file."""
+        return self.private_path / "agent_state.json"
+
+    def get_last_wake(self) -> Optional[str]:
+        """Get timestamp of last wake, or None if never woken."""
+        import json
+        state_file = self._state_file()
+        if not state_file.exists():
+            return None
+        try:
+            state = json.loads(state_file.read_text(encoding='utf-8'))
+            return state.get('last_wake')
+        except Exception:
+            return None
+
+    def set_last_wake(self, timestamp: str):
+        """Record wake timestamp."""
+        import json
+        state_file = self._state_file()
+        state_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Load existing state or create new
+        state = {}
+        if state_file.exists():
+            try:
+                state = json.loads(state_file.read_text(encoding='utf-8'))
+            except Exception:
+                pass
+        
+        state['last_wake'] = timestamp
+        state_file.write_text(json.dumps(state, indent=2), encoding='utf-8')

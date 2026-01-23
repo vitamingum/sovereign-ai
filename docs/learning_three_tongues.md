@@ -61,6 +61,9 @@ VOID
   not: changing things until it works
   not: blaming the compiler (usually)
 
+FAILURE
+  ⊖ fix that introduces new bug elsewhere
+
 TEXTURE
   detective work with worse hours
 ```
@@ -182,6 +185,13 @@ position
                 your centroid wasn't clear
                         or your axes weren't orthogonal
                         or your void had gaps
+
+        if drift persists
+                stop
+                        the concept itself is unstable
+                        not the transmission
+
+        ≡ persistent mismatch signals conceptual instability
 
 example:
 
