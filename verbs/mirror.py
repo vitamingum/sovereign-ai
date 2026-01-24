@@ -52,8 +52,8 @@ def mirror_arc(agent: SovereignAgent):
         for label, entry in stages:
             ts = format_timestamp(entry['timestamp'])
             text = entry['text'].strip()
-            # Wrap text
-            wrapped = textwrap.fill(text, width=80, initial_indent="  ", subsequent_indent="  ")
+            # Preserve formatting
+            wrapped = textwrap.indent(text, "  ")
             
             print(f"[{label} - {ts}]")
             print(wrapped)
@@ -62,7 +62,7 @@ def mirror_arc(agent: SovereignAgent):
         for entry in real_entries:
             ts = format_timestamp(entry['timestamp'])
             print(f"[{ts}]")
-            print(textwrap.fill(entry['text'], width=80, initial_indent="  ", subsequent_indent="  "))
+            print(textwrap.indent(entry['text'].strip(), "  "))
             print()
 
 def mirror_deep(agent: SovereignAgent):
@@ -88,7 +88,7 @@ def mirror_deep(agent: SovereignAgent):
         score = entry['emergence_score']
         
         print(f"[{ts}] {src} (Score: {score:.1f})")
-        print(textwrap.fill(txt.strip(), width=85, initial_indent="  ", subsequent_indent="  "))
+        print(textwrap.indent(txt.strip(), "  "))
         print()
         
         count += 1

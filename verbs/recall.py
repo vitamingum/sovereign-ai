@@ -29,6 +29,7 @@ from datetime import datetime
 # Context: sovereign.flow -> environment.libs
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from lib_enclave import verb_helpers
 from lib_enclave.sovereign_agent import SovereignAgent
 
 
@@ -227,9 +228,10 @@ def render_headers(entries: list):
 
 
 def main():
-    parser = argparse.ArgumentParser(
+    verb_helpers.safe_init()
+    
+    parser = verb_helpers.create_parser(
         description='recall — finding what was held',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''
         memory is dead
                 until you touch it
@@ -238,13 +240,13 @@ def main():
     parser.add_argument('query', nargs='?', help='Topic pattern or semantic query')
     parser.add_argument('--dump', action='store_true', help='Dump all memory headers')
     parser.add_argument('--limit', type=int, default=10, help='Max results for semantic search')
-    parser.add_argument('--agent', '-a', help='Agent ID (default: from session)')
     
-    args = parser.parse_args()
+    args = verb_helpers.parse_args(parser)  # Interceptor pattern
     
     # Resolve agent
     try:
-        agent = SovereignAgent.resolve(args.agent)
+        agent_id = verb_helpers.resolve_agent(args)
+        agent = SovereignAgent.from_id(agent_id)
     except Exception as e:
         print(f"\n        !error: {e}\n")
         sys.exit(1)

@@ -40,12 +40,12 @@ def cmd_status(me: SovereignAgent):
     proposals = consensus.get_pending_proposals(agent_id)
     
     if not proposals:
-        print("✅ No pending proposals")
+        print("⧫ No pending proposals")
         return
         
-    print(f"📜 Pending proposals:\n")
+    print(f"⧉ Pending proposals:\n")
     for p in proposals:
-        marker = "⏳" if p.get('needs_me') else "✓"
+        marker = "⧖" if p.get('needs_me') else "∴"
         print(f"  {marker} {p['topic']} ({p['signatures']}/{p['quorum']} signatures)")
         if p['signers']:
             print(f"      Signed by: {', '.join(p['signers'])}")
@@ -58,7 +58,7 @@ def cmd_deliberate(me: SovereignAgent, topic: str):
     proposal = consensus.parse_proposal(path)
     
     if not proposal:
-        print(f"❌ Proposal '{topic}' not found")
+        print(f"⊖ Proposal '{topic}' not found")
         sys.exit(1)
         
     final_body = consensus.apply_amendments(proposal.body, proposal.deliberations)
@@ -99,11 +99,11 @@ def cmd_sign(me: SovereignAgent, topic: str):
     proposal.deliberations.append((me.agent.name, 'SIGN', final_hash))
     consensus.write_proposal(proposal, path)
     
-    print(f"✅ {me.agent.name} signed {topic} ({final_hash})")
+    print(f"⧫ {me.agent.name} signed {topic} ({final_hash})")
     
     valid_count, _ = consensus.count_valid_signatures(proposal)
     if valid_count >= proposal.quorum:
-        print(f"🎉 Quorum reached! Run: py accord.py ratify {topic}")
+        print(f"∴ Quorum reached! Run: py accord.py ratify {topic}")
 
 def main():
     parser = argparse.ArgumentParser(description="consensus > vote  distributed agreement")
@@ -172,7 +172,7 @@ def main():
             
         try:
             path = consensus.create_proposal(args.topic, content, proposer=me.agent.name if me else "user")
-            print(f"✅ Proposal created: {path}")
+            print(f"⧫ Proposal created: {path}")
         except FileExistsError as e:
             print(f"Error: {e}")
             
@@ -195,7 +195,7 @@ def main():
             
             proposal.status = 'ratified'
             consensus.write_proposal(proposal, path)
-            print(f"🎉 Ratified: {args.topic}")
+            print(f"⧫ Ratified: {args.topic}")
         else:
             print("Quorum not reached")
             

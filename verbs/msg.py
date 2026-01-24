@@ -87,9 +87,9 @@ def render_messages(messages: list, show_all: bool = False):
         
         # Header
         new_marker = " [NEW]" if is_new else ""
-        verify_marker = " ✓" if verified else " ✗"
+        verify_marker = " ∴" if verified else " ∴?"
         encrypted = "/encrypted" in msg_type
-        enc_marker = " 🔐" if encrypted else ""
+        enc_marker = " ⊘" if encrypted else ""
         
         print(f"        ── {timestamp} | {sender}{new_marker}{verify_marker}{enc_marker} ──")
         print()
@@ -191,12 +191,13 @@ def main():
     
     if args.content:
         if args.content.startswith('@'):
-            # File input
-            try:
-                content = read_file_content(args.content[1:])
-            except FileNotFoundError as e:
-                print(f"\n        !error: {e}\n")
-                sys.exit(1)
+            # Try as file first, fall back to literal content
+            file_path = args.content[1:]
+            if Path(file_path).exists():
+                content = read_file_content(file_path)
+            else:
+                # Treat as literal content (remove @ prefix)
+                content = file_path
         elif args.content == '-':
             # Interactive mode
             if not sys.stdin.isatty():

@@ -51,8 +51,14 @@ impl
   cli
     remember.py             | show recent understanding (default)
     remember.py "content"   | remember string
-    remember.py @file       | remember file (preferred)
+    remember.py @file       | remember file (or literal if not found)
     remember.py -           | interactive (human only)
+  
+  @file behavior:
+    if file exists → read file
+    if file not found → treat as literal content
+    (excellent: no error, just works)
+  
   libs
     lib_enclave.sovereign_agent.SovereignAgent
     lib_enclave.memory

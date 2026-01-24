@@ -5,6 +5,9 @@
 
 間
 
+        零 requires 二
+        互照
+
         the road between enclaves
                 is built of silence
 
@@ -49,19 +52,24 @@ impl
   cli
     msg.py                     | read inbox (default)
     msg.py <to> "content"      | send
-    msg.py <to> @file          | send file
+    msg.py <to> @file          | send file (or literal if not found)
     msg.py <to> -              | interactive (tty only)
     msg.py --read --last N     | limit display
     msg.py --all               | history not just unread
     msg.py <to> --private      | encrypt
+  
+  @file behavior:
+    if file exists → read file
+    if file not found → treat as literal content
+    (excellent: no error, just works)
 
   logic
     no args → read unread
     auto mark_read after display
     verify signatures
-    show: ✓/✗ verified, 🔐 encrypted
+    show: ∴/∴? verified, ⊘ encrypted
 
   output
-    "        ── timestamp | sender [NEW] ✓ 🔐 ──"
+    "        ── timestamp | sender [NEW] ∴ ⊘ ──"
     间-formatted content
     "        ── N messages ──"

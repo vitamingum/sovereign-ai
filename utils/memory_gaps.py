@@ -236,12 +236,12 @@ def main():
     untracked = get_untracked_gaps(mem)
     
     if not stale and not untracked:
-        print("✅ No memory gaps")
+        print("⧫ No memory gaps")
         return
     
     # Report
     total = len(stale) + len(untracked)
-    print(f"🌱 {total} memory gaps:\n")
+    print(f"⧖ {total} memory gaps:\n")
     
     if stale:
         print("  Stale (file changed):")

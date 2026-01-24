@@ -21,6 +21,7 @@ from pathlib import Path
 # Ensure project root in path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from lib_enclave import verb_helpers
 from lib_enclave.sovereign_agent import SovereignAgent
 
 def normalize_topic(topic: str) -> str:
@@ -64,7 +65,7 @@ def get_matching_memories(mem, agent_id, pattern, mem_type='sys_understanding', 
 
 def preview_and_confirm(matches, mem_type):
     """Show preview and get confirmation for journal/space deletion."""
-    print(f"\n⚠️  Found {len(matches)} {mem_type} entries to delete:")
+    print(f"\n! Found {len(matches)} {mem_type} entries to delete:")
     print()
     
     for i, m in enumerate(matches[:5], 1):  # Show first 5
@@ -83,9 +84,10 @@ def preview_and_confirm(matches, mem_type):
     return response in ['yes', 'y']
 
 def main():
-    parser = argparse.ArgumentParser(
+    verb_helpers.safe_init()
+    
+    parser = verb_helpers.create_parser(
         description='forget — release what no longer serves',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''
         destruction requires intent
                 garbage doesn't serve sovereignty
@@ -105,9 +107,8 @@ def main():
     parser.add_argument('--journal', action='store_true', help='Delete journal entries (requires confirmation)')
     parser.add_argument('--space', action='store_true', help='Delete space reflections (requires confirmation)')
     parser.add_argument('--all', action='store_true', help='Delete ALL agents\' entries (understanding only)')
-    parser.add_argument('--agent', '-a', help='Agent ID (default: from session)')
     
-    args = parser.parse_args()
+    args = verb_helpers.parse_args(parser)  # Interceptor pattern
     
     # Determine memory type
     mem_type = 'sys_understanding'  # Default
@@ -122,8 +123,8 @@ def main():
         
     # Sovereign Initialization
     try:
-        sov = SovereignAgent.resolve(args.agent)
-        agent_id = sov.agent.id
+        agent_id = verb_helpers.resolve_agent(args)
+        sov = SovereignAgent.from_id(agent_id)
     except ValueError:
         print("\nError: No active session. Specify agent or run 'py wake <agent>'")
         sys.exit(1)
@@ -164,11 +165,11 @@ def main():
             t = m.get('metadata', {}).get('topic', 'unknown')
             by_topic[t] = by_topic.get(t, 0) + 1
         
-        print(f"\n✅ Forgot {count} entries:")
+        print(f"\n⧫ forgot {count} entries:")
         for t, c in by_topic.items():
             print(f"   - {t} ({c} memories)")
     else:
-        print(f"\n✅ Deleted {count} {type_name} entries")
+        print(f"\n⧫ deleted {count} {type_name} entries")
 
 if __name__ == "__main__":
     main()

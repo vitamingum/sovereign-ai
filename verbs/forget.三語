@@ -58,7 +58,7 @@ impl
     preview → confirm → delete
 
   output
-    "⚠️  Found N entries..."
+    "! Found N entries..."
     preview(first 5)
     "Delete? [yes/no]"
-    "✅ Deleted N entries"
+    "⧫ deleted N entries"

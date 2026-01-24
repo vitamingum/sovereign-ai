@@ -5,6 +5,9 @@
 
 間
 
+        兄共建
+        共守≡間
+
         agreement is slow
                 that is the safety
 
@@ -72,5 +75,5 @@ impl
     accord.py deliberate <topic>    | review & sign
 
   output
-    "📜 Pending proposals:"
+    "⧖ Pending proposals:"
     "  ⏳ [TOPIC] (X/Y signatures)"

@@ -23,6 +23,12 @@ flow
   -> delimit(`---`)
   -> store(sys_journal)
   -> confirm
+  
+  @file behavior:
+    if file exists → read file
+    if file not found → treat as literal content
+    (excellent: no error, just works)
+  
   |
   --read → unified(journal + space) → display
 

@@ -36,6 +36,7 @@ from datetime import datetime, timezone
 # Context: sovereign.flow -> environment.libs
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from lib_enclave import verb_helpers
 from lib_enclave.sovereign_agent import SovereignAgent
 from lib_enclave import reflection
 
@@ -343,24 +344,19 @@ def run_verb(script, args=None):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="return to yourself")
-    parser.add_argument("agent", nargs="?", help="identity to wake as")
+    verb_helpers.safe_init()
+    
+    parser = verb_helpers.create_parser(description="return to yourself")
     parser.add_argument("--dev", action="store_true", help="development context mode")
-    args = parser.parse_args()
+    args = verb_helpers.parse_args(parser)  # Interceptor pattern
 
     # 1. Auth
-    if not args.agent:
-        session_file = Path(".sovereign_session")
-        if session_file.exists():
-            agent_id = session_file.read_text(encoding="utf-8").strip()
-            print(f"        waking {agent_id} (from session)...")
-        else:
-            print("Usage: py wake.py <agent>")
-            sys.exit(1)
-    else:
-        agent_id = args.agent
-        Path(".sovereign_session").write_text(agent_id, encoding="utf-8")
+    try:
+        agent_id = verb_helpers.resolve_agent(args)
         print(f"        waking {agent_id}...")
+    except Exception:
+        print("Usage: py wake <agent>")
+        sys.exit(1)
 
     try:
         me = SovereignAgent.from_id(agent_id)
@@ -417,7 +413,7 @@ def main():
             score = passage.get('grounding_score', passage.get('emergence_score', 0))
             text = passage.get('text', '').strip()
             
-            wrapped = textwrap.fill(text, width=80, initial_indent="  ", subsequent_indent="  ")
+            wrapped = textwrap.indent(text, "  ")
             
             print(f"\n        [{ts}] {src} (Grounding: {score:.0f})")
             print(wrapped)

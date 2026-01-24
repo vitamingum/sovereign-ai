@@ -29,7 +29,10 @@ from datetime import datetime, timezone
 # Context: sovereign.flow -> environment.libs
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from lib_enclave import verb_helpers
 from lib_enclave.sovereign_agent import SovereignAgent
+
+verb_helpers.safe_init()
 
 
 def read_input_interactive():
@@ -143,9 +146,8 @@ def render_journals(journals: list):
 
 
 def main():
-    parser = argparse.ArgumentParser(
+    parser = verb_helpers.create_parser(
         description='journal — whatever arrives, catch it',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''
         whatever arrives
                 catch it
@@ -154,27 +156,25 @@ def main():
                 do not lose the drop
 
         usage:
-                journal "text"     | capture
-                journal @file      | from file
-                journal -          | interactive (tty only)
-                journal --read N   | last N entries
-                journal            | show recent (won't hang)
-
-        unified view
-                journals + spaces together
-                        all streams of thought
+                py journal [agent] "content"     | direct
+                py journal [agent] @file         | from file
+                echo "content" | py journal      | stdin
+                py journal --read N              | last N entries
         '''
     )
-    parser.add_argument('content', nargs='?', help='Content to journal (or @file)')
+    # Note: 'agent' interception is handled by parse_args
+    # We defines 'content' as our first expected positional.
+    parser.add_argument('content', nargs='*', help='Content to journal (or @file)')
     parser.add_argument('--read', type=int, nargs='?', const=5, metavar='N',
                         help='Read last N journal entries (default: 5)')
-    parser.add_argument('--agent', '-a', help='Agent ID (default: from session)')
     
-    args = parser.parse_args()
+    # Use helper to parse (handles interception)
+    args = verb_helpers.parse_args(parser)
     
     # Resolve agent
     try:
-        agent = SovereignAgent.resolve(args.agent)
+        agent_id = verb_helpers.resolve_agent(args)
+        agent = SovereignAgent.from_id(agent_id)
     except Exception as e:
         print(f"\n        !error: {e}\n")
         sys.exit(1)
@@ -186,34 +186,33 @@ def main():
         render_journals(journals)
         return
     
-    # Determine content source
+    # Determine content source - prioritize stdin for AI agents
     content = None
     
-    if args.content:
-        if args.content.startswith('@'):
-            # File input
-            try:
-                content = read_file_content(args.content[1:])
-            except FileNotFoundError as e:
-                print(f"\n        !error: {e}\n")
-                sys.exit(1)
-        elif args.content == '-':
-            # Interactive mode - but guard against headless
-            if not sys.stdin.isatty():
-                print("\n        !error: interactive mode requires tty\n")
-                sys.exit(1)
-            content = read_input_interactive()
+    # 1. Check stdin first (piped input from AI)
+    if not sys.stdin.isatty():
+        content = sys.stdin.read()
+    # 2. Then check arguments
+    elif args.content:
+        # Join all content parts (handles multi-word arguments)
+        content_str = ' '.join(args.content)
+        
+        if content_str.startswith('@'):
+            # Try as file first, fall back to literal content
+            file_path = content_str[1:]
+            if Path(file_path).exists():
+                content = read_file_content(file_path)
+            else:
+                # Treat as literal content (remove @ prefix)
+                content = file_path
         else:
-            # Direct string
-            content = args.content
+            # Direct string (joined)
+            content = content_str
     else:
-        # No argument - check if stdin has data
-        if not sys.stdin.isatty():
-            # Piped input
-            content = sys.stdin.read()
-        else:
-            # Interactive mode
-            content = read_input_interactive()
+        # 3. No input at all - read mode should have caught this
+        print("\n        ∅ no content provided\n")
+        print("        usage: echo 'content' | journal OR journal 'content'\n")
+        sys.exit(1)
     
     # Guard: empty content
     if not content or not content.strip():
@@ -222,7 +221,7 @@ def main():
     
     # Store it
     line_count = store_journal(agent, content)
-    print(f"\n        ◇ held ({line_count} lines)\n")
+    print(f"\n        ⧫ held ({line_count} lines)\n")
 
 
 if __name__ == '__main__':

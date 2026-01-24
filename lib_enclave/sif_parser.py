@@ -279,7 +279,7 @@ class SIFParser:
                 else:
                     # N <id> <type> "<content>" [...] - explicit ID
                     if not tip_shown:
-                        print("💡 Tip: You can omit the ID if you like: N <Type> '<Content>'")
+                        print("Tip: You can omit the ID if you like: N <Type> '<Content>'")
                         tip_shown = True
 
                     if len(parts) < 4: continue

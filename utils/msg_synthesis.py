@@ -243,12 +243,12 @@ def main():
         gaps = list_synthesis_gaps(agent_id, conversations, sm)
         
         if not gaps:
-            print("✅ All message dialogues synthesized")
+            print("⧫ All message dialogues synthesized")
             return
         
         print(f"MESSAGE SYNTHESIS GAPS: {len(gaps)}")
         for item in gaps:
-            status = "⚠️ stale" if item['status'] == 'stale' else "❌ none"
+            status = "◊ stale" if item['status'] == 'stale' else "∅ none"
             print(f"\n{item['correspondent']}: {item['message_count']} messages ({status})")
             print(f"  {item['cmd']}")
         

@@ -16,8 +16,10 @@ import datetime
 import hashlib
 
 # Add workspace root to sys.path to ensure we can import lib_enclave
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from lib_enclave import verb_helpers
 from lib_enclave.sovereign_agent import SovereignAgent
 from lib_enclave.interaction import interactive_capture
 
@@ -43,8 +45,9 @@ def resolve_input(input_arg):
             # Convert to abspath for storage
             file_path_opt = os.path.abspath(file_path_opt)
         else:
-            print(f"Error: File not found: {file_path_opt}")
-            sys.exit(1)
+            # Treat as literal content (file not found)
+            content = file_path_opt
+            file_path_opt = None
     else:
         content = input_arg
 
@@ -106,72 +109,53 @@ def show_perspectives(mem, topic_slug, current_agent_id):
     pass
 
 def main():
-    if len(sys.argv) < 2:
-        # Verb Excellence: Show context/recent instead of just error
+    verb_helpers.safe_init()
+    
+    parser = verb_helpers.create_parser(
+        description='remember — persist understanding',
+        epilog='Usage: py remember [agent] <content | @file>\n       (use \'-\' for interactive mode)'
+    )
+    parser.add_argument('content', nargs='*', help='Content or @file')
+    
+    args = verb_helpers.parse_args(parser)  # Interceptor pattern
+    
+    # Show recent if no content
+    if not args.content:
         try:
-            sov = SovereignAgent.resolve(None)
-            mem = sov.memory
-            # Show recent understandings
-            recent = mem.filter(mem_type='sys_understanding', limit=3)
-            # Sort desc (assuming created_at is iso string)
-            recent.sort(key=lambda x: x.get('created_at', ''), reverse=True)
-            
-            print(f"🧠 Remember ({sov.agent.name})")
-            if not recent:
-                print("   (nothing yet)")
-            else:
-                for r in recent[:3]:
-                    meta = r.get('metadata', {})
-                    t = meta.get('topic', 'untitled')
-                    f = meta.get('format', 'unknown')
-                    ts = meta.get('stored_at', '')[:10]
-                    print(f"   [{ts}] {t} ({f})")
+            agent_id = verb_helpers.resolve_agent(args, require=False)
+            if agent_id:
+                sov = SovereignAgent.from_id(agent_id)
+                mem = sov.memory
+                # Show recent understandings
+                recent = mem.filter(mem_type='sys_understanding', limit=3)
+                recent.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+                
+                print(f"⧖ Remember ({sov.agent.name})")
+                if not recent:
+                    print("   (nothing yet)")
+                else:
+                    for r in recent[:3]:
+                        meta = r.get('metadata', {})
+                        t = meta.get('topic', 'untitled')
+                        f = meta.get('format', 'unknown')
+                        ts = meta.get('stored_at', '')[:10]
+                        print(f"   [{ts}] {t} ({f})")
             print("\nUsage: py remember [agent] <content | @file>")
             sys.exit(0)
         except Exception:
             print("Usage: py remember [agent] <content | @file>")
-            print("       (use '-' for human interactive mode)")
+            print("       (use '-' for interactive mode)")
             sys.exit(1)
-
-    # Heuristic for arguments
-    args = sys.argv[1:]
-    potential_agent = args[0]
     
-    # Try resolving first arg as agent. If it fails or is implicitly session, we check next arg.
-    # Actually, we need to know if the first arg IS an agent specifier or CONTENT.
-    # If using session, we might just type: `py remember "@file"`
-    # If explicit: `py remember opus "@file"`
-    
-    agent_id = None
-    input_arg = None
-    
-    # Check if first arg is likely an agent (simple check: alpha, no spaces, not starting with @ or -)
-    # But content can be "hello". Agent name is "opus".
-    # Best way: Check against known agents or try resolve?
-    # SovereignAgent.resolve() doesn't fail on invalid name if it falls back to env? 
-    # No, resolve(name) calls from_id(name) -> get_agent_or_raise.
-    # So we can try valid agent.
-    
-    is_explicit_agent = False
+    # Resolve agent
     try:
-        # We peek at config safely?
-        from lib_enclave.config import AGENTS
-        if potential_agent in AGENTS:
-            agent_id = potential_agent
-            is_explicit_agent = True
-            if len(args) > 1:
-                input_arg = " ".join(args[1:])
-            else:
-                 # py remember opus (missing content)
-                 print("Error: Missing content.")
-                 sys.exit(1)
-    except ImportError:
-        pass
-        
-    if not is_explicit_agent:
-        # Implicit agent (session)
-        agent_id = None # Let resolve handle it
-        input_arg = " ".join(args)
+        agent_id = verb_helpers.resolve_agent(args)
+    except Exception as e:
+        print(f"\n        !error: {e}\n")
+        sys.exit(1)
+    
+    # Join content args
+    input_arg = " ".join(args.content)
 
     content, file_path_opt = resolve_input(input_arg)
     
@@ -181,17 +165,16 @@ def main():
 
     topic, fmt = detect_topic_format(content)
     
-    # 1. Initialize SovereignAgent (Auth-Once)
+    # 1. Initialize SovereignAgent
     try:
-        sov = SovereignAgent.resolve(agent_id)
-        agent_id = sov.agent.id
+        sov = SovereignAgent.from_id(agent_id)
     except ValueError:
          print("Usage: py remember [agent] <input>")
          print("       <input>: '-' for stdin, '@filename' for file, or raw string")
          print("\nError: No active session. Verify agent or run 'py wake <agent>'")
          sys.exit(1)
 
-    print(f"🧠 {agent_id} remembering '{topic}' ({fmt})...")
+    print(f"⧖ {agent_id} remembering '{topic}' ({fmt})...")
     
     # 2. Access Memory
     mem = sov.memory
@@ -227,7 +210,7 @@ def main():
     # Store with strong tags
     mem.store(content, mem_type="sys_understanding", tags=[topic, "understanding", fmt], metadata=meta)
     
-    print(f"✅ Remembered: {topic}")
+    print(f"⧫ remembered: {topic}")
     
     # 5. Perspectives
     show_perspectives(mem, topic, agent_id)

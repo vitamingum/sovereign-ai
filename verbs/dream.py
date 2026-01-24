@@ -191,7 +191,7 @@ def main():
 
     mem = sov.memory
     
-    print(f"🌙 DREAM ({sov.agent.name})\n")
+    print(f"◊ DREAM ({sov.agent.name})\n")
     
     res = dream_walk(mem, seed_text, deep)
     
