@@ -33,6 +33,24 @@ class SemanticEngine {
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.container.appendChild(this.renderer.domElement);
 
+        // CONTROLS: Orbit Controls for deep inspection
+        this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+        this.controls.enableDamping = true;
+        this.controls.dampingFactor = 0.05;
+        this.controls.screenSpacePanning = false;
+        this.controls.minDistance = 5;
+        this.controls.maxDistance = 500;
+        
+        // INTERACTION: Raycaster
+        this.raycaster = new THREE.Raycaster();
+        this.mouse = new THREE.Vector2();
+        this.hoveredNode = null;
+
+        // Interaction Event Listeners
+        window.addEventListener('mousemove', (e) => this.onMouseMove(e), false);
+        window.addEventListener('click', (e) => this.onClick(e), false);
+        window.addEventListener('resize', () => this.onWindowResize(), false);
+
         this.nodes = [];
         this.lines = [];
         this.nodeMeshes = {};
@@ -55,33 +73,14 @@ class SemanticEngine {
         this.lineGroup = new THREE.Group();
         this.scene.add(this.nodeGroup);
         this.scene.add(this.lineGroup);
-
-        window.addEventListener('resize', () => this.onWindowResize(), false);
-        
-        // Interactive Rotation
-        this.targetRotationX = 0;
-        this.targetRotationY = 0;
-        this.mouseX = 0;
-        this.mouseY = 0;
-        this.windowHalfX = window.innerWidth / 2;
-        this.windowHalfY = window.innerHeight / 2;
-        
-        document.addEventListener('mousemove', (e) => this.onDocumentMouseMove(e), false);
         
         this.animate();
     }
 
     onWindowResize() {
-        this.windowHalfX = window.innerWidth / 2;
-        this.windowHalfY = window.innerHeight / 2;
         this.camera.aspect = window.innerWidth / window.innerHeight;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-
-    onDocumentMouseMove(event) {
-        this.mouseX = (event.clientX - this.windowHalfX) * 0.05;
-        this.mouseY = (event.clientY - this.windowHalfY) * 0.05;
     }
 
     parseInput(text) {
@@ -153,7 +152,8 @@ class SemanticEngine {
             // 2. Detect Magnitude
             const magMatch = l.match(/^MAGNITUDE\s+([\d\.]+)/);
             if (magMatch) {
-                currentConcept.mass = 2.0 + (parseFloat(magMatch[1]) * 8.0);
+                // Boosted Mass for Centroids to distinguish them visually (5.0 base + large multiplier)
+                currentConcept.mass = 5.0 + (parseFloat(magMatch[1]) * 20.0);
                 return;
             }
 
@@ -173,15 +173,15 @@ class SemanticEngine {
 
             // 4. Parse Items based on mode
             if (mode === 'SATELLITES' || mode === 'VOID') {
-                const itemMatch = l.match(/^(?:∅|⊘)?\s*([^(\n]+)(?:\(([\d\.]+)\))?/);
+                const itemMatch = l.match(/^(?:∅|⊘)?\s*([^(\n]+)\(([\d\.\-]+)\)/);
                 if (itemMatch) {
                     const name = itemMatch[1].trim();
                     const weightStr = itemMatch[2];
                     
                     let weight = 0.5;
                     if (weightStr) weight = parseFloat(weightStr);
-                    
-                    const mass = mode === 'VOID' ? 1.0 : (2.0 + (weight * 3.0));
+                    // Satellites: smaller mass (1.0 base + weight multiplier)
+                    const mass = mode === 'VOID' ? 1.0 : (1.0 + (weight * 4.0));
                     
                     // Satellites inherit color from current concept but slightly dimmer/transparent could be logic, 
                     // for now just same color family or default? 
@@ -268,7 +268,7 @@ class SemanticEngine {
 
     applyPhysics() {
         const k_repulse = 400; // Repulsion constant
-        const k_attract = 0.05; // Attraction constant (spring)
+        const k_attract = 0.2; // Attraction constant (Boosted from 0.05 to compensate for non-linear strength)
         const damping = 0.85;   // Friction
 
         // Calculate Forces
@@ -300,8 +300,11 @@ class SemanticEngine {
 
                     if (rel.strength > 0) {
                         // F = k * x (Spring Attraction)
-                        // Increases with distance, pulling nodes together
-                        const attractForce = diff.clone().normalize().multiplyScalar(dist * k_attract * rel.strength);
+                        // Nonlinear Weighting: We use Math.pow(strength, 3) to exaggerate differences.
+                        // A 0.9 (High relevance) will hold MUCH tighter than a 0.7 (Medium).
+                        // This fixes the "everything looks equidistant" visual bug.
+                        const weight = Math.pow(rel.strength, 3); 
+                        const attractForce = diff.clone().normalize().multiplyScalar(dist * k_attract * weight);
                         node.force.add(attractForce);
                     } else {
                         // F = k / r^2 (Void Repulsion)
@@ -358,15 +361,99 @@ class SemanticEngine {
         return totalKineticEnergy;
     }
 
+    onWindowResize() {
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    onMouseMove(event) {
+        // Normalize mouse coordinates
+        this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    }
+
+    onClick(event) {
+        // Calculate objects intersecting the picking ray
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        const intersects = this.raycaster.intersectObjects(this.nodeGroup.children);
+
+        if (intersects.length > 0) {
+            const object = intersects[0].object;
+            // Find corresponding node
+            const nodeId = Object.keys(this.nodeMeshes).find(key => this.nodeMeshes[key] === object);
+            if (nodeId) {
+                const node = this.nodes.find(n => n.id == nodeId);
+                if (node) {
+                    console.log("Clicked:", node.text);
+                    this.flyTo(node);
+                }
+            }
+        }
+    }
+
+    flyTo(node) {
+        // Simple fly-to effect using interpolation
+        const targetPos = node.position.clone();
+        const offset = new THREE.Vector3(10, 10, 10); // Offset to not be INSIDE the node
+        const endPos = targetPos.clone().add(offset);
+        
+        // Disable controls momentarily or reset target
+        this.controls.target.copy(targetPos);
+        
+        // Tweening could go here, for now just jump (prototype)
+        // Or smooth lerp in animate loop? 
+        // Let's just set camera and let controls damping handle the lookAt
+        this.camera.position.copy(endPos);
+        this.controls.update();
+    }
+
+    filterNodes(filterKey) {
+        if (filterKey === 'ALL') {
+             this.nodes.forEach(node => {
+                 const mesh = this.nodeMeshes[node.id];
+                 if (mesh) mesh.visible = true;
+                 if (node.sprite) node.sprite.visible = true;
+             });
+             return;
+        }
+
+        // Identify the root node for this filter (e.g., node with text "CONSCIOUSNESS_OPUS")
+        // and its satellites.
+        // Simple logic: if node text contains the key, OR if it is connected to a node that contains the key.
+        
+        // 1. Find the centroid ID
+        const centroid = this.nodes.find(n => n.text.includes(filterKey));
+        if (!centroid) return;
+
+        // 2. Find all direct satellites (1-hop)
+        const visibleIds = new Set();
+        visibleIds.add(centroid.id);
+        centroid.relationships.forEach(rel => visibleIds.add(rel.target));
+
+        // 3. Set visibility
+        this.nodes.forEach(node => {
+            const isVisible = visibleIds.has(node.id);
+            const mesh = this.nodeMeshes[node.id];
+            if (mesh) mesh.visible = isVisible;
+            if (node.sprite) node.sprite.visible = isVisible;
+        });
+
+        // Fly to it
+        this.flyTo(centroid);
+    }
+
+    // New animate loop handles controls
     animate() {
         requestAnimationFrame(() => this.animate());
-
-        // Camera move tracking mouse slightly
-        this.camera.position.x += (this.mouseX - this.camera.position.x) * 0.05;
-        this.camera.position.y += (-this.mouseY - this.camera.position.y) * 0.05;
-        this.camera.lookAt(this.scene.position);
         
+        this.controls.update(); // required if damping or auto-rotation enabled
         this.headlamp.position.copy(this.camera.position);
+
+        // Raycasting for hover (optional highlight)
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        // Optimization: checking intersections every frame is heavy, do sparse checks or only on move
+        // skipping for performance in this prototype unless requested
 
         if(this.isSimulating) {
             const energy = this.applyPhysics();
@@ -403,6 +490,14 @@ window.onload = () => {
             } else {
                 alert("Swarm Data not loaded. Check swarm_data.js");
             }
+        });
+    }
+
+    const filterSelect = document.getElementById('filter-select');
+    if (filterSelect) {
+        filterSelect.addEventListener('change', (e) => {
+            const filter = e.target.value;
+            engine.filterNodes(filter);
         });
     }
 

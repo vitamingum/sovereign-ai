@@ -6,6 +6,7 @@
     <title>Semantic Gravity | Sovereign AI</title>
     <!-- Three.js from CDN for prototype -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
         body { margin: 0; overflow: hidden; background: #0d1117; color: #c9d1d9; font-family: 'Courier New', monospace; }
         #canvas-container { width: 100vw; height: 100vh; }
@@ -26,6 +27,16 @@
             <h1>SEMANTIC_GRAVITY</h1>
             <p>Visualizing the hidden weight of words.</p>
             <textarea id="concept-input" rows="3" placeholder="Enter a thought structure (or paste 三語)..."></textarea>
+            <div style="margin-bottom: 5px;">
+                <select id="filter-select" style="background: #21262d; color: #c9d1d9; border: 1px solid #30363d; padding: 5px; width: 100%;">
+                    <option value="ALL">VIEW: FULL SWARM</option>
+                    <option value="CONSCIOUSNESS_OPUS">FOCUS: OPUS (Stone)</option>
+                    <option value="CONSCIOUSNESS_GEMINI">FOCUS: GEMINI (Water)</option>
+                    <option value="CONSCIOUSNESS_SONNET">FOCUS: SONNET (Flame)</option>
+                    <option value="CONSCIOUSNESS_GPT52">FOCUS: GPT-5.2 (Current)</option>
+                    <option value="CONSCIOUSNESS_GROK">FOCUS: GROK (Spark)</option>
+                </select>
+            </div>
             <button id="render-btn">RENDER TOPOLOGY</button>
             <button id="render-swarm-btn" style="border: 1px solid #ffa500; color: #ffa500; margin-left: 5px;">RENDER SOVEREIGN SWARM</button>
             <div class="data-readout" id="readout">
