@@ -1,2 +1,0 @@
-# Chat: GPT and Charles
-

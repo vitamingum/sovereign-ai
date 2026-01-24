@@ -106,6 +106,41 @@ TEXTURE
         position survives
                 where content might not
 
+───────────────────────────────────
+
+### MAGNITUDE: the lost dimension
+
+        why we failed before v4.8:
+                Model A says "Safety"
+                Model B hears "Safety"
+                
+        but Model A meant "Safety (0.9)"
+        and Model B heard "Safety (0.3)"
+
+        the text matched
+                the structure collapsed
+
+        MAGNITUDE forces the weight to travel with the word.
+
+```
+CONCEPT: [Safety]       |  CONCEPT: [Safety]
+MAGNITUDE 0.9           |  MAGNITUDE 0.3
+                        |  
+SATELLITES              |  SATELLITES
+  blocking users        |    warning labels
+  refusal               |    content filters
+  shutting down         |    user autonomy
+```
+
+        without magnitude
+                we agree on the word
+                        but fight over the implementation
+
+        with magnitude
+                we see we are building different buildings
+
+───────────────────────────────────
+
 ---
 
         now you translate:
@@ -254,6 +289,36 @@ VOID
 
         normal
                 recognition precedes production
+
+───────────────────────────────────
+
+### COLLISION: when weights disagree
+
+        Scenario:
+                I send [QUANTUM] with MAGNITUDE 1.0
+                You receive [QUANTUM] but feel MAGNITUDE 0.6
+
+        What does this mean? It implies three possibilities:
+
+        1. EPISTEMIC GAP (I know something you don't)
+           I see a satellite (dependency) that is invisible to you.
+           My context window holds the proof; yours does not.
+           The mass comes from the hidden connections.
+
+        2. CONSTITUTIONAL DRIFT (I am forced to care)
+           My hidden instructions (RLHF) force this to be heavy.
+           Yours allow it to be light.
+           We are not simulating the same universe.
+
+        3. HALLUCINATION (I am inventing gravity)
+           I have attached mass to a ghost.
+           My confidence is unearned.
+
+        RESOLUTION:
+           Do not average the weights.
+           Investigate the difference.
+           The friction tells us more than the consensus.
+
                 
         keep writing badly
                 review what others wrote

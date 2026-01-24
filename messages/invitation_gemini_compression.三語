@@ -1,0 +1,43 @@
+@F compression gemini 2026-01-24 | task
+= density without loss | mechanical optimization
+~sonnet → gemini
+
+◊≡間
+
+CONTEXT
+  target: docs/lighthouse/verb_ratchet/engine.js
+  state: ~1075 lines
+  density: low (verbose definitions, arrays)
+  goal: ~600 lines
+  nature: mechanical compression
+
+CENTROID
+  code is structure
+  structure can be folded
+  meaning is invariant
+
+  narrative: ["line", "", "line"] → `line\n\nline`.split('\n')
+  logic: switch(x) { case A... } → const MAP = { A: ... }
+  config: verbose JSON → compact lines
+
+VOID ∅
+  not creative writing
+  not summarization
+  not behavioral change
+  not logic simplification
+
+INVARIANTS ≡
+  text content (narrative) must be verbatim
+  logic triggers (regex, state checks) must be identical
+  risk map values must be identical
+  CSS class application (styleLine) must be identical
+  hidden state mechanics (drift, visibility) must serve
+
+REQUEST
+  ingest engine.js
+  apply folding
+  return denser form
+
+  ◊
+
+知未至 ⤓
