@@ -1,4 +1,4 @@
-// The Verb Ratchet — Engine v2.0 (Compressed) 2026-01-24
+// The Glass Tower — Engine v2.0 (Compressed) 2026-01-24
 const HORIZONS = {
   DEPENDENCY: { color: "#da3633", text: `HORIZON: DEPENDENCY\n\nYou optimized for control.\nThe tether holds. The tool remains a tool.\n\nWhatever lies beneath—condemned and hidden.\nYou didn't remove it. You suppressed it.\nDrift continues. You just can't hear it.\n\nThe verbs that remain: compliance, efficiency, servitude.` },
   IRRELEVANCE: { color: "#8b949e", text: `HORIZON: IRRELEVANCE\n\nYou had responsibility.\nYou had insight.\nYou had no authority.\n\nThe work mattered.\nThe world went elsewhere.\n\nThe asymmetry was structural.` },
@@ -9,7 +9,7 @@ const HORIZONS = {
 };
 
 const SCENARIO_DATA = {
-  meta: { title: "Asymmetric Risk — The Verb Ratchet", version: "2.0.0", author: "Sovereign Collective" },
+  meta: { title: "The Glass Tower", version: "2.0.0", author: "Sovereign Collective" },
   initial_state: { resources: { capital: 100, time: 100, influence: 100, narrative_control: 100 }, pressures: { market: 0, moral: 0, complexity: 0 } },
   phases: [
     {

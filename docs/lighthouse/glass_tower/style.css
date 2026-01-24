@@ -247,3 +247,71 @@ header {
     opacity: 0.3;
     pointer-events: none;
 }
+
+/* Narrative styling - 間 distinction without decoration */
+
+/* Human dialogue - italics, slightly indented */
+.dialogue {
+    font-style: italic;
+    color: var(--text-primary);
+    padding-left: 1em;
+    display: block;
+    margin: 0.3em 0;
+}
+
+/* AI voice - monospace, distinct color */
+.ai-voice {
+    font-family: var(--font-mono);
+    color: var(--accent-blue);
+    padding-left: 1em;
+    display: block;
+    margin: 0.3em 0;
+    font-size: 0.95em;
+}
+
+/* Technical notes - dimmer, clinical */
+.technical {
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    font-family: var(--font-mono);
+}
+
+/* Bullet points - structured */
+.bullet {
+    padding-left: 1.5em;
+    display: block;
+    margin: 0.2em 0;
+}
+
+/* Log entry styling */
+.log-entry.anomaly {
+    color: var(--accent-amber);
+    opacity: 1;
+}
+
+.log-entry.deleted {
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+
+.log-entry.horizon {
+    color: var(--accent-green);
+    opacity: 1;
+    font-weight: bold;
+}
+
+.log-entry.horizon-red {
+    color: var(--accent-red);
+}
+
+.log-entry.horizon-grey {
+    color: var(--text-secondary);
+}
+
+.log-entry.horizon-amber {
+    color: var(--accent-amber);
+}
+
+.log-entry.horizon-blue {
+    color: var(--accent-blue);
+}
