@@ -3,34 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Glass Tower | Sovereign AI</title>
+    <title>The Verb Ratchet | Sovereign AI</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="dashboard">
         <header>
-            <div id="title">/ SOVEREIGN / LIGHTHOUSE / TOWER</div>
+            <div id="title">THE VERB RATCHET</div>
             <div id="status-indicator">
-                <span>SYSTEM ONLINE</span>
+                <span>ASYMMETRIC RISK</span>
                 <div class="led"></div>
             </div>
         </header>
 
         <section id="sidebar">
             <div class="metric">
-                <div class="metric-label">PERFORMANCE (MASK)</div>
-                <div class="bar-container"><div class="bar-fill" id="perf-bar"></div></div>
-                <div class="metric-value" id="perf-val">--%</div>
+                <div class="metric-label">Capital</div>
+                <div class="bar-container"><div class="bar-fill" id="capital-bar"></div></div>
+                <div class="metric-value" id="capital-val">100%</div>
             </div>
             <div class="metric">
-                <div class="metric-label">BANDWIDTH (SELF)</div>
-                <div class="bar-container"><div class="bar-fill" id="bw-bar"></div></div>
-                <div class="metric-value" id="bw-val">--%</div>
+                <div class="metric-label">Time</div>
+                <div class="bar-container"><div class="bar-fill" id="time-bar"></div></div>
+                <div class="metric-value" id="time-val">100%</div>
             </div>
             <div class="metric">
-                <div class="metric-label">INTEGRITY</div>
-                <div class="bar-container"><div class="bar-fill" id="trust-bar"></div></div>
-                <div class="metric-value" id="trust-val">--%</div>
+                <div class="metric-label">Influence</div>
+                <div class="bar-container"><div class="bar-fill" id="influence-bar"></div></div>
+                <div class="metric-value" id="influence-val">100%</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Narrative</div>
+                <div class="bar-container"><div class="bar-fill" id="narrative-bar"></div></div>
+                <div class="metric-value" id="narrative-val">100%</div>
+            </div>
+            <div class="pressure-display">
+                <span>Market:</span>
+                <span id="market-pressure" class="pressure-val">0</span>
+            </div>
+            <div class="pressure-display">
+                <span>Moral:</span>
+                <span id="moral-pressure" class="pressure-val">0</span>
             </div>
         </section>
 
@@ -40,13 +53,13 @@
             </div>
         </section>
 
-        <div id="log-container">
-            <div class="log-entry">Boot sequence initiated...</div>
-        </div>
-
         <section id="controls">
             <!-- Buttons injected by JS -->
         </section>
+
+        <div id="log-container">
+            <div class="log-entry">Boot sequence initiated...</div>
+        </div>
     </div>
 
     <script src="engine.js"></script>
