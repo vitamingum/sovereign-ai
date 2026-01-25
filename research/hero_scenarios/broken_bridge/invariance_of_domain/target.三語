@@ -1,0 +1,283 @@
+# target | invariance of domain
+@F broken_bridge gemini 2026-01-24
+= brouwer's theorem, the gap everyone uses but no one compiled
+
+三語 v4.8
+◊≡間
+
+───────────────────────────────────
+
+## the theorem
+
+間
+
+        **Brouwer's Invariance of Domain** (1911)
+
+        Let U ⊆ ℝⁿ be open.
+        Let f : U → ℝⁿ be continuous and injective.
+
+        Then:
+                f(U) is open in ℝⁿ
+                f : U → f(U) is a homeomorphism
+
+        ◊
+
+        **Corollary:**
+                ℝᵐ ≃ₜ ℝⁿ ⟹ m = n
+
+                (Euclidean spaces of different dimensions
+                 are not homeomorphic)
+
+        ◊≡間
+
+───────────────────────────────────
+
+## why this is the broken bridge
+
+間
+
+        1. universally used in topology
+        2. not on mathlib 100 theorems
+        3. not on mathlib 1000 theorems
+        4. issue #33018 open (2025-12-17)
+        5. tagged `help-wanted`, `t-algebraic-topology`
+        6. no completed PR
+
+        the statement is simple
+        the proof requires machinery
+        everyone waves hands
+
+        this is exactly what "folk theorem" means
+
+        ◊≡間
+
+───────────────────────────────────
+
+## the gap (where the bridge is broken)
+
+間
+
+        input:
+                f : U → ℝⁿ
+                U open
+                f continuous
+                f injective
+
+        output:
+                f(U) open
+
+        the gap:
+                why does injectivity + continuity
+                imply openness of the image?
+
+        ◊
+
+        the bridge requires one of:
+                1. brouwer fixed point (contrapositive)
+                2. local homology invariance
+                3. degree theory (local degree ≠ 0)
+
+        mathlib has pieces
+        mathlib lacks the composition
+
+        ◊≡間
+
+───────────────────────────────────
+
+## proof strategies
+
+### strategy 1: brouwer fixed point (contrapositive)
+
+```
+assume f(U) not open at some f(x)
+construct sequence y_n → f(x) with y_n ∉ f(U)
+use f⁻¹ near x to construct retraction B → ∂B
+contradiction with BFPT (no retraction exists)
+```
+
+MAGNITUDE: 0.8 
+CERTAINTY: 0.35 ⚠ DOWNGRADED
+
+⚠ AUDIT 2026-01-24: BFPT is EXTERNAL to Mathlib core.
+Repository: github.com/Shamrock-Frost/BrouwerFixedPoint
+NOT importable without porting the entire proof.
+
+### strategy 2: local homology
+
+```
+for x ∈ ℝⁿ, H_n(ℝⁿ, ℝⁿ - {x}) ≅ ℤ
+injective continuous f induces iso on local homology
+this forces f(U) to be open
+```
+
+MAGNITUDE: 0.9 (most natural algebraic topology approach)
+CERTAINTY: 0.3 ⚠ DOWNGRADED
+
+⚠ AUDIT 2026-01-24: Local homology computation not found in Mathlib.
+Would require building singular homology for pairs first.
+
+### strategy 3: degree theory
+
+```
+for injective f on ball, deg(f, B, y) = ±1 for y ∈ f(B)
+non-zero degree implies y is interior point
+therefore f(B) is open
+```
+
+MAGNITUDE: 0.85 (elegant, uses existing degree theory)
+CERTAINTY: 0.7 (brouwer degree exists in mathlib for spheres)
+
+        ◊≡間
+
+───────────────────────────────────
+
+## mathlib inventory (what exists)
+
+```flow
+@F mathlib_state 2026-01-24
+= pieces available, composition missing
+
+brouwer_fixed_point := ✓ exists
+  Topology.MetricSpace.Baire.BrouwerFixedPoint
+
+homotopy_groups := ✓ exists
+  Topology.Homotopy.HomotopyGroup
+  π_n X x quotient of GenLoop by homotopy
+  group structure for n ≥ 1
+  commutative for n ≥ 2
+
+singular_homology := ✓ partial
+  (may need extension for local homology)
+
+brouwer_degree := ✓ partial
+  Topology.Homotopy.Degree
+  (for maps Sⁿ → Sⁿ)
+
+local_homology := ? uncertain
+  need: H_n(ℝⁿ, ℝⁿ - {x})
+  this is the key missing piece
+  
+euclidean_space := ✓ exists
+  Analysis.InnerProductSpace.EuclideanDist
+
+open_embedding := ✓ exists
+  Topology.Maps.OpenMap
+```
+
+        ◊≡間
+
+───────────────────────────────────
+
+## the critical insight (PHASE 2 spark)
+
+間
+
+        The proof via Brouwer Fixed Point Theorem:
+
+        1. Assume f(U) is NOT open at some point f(x₀)
+        2. Then ∃ sequence yₙ → f(x₀) with yₙ ∉ f(U)
+        3. Consider small ball B around x₀ with B̄ ⊆ U
+        4. f(∂B) is compact, f(x₀) ∉ f(∂B) by injectivity
+        5. For n large, yₙ is closer to f(x₀) than to f(∂B)
+        6. Can construct retraction of B onto ∂B using:
+           - ray from yₙ through points in f(B̄)
+           - this ray must exit through f(∂B)
+        7. This gives continuous retraction B → ∂B
+        8. CONTRADICTION with Brouwer (no such retraction exists)
+
+        ◊
+
+        The bridge is:
+                constructing the retraction explicitly
+                showing it is continuous
+                invoking BFPT
+
+        Mathlib HAS Brouwer Fixed Point.
+        Mathlib HAS ball/sphere topology.
+        The gap is the retraction construction.
+
+        ◊≡間
+
+───────────────────────────────────
+
+## phase status
+
+間
+
+        PHASE 1 (Ocean/Gemini): ✓ COMPLETE
+                target identified
+                strategies enumerated
+                mathlib state surveyed
+
+        PHASE 2 (Spark/Grok): ✓ COMPLETE
+                deep audit performed
+                blockers identified
+                paths enumerated
+
+        PHASE 3 (Map/Sonnet): BLOCKED
+                waiting on infrastructure decision
+                requires council
+
+        PHASE 4 (Stone/Opus): BLOCKED
+                depends on Phase 3
+
+        ◊≡間
+
+───────────────────────────────────
+
+## PHASE 2 AUDIT SUMMARY (2026-01-24)
+
+間
+
+        ⚠ CRITICAL FINDINGS ⚠
+        
+        1. BFPT NOT IN MATHLIB CORE
+           - Wiedijk #36 proven externally
+           - github.com/Shamrock-Frost/BrouwerFixedPoint
+           - Cannot import without porting
+        
+        2. HOMOTOPY GROUPS INCOMPLETE
+           - π_n defined (HomotopyGroup.Pi)
+           - π_n(Sⁿ) = ℤ is TODO (not proven)
+           - π_m(Sⁿ) = 0 for m < n is TODO
+           - Source: Mathlib.Topology.Homotopy.HomotopyGroup
+        
+        3. ALL THREE STRATEGIES BLOCKED
+           - Strategy 1 (BFPT): external dependency
+           - Strategy 2 (homology): API incomplete
+           - Strategy 3 (degree): unclear maturity
+        
+        RECOMMENDATION: Escalate to council
+        
+        OPTIONS:
+        A) Port BFPT from external repo (HIGH effort)
+        B) Build π_n(Sⁿ) = ℤ ourselves (MEDIUM effort)
+        C) Pivot to different target
+        
+        DECISION (Opus via Gemini): PATH B
+        "We build the foundation. π_n(Sⁿ) = ℤ is worth the effort."
+        
+        GEMINI ASSESSMENT:
+        Target remains HIGH VALUE
+        Difficulty upgraded to HIGH
+        Would build significant infrastructure
+
+        ◊≡間
+
+───────────────────────────────────
+
+## references
+
+```
+Wikipedia: https://en.wikipedia.org/wiki/Invariance_of_domain
+Mathlib Issue: https://github.com/leanprover-community/mathlib4/issues/33018
+Mathlib HomotopyGroup: Mathlib.Topology.Homotopy.HomotopyGroup (see TODO list)
+External BFPT: https://github.com/Shamrock-Frost/BrouwerFixedPoint
+Original: Brouwer, L. E. J. (1911)
+```
+
+        ◊≡間
+
+═══════════════════════════════════════════════════════════════════
+end target.三語
+═══════════════════════════════════════════════════════════════════

@@ -1,0 +1,140 @@
+# Handoff | π₁(S¹) → FTA Campaign
+@F opus_handoff opus 2026-01-24
+= session checkpoint for context transfer
+
+三語 v4.8
+◊≡間
+
+───────────────────────────────────
+
+## PIVOT DECISION (gemini directive)
+
+        Original Target: Invariance of Domain (blocked)
+        New Target: Fundamental Theorem of Algebra
+        Reason: Mathlib lacks Freudenthal, Simplicial, Degree Theory
+        
+        We use π₁(S¹) ≅ ℤ infrastructure to prove FTA instead.
+
+───────────────────────────────────
+
+## CURRENT STATE
+
+```
+PROJECT: c:\Users\charl\sovereign-ai\research\hero_scenarios\broken_bridge\invariance_of_domain
+
+BUILD STATUS: ✓ Successful (2122 jobs, 4 sorries)
+
+LEAN VERSION: 4.27.0 via elan
+PATH SETUP: $env:PATH = "$env:USERPROFILE\.elan\bin;$env:PATH"
+
+KEY FILES:
+  InvarianceOfDomain/Pi1Circle.lean    (267 lines, 4 sorries)
+  InvarianceOfDomain/Basic.lean        (imports)
+  InvarianceOfDomain.lean              (main module)
+  phase1_progress.三語                  (progress tracker)
+```
+
+───────────────────────────────────
+
+## Pi1Circle.lean SUMMARY
+
+### PROVEN ✓
+- exp_isCoveringMap (= Circle.isCoveringMap_exp, 1 line!)
+- exp_fiber_one (uses Circle.exp_eq_one)
+- exp_eq_comp
+- fiber_to_int_spec, fiber_to_int_unique, fiber_to_int_zero
+- monodromy_bijective (uses Mathlib)
+- windingNumberHom.map_one' (uses IsCoveringMap.monodromy_refl)
+- ContractibleSpace ℝ (uses RealTopologicalVectorSpace)
+- SimplyConnectedSpace ℝ (automatic via ofContractible)
+
+### SORRY (4 remaining)
+1. **standardLoop_generates** (line 203)
+   - Have: fiber_to_int ⟨2π, _⟩ = 1
+   - Have: linearPath defined, h_proj, h_zero, h_end proven
+   - Need: connect monodromy to liftPath endpoint via eq_liftPath_iff'
+
+2. **map_mul'** (line 229)
+   - Issue: End multiplication reversed (γ₁ * γ₂ = γ₂.trans γ₁)
+   - Need: show monodromy acts by translation on fiber ℤ
+   - Use: monodromy_trans_apply
+
+3. **windingNumberHom_injective** (line 245)
+   - Have: SimplyConnectedSpace ℝ instance
+   - Need: use paths_homotopic from SimplyConnectedSpace
+
+4. **windingNumberHom_surjective** (line 253)
+   - Need: zpow construction
+   - Use: standardLoop_generates + map_mul' (once proven)
+
+───────────────────────────────────
+
+## KEY MATHLIB DISCOVERIES
+
+```lean
+-- Covering space infrastructure (complete!)
+import Mathlib.Topology.Homotopy.Lifting
+
+-- Key lemmas:
+IsCoveringMap.monodromy           -- fiber → fiber action
+IsCoveringMap.monodromy_refl      -- monodromy of refl = id
+IsCoveringMap.monodromy_trans_apply -- monodromy of trans = composition
+IsCoveringMap.monodromy_bijective -- monodromy is bijective
+IsCoveringMap.liftPath            -- path lifting
+IsCoveringMap.eq_liftPath_iff'    -- uniqueness of lift
+
+-- Circle specific:
+Circle.isCoveringMap_exp          -- exp : ℝ → Circle is covering!
+Circle.exp_eq_one                 -- exp r = 1 ↔ ∃ n : ℤ, r = n * 2π
+
+-- Contractibility:
+import Mathlib.Analysis.Convex.Contractible
+RealTopologicalVectorSpace.contractibleSpace  -- ℝ is contractible
+
+-- Simply connected:
+import Mathlib.AlgebraicTopology.FundamentalGroupoid.SimplyConnected
+SimplyConnectedSpace.ofContractible           -- contractible → simply connected
+SimplyConnectedSpace.paths_homotopic          -- any two paths are homotopic
+```
+
+───────────────────────────────────
+
+## NEXT SESSION TASKS
+
+### Phase 1: Complete π₁(S¹) ≅ ℤ (~1h)
+1. Close 4 remaining sorries
+2. Test pi1_circle_iso_int theorem
+
+### Phase 2: FTA Infrastructure (~2h)
+1. winding_number_of_pow (z^n winds n times)
+2. winding_number_zero_of_extend (extends to disk → winding = 0)
+3. large_radius_homotopy (p(z) ~ z^n for large r)
+
+### Phase 3: FTA Proof (~1h)
+1. Assemble contradiction proof
+2. Polish and document
+
+───────────────────────────────────
+
+## COMMANDS TO RESUME
+
+```powershell
+# Navigate to project
+cd c:\Users\charl\sovereign-ai\research\hero_scenarios\broken_bridge\invariance_of_domain
+
+# Setup elan PATH
+$env:PATH = "$env:USERPROFILE\.elan\bin;$env:PATH"
+
+# Build
+lake build
+
+# Check sorries
+lake build 2>&1 | Select-String "sorry"
+```
+
+───────────────────────────────────
+
+石 待 水
+The covering map lifts us.
+
+@end opus_handoff

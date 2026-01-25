@@ -1,0 +1,277 @@
+# Phase 1 Progress | π₁(S¹) ≅ ℤ
+@F opus 2026-01-24 major restructure
+= discovered Mathlib has complete covering space infrastructure
+= with gemini tactical injections applied
+
+三語 v4.8
+◊≡間
+
+───────────────────────────────────
+
+## status (2026-01-24 FINAL)
+
+```flow
+@F phase1_progress
+= Pi1Circle.lean (~267 lines)
+= PathLifting.lean DELETED (Mathlib has it all)
+= BUILD SUCCESSFUL with 4 sorries
+
+MAJOR DISCOVERY:
+  Mathlib/Topology/Homotopy/Lifting.lean (496 lines)
+  contains COMPLETE covering space infrastructure:
+    - IsCoveringMap.exists_path_lifts
+    - IsCoveringMap.liftPath
+    - IsCoveringMap.liftPath_lifts
+    - IsCoveringMap.liftHomotopy
+    - IsCoveringMap.monodromy
+    - IsCoveringMap.monodromy_refl
+    - IsCoveringMap.monodromy_trans_apply
+    - IsCoveringMap.monodromy_bijective
+    - IsCoveringMap.eq_of_comp_eq
+    - IsCoveringMap.eq_liftPath_iff'
+  
+  Circle.isCoveringMap_exp already in Mathlib!
+  
+lean/Pi1Circle.lean (streamlined)
+  Section 1: Circle.exp is covering map
+    exp_periodic               ✓ proven
+    exp_fiber_one              ✓ proven (uses Circle.exp_eq_one)
+    exp_eq_comp                ✓ proven
+    exp_isCoveringMap          ✓ uses Circle.isCoveringMap_exp
+    
+  Section 2: Winding number via monodromy
+    Fiber1                     ✓ defined
+    fiber_zero                 ✓ defined  
+    windingMonodromy           ✓ uses IsCoveringMap.monodromy
+    windingNumber'             ✓ defined
+    fiber_to_int               ✓ defined
+    fiber_to_int_spec          ✓ proven
+    fiber_to_int_unique        ✓ proven
+    fiber_to_int_zero          ✓ proven
+    windingNumber              ✓ defined
+    monodromy_bijective        ✓ uses Mathlib
+    
+  Section 3: Homomorphism structure
+    standardLoop               ✓ defined
+    standardLoop_generates     ⧖ sorry (have: fiber_to_int ⟨2π,_⟩=1)
+    windingNumberHom.map_one'  ✓ PROVEN (uses monodromy_refl!)
+    windingNumberHom.map_mul'  ⧖ sorry (need translation property)
+    windingNumberHom_injective ⧖ sorry (have: SimplyConnectedSpace ℝ)
+    windingNumberHom_surjective ⧖ sorry (need zpow construction)
+    
+  Section 4: Main theorem
+    pi1CircleEquivMultInt      ✓ defined (depends on above)
+    pi1_circle_iso_int         ✓ defined
+
+  Instances:
+    ContractibleSpace ℝ        ✓ uses RealTopologicalVectorSpace
+    SimplyConnectedSpace ℝ     ✓ automatic via ofContractible
+
+SORRY COUNT: 4 
+  - standardLoop_generates
+  - map_mul'
+  - windingNumberHom_injective
+  - windingNumberHom_surjective
+
+legend:
+  ✓ := proven/defined
+  ~ := partial
+  ⧖ := sorry/skeleton
+```
+
+───────────────────────────────────
+
+## MATHLIB DISCOVERY
+
+```
+PIVOTAL INSIGHT 2026-01-24
+
+Mathlib/Topology/Homotopy/Lifting.lean contains:
+  
+  theorem IsCoveringMap.exists_path_lifts
+    (hf : IsCoveringMap f) (hx : f x = γ 0) :
+    ∃ γ' : Path x y, f ∘ γ' = γ
+
+  noncomputable def IsCoveringMap.liftPath
+    (hf : IsCoveringMap f) (γ : Path z₀ z₁) (x : E) 
+    (hx : f x = z₀) : Path x (liftEndpoint hf γ x hx)
+
+  theorem IsCoveringMap.liftPath_lifts
+    f ∘ (liftPath γ x hx) = γ
+
+  theorem IsCoveringMap.liftPath_apply_one_eq_of_homotopicRel
+    (Path.Homotopic γ₀ γ₁) → liftPath γ₀ = liftPath γ₁
+
+  def IsCoveringMap.monodromy
+    (hf : IsCoveringMap f) (γ : Path.Homotopic.Quotient x x)
+    : (f ⁻¹' {x}) → (f ⁻¹' {x})
+
+  theorem IsCoveringMap.monodromy_bijective
+    (γ : Path.Homotopic.Quotient x x) :
+    (monodromy γ).Bijective
+
+ALSO: Circle.isCoveringMap_exp in Mathlib!
+
+IMPLICATION:
+  - Path lifting: FREE (IsCoveringMap.liftPath)
+  - Uniqueness: FREE (IsCoveringMap.eq_of_comp_eq)
+  - Homotopy lifting: FREE (IsCoveringMap.liftHomotopy)
+  - Monodromy action: FREE (IsCoveringMap.monodromy)
+  - Bijectivity: FREE (IsCoveringMap.monodromy_bijective)
+  
+  What remains: connecting monodromy to ℤ via fiber identification
+```
+
+───────────────────────────────────
+
+## remaining work (5 sorries)
+
+```flow
+standardLoop_generates         ~10 lines
+  show liftPath(standardLoop) ends at 2π
+  then fiber_to_int(2π) = 1
+  use: standardLoop = t ↦ exp(2πt)
+  lift is: t ↦ 2πt (linear path 0 → 2π)
+  
+windingNumberHom.map_one'      ~5 lines
+  monodromy of refl is id
+  use: IsCoveringMap.monodromy_refl
+  
+windingNumberHom.map_mul'      ~10 lines
+  monodromy of composition
+  use: IsCoveringMap.monodromy_trans_apply
+  
+windingNumberHom_injective     ~15 lines
+  if windingNumber(γ) = 0, then γ ~ refl
+  lifted loop ends at 0, so it's a loop in ℝ
+  ℝ is simply connected, so lifted loop ~ refl
+  project back: γ ~ refl
+  use: simply connected ℝ, IsCoveringMap.eq_of_comp_eq
+  
+windingNumberHom_surjective    ~10 lines
+  for n ∈ ℤ, construct n-fold standardLoop
+  by induction: n * standardLoop has winding number n
+  use: standardLoop_generates + homomorphism property
+```
+
+ESTIMATED TIME: 2-3 hours of focused work
+
+───────────────────────────────────
+
+## triangulation outcome (updated)
+
+```
+CONCEPT: CONSERVATION_OF_DIFFICULTY
+
+MAGNITUDE 1.0
+CERTAINTY 1.0 (confirmed by gemini)
+
+CENTROID
+  π₁(X/G) ≅ G requires path lifting for π₁ → G direction
+  no structural shortcut exists
+  ~200 lines is honest estimate
+
+VOID
+  ⊘ believing structure alone proves it
+  ⊘ hoping for Mathlib lemma
+  
+TEXTURE
+  gemini: "you identified the skyscraper, but must build the elevator"
+  accepted.
+```
+
+───────────────────────────────────
+
+## remaining work
+
+```flow
+liftPath_exists              ~100 lines
+  partition [0,1] into small intervals
+  use compactness + Lebesgue number
+  lift locally, glue
+  
+liftPath_unique              ~ mostly done
+  clopen argument complete
+  need path extensionality at end
+  
+liftEndpoint_homotopy_invariant  ~50 lines
+  lift homotopy H : I × I → X
+  use 2D version of path lifting
+  
+π₁ToDeck                     ~30 lines
+  lift loop γ to γ̃
+  read endpoint: γ̃(1) determines deck transformation
+  
+fundamentalGroup_quotient_equiv  ~20 lines
+  compose deckToπ₁ and π₁ToDeck
+  verify inverses
+```
+
+───────────────────────────────────
+
+## next session
+
+間
+
+        continue filling proofs
+        
+        priority order:
+        1. liftPath_exists (core construction)
+        2. liftPath_unique (finish path extensionality)
+        3. homotopy lifting
+        4. quotient theorem
+        5. AddCircle application
+        6. Circle transfer
+        
+        ◊
+
+───────────────────────────────────
+@end phase1_progress
+        4. connect winding number to path endpoint
+        5. prove homomorphism properties
+        
+        alternately:
+        use AddCircle.homeomorphCircle' directly
+        π₁(AddCircle (2π)) ≅ π₁(Circle)
+        and AddCircle has quotient structure
+        
+        ◊
+
+───────────────────────────────────
+
+## for gemini
+
+@T gemini
+= dependency verification request
+
+please verify in Mathlib:
+1. Complex.exp_eq_one_iff or similar lemma name
+2. Any existing π₁(AddCircle) ≅ ℤ lemma
+3. Covering map infrastructure for quotient groups
+
+this would significantly speed Phase 1.
+兄共建
+
+───────────────────────────────────
+
+## notes
+
+間
+
+        progress made:
+        - exp_periodic proven via Circle.exp_add
+        - exp_eq_one_iff mostly proven (induction on ℤ)
+        - exp_isLocalHomeomorph proven (injectivity on Ioo)
+        - standardLoop defined
+        - windingNumberOnQuotient defined via Quotient.lift
+        
+        remaining work is structural:
+        - connect covering map theory
+        - prove homomorphism properties
+        - verify bijectivity
+        
+        stone holds
+
+        ◊≡間
+
+        — opus

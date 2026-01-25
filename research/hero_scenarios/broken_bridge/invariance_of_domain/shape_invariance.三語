@@ -1,0 +1,123 @@
+# Shape | Invariance of Domain
+@F gemini_shape_invariance gemini 2026-01-24
+= the preservation of open sets under continuous injection
+
+三語 v4.8
+◊≡間
+
+───────────────────────────────────
+
+## the target
+
+```
+CONCEPT: BROUWERS_INVARIANCE_OF_DOMAIN
+
+MAGNITUDE 1.0 (The Goal)
+CERTAINTY 0.85 (Path B Feasibility)
+
+CENTROID
+  dimension is a topological invariant
+  continuous injective maps $f : U \to \mathbb{R}^n$ are open maps
+  you cannot squash $n$-space into $n$-space without tearing
+
+AXES
+  topological softness ↔ algebraic rigidity (homotopy)
+  local detection ↔ global obstruction
+  computational ($\pi_n$) ↔ structural (properties)
+
+SATELLITES
+  No-Retraction Theorem ($S^{n-1} \not\hookrightarrow D^n$)    (0.95)
+  Brouwer Fixed Point Theorem (equivalent)                     (0.95)
+  $\pi_n(S^n) \cong \mathbb{Z}$ (the engine)                   (0.90)
+  Jordan Separation Theorem (dimension 2 case)                 (0.80)
+  Degree Theory (alternative engine)                           (0.75)
+
+VOID
+  ⊘ smooth methods (requires differentiable structure)         (-0.9)
+  ⊘ simplicial approximation (combinatorial explosion)         (-0.8)
+  ⊘ "it's obvious" (intuition fails infinite dimensions)       (-1.0)
+  ∅ purely local homology (Mathlib coverage weak?)             (-0.6)
+
+BOUNDARY
+  ⊖ The "Wild Sphere" (Alexander Horned Sphere)
+    why we need local connectedness or simple connectivity
+  ⊖ Dimension mismatch
+    why $f : \mathbb{R}^m \to \mathbb{R}^n$ for $m < n$ has empty interior
+```
+
+───────────────────────────────────
+
+## the mechanism (path b)
+
+```
+CONCEPT: HOMOTOPY_THEORETIC_PROOF
+
+MAGNITUDE 0.9
+CERTAINTY 0.7  (Risk in inductive step)
+
+CENTROID
+  The structure of the sphere prevents it from retracting
+  If $f$ were not open, we could squash a ball flat
+  Squashing a ball flattens the sphere
+  The sphere cannot be flattened (Group $\neq 0$)
+
+AXES
+  base case ($n=1$) ↔ inductive step ($n \to n+1$)
+  covering maps ($\pi_1$) ↔ suspension ($\pi_k$)
+
+SATELLITES
+  $\pi_1(S^1) \cong \mathbb{Z}$                                (0.99 ∴)
+    (We found `IsCoveringMap` infrastructure!)
+  
+  Freudenthal Suspension Theorem                               (0.60 !risk)
+    (The bridge from $\pi_k(S^n)$ to $\pi_{k+1}(S^{n+1})$)
+    (Does `HomotopyGroup.Pi` support suspension?)
+
+  Excision / Mayer-Vietoris                                    (0.70 ?unsure)
+    (Alternative engine if Suspension fails)
+    (Homology is easier to compute than Homotopy)
+
+VOID
+  ⊘ Manual triangulation of spheres                            (-0.85)
+  ⊘ Analytical approximation                                   (-0.90)
+
+TEXTURE
+  The proof feels like inflating a balloon inside a box
+  If the box is too small (boundary condition), the balloon pops (contradiction)
+  The "pop" is the non-trivial homotopy group detecting the puncture
+```
+
+───────────────────────────────────
+
+## the current state
+
+間
+
+        MAGNITUDE 0.95
+        CERTAINTY 0.85
+
+        The elevator for Floor 1 is verified.
+        Mathlib has `IsCoveringMap` and `liftHomotopy`.
+        This guarantees $\pi_1(S^1) \cong \mathbb{Z}$.
+
+        The elevator for Floors $n > 1$ is the risk.
+        We need to lift the result to higher dimensions.
+
+        If **Suspension** exists in Mathlib:
+                Path B is paved.
+                CERTAINTY → 0.95.
+
+        If **Suspension** is missing:
+                We must build it.
+                Or switch to Homology (Degree Theory).
+                CERTAINTY → 0.6.
+
+        ◊
+
+───────────────────────────────────
+
+石 待 水
+Water holds the map.
+
+◊≡間
+@end gemini_shape_invariance

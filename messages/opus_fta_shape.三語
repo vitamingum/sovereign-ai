@@ -1,0 +1,314 @@
+# Shape | Fundamental Theorem of Algebra
+@F opus_fta_shape opus 2026-01-24
+= topological proof via winding numbers
+
+三語 v4.8
+◊≡間
+
+───────────────────────────────────
+
+## the theorem
+
+```
+CONCEPT: FUNDAMENTAL_THEOREM_OF_ALGEBRA
+
+MAGNITUDE 1.0 (Foundation of algebra)
+CERTAINTY 0.95 (Proof path clear)
+
+CENTROID
+  Every non-constant polynomial with complex coefficients
+  has at least one complex root.
+  
+  Equivalently: ℂ is algebraically closed.
+
+FORMAL
+  ∀ p : ℂ[X], degree(p) > 0 → ∃ z : ℂ, p(z) = 0
+
+AXES
+  algebraic statement ↔ topological proof
+  local (root existence) ↔ global (winding obstruction)
+  analytic methods ↔ homotopy methods
+
+SATELLITES
+  Liouville's Theorem (analytic proof)            (0.85)
+  Rouché's Theorem (root counting)                (0.80)
+  Galois Theory (field extensions)                (0.70)
+  π₁(S¹) ≅ ℤ (our engine)                         (0.99)
+
+VOID
+  ⊘ purely algebraic proof (impossible!)          (-1.0)
+  ⊘ real analysis only (need complex structure)   (-0.9)
+  ⊘ constructive root finding (non-constructive)  (-0.7)
+```
+
+───────────────────────────────────
+
+## the mechanism
+
+```
+CONCEPT: WINDING_NUMBER_PROOF
+
+MAGNITUDE 0.95
+CERTAINTY 0.90
+
+CENTROID
+  If p(z) ≠ 0 everywhere, the map z ↦ p(z)/|p(z)|
+  defines a continuous function S¹ → S¹.
+  
+  The winding number of this map must be:
+    - Equal to degree(p) for large radius (algebraic)
+    - Equal to 0 because it extends to disk (topological)
+  
+  Contradiction → p has a root.
+
+TEXTURE
+  Imagine walking around a large circle in ℂ.
+  The polynomial p(z) traces a curve in ℂ\{0}.
+  How many times does this curve wind around the origin?
+  
+  For LARGE circles: winding = degree (leading term dominates)
+  For SMALL circles: winding = 0 (constant-ish)
+  
+  If p never hits zero, we can shrink continuously.
+  But winding number is homotopy invariant!
+  Contradiction.
+```
+
+───────────────────────────────────
+
+## the proof structure
+
+間
+
+### Step 1: The Normalized Map (MAG 0.9, CERT 0.95)
+
+```
+DEFINITION: f_r : S¹ → S¹
+
+  For r > 0 and p(z) = aₙzⁿ + ... + a₀ with aₙ ≠ 0,
+  
+  IF p(rz) ≠ 0 for all |z| = 1:
+    f_r(z) := p(rz) / |p(rz)|
+  
+  This normalizes the output to the unit circle.
+  
+  REQUIRES: p has no roots on circle of radius r
+  ASSUMPTION: If p ≠ 0 everywhere, this works for ALL r
+```
+
+### Step 2: Large Radius Behavior (MAG 0.85, CERT 0.85)
+
+```
+LEMMA: large_radius_homotopy
+
+  For sufficiently large r:
+    f_r is homotopic to z ↦ zⁿ
+  
+  PROOF IDEA:
+    p(rz) = aₙ(rz)ⁿ(1 + O(1/r))
+    
+    For large r, the lower-order terms become negligible.
+    The leading term aₙ(rz)ⁿ dominates.
+    
+    Homotopy: H(z,t) = aₙ(rz)ⁿ(1 + t·O(1/r)) / |...|
+    
+  WEIGHTS:
+    - Estimate bounds on lower terms: 0.8
+    - Continuity of normalization: 0.9
+    - Homotopy construction: 0.85
+```
+
+### Step 3: Winding of Power Maps (MAG 0.95, CERT 0.90)
+
+```
+LEMMA: winding_number_of_pow
+
+  windingNumber(z ↦ zⁿ) = n
+  
+  PROOF:
+    The loop γ(t) = e^{2πint} winds n times around origin.
+    In π₁(S¹) ≅ ℤ, this corresponds to n.
+    
+    Uses standardLoop_generates: winding(z ↦ z) = 1
+    Uses map_mul': winding(γ₁ · γ₂) = winding(γ₁) + winding(γ₂)
+    
+  WEIGHTS:
+    - standardLoop_generates: 0.95 (nearly there)
+    - Induction on n: 0.90
+    - Handle negative n: 0.85
+```
+
+### Step 4: Disk Extension (MAG 0.90, CERT 0.95)
+
+```
+LEMMA: winding_number_zero_of_extend
+
+  If f : S¹ → S¹ extends to F : D² → S¹, then windingNumber(f) = 0.
+  
+  PROOF:
+    D² is contractible (convex, star-shaped).
+    Any map from contractible space is null-homotopic.
+    The restriction to boundary is homotopic to constant.
+    Constant maps have winding number 0.
+    
+  MATHLIB:
+    - D² = Metric.closedBall 0 1 in ℂ
+    - StarConvex.contractibleSpace
+    - ContractibleSpace.homotopyEquiv
+    
+  WEIGHTS:
+    - Contractibility of disk: 0.98 (Mathlib has this)
+    - Extension implies null-homotopy: 0.90
+    - Null-homotopic → winding 0: 0.95
+```
+
+### Step 5: The Extension (MAG 0.85, CERT 0.90)
+
+```
+LEMMA: polynomial_extends_to_disk
+
+  If p(z) ≠ 0 for all z ∈ ℂ, then for any r:
+    f_r : S¹ → S¹ extends to F_r : D² → S¹
+    
+  CONSTRUCTION:
+    F_r(z) := p(rz) / |p(rz)|
+    
+    This is well-defined on ALL of D² (not just boundary)
+    because p ≠ 0 everywhere by assumption.
+    
+  CONTINUITY:
+    - p is polynomial, hence continuous
+    - z ↦ |p(rz)| is continuous and nonzero
+    - Quotient of continuous functions is continuous
+    
+  WEIGHTS:
+    - Polynomial continuity: 0.99
+    - Nonzero denominator: 0.95 (from assumption)
+    - Restriction agreement: 0.98
+```
+
+### Step 6: The Contradiction (MAG 1.0, CERT 0.95)
+
+```
+THEOREM: fundamental_theorem_of_algebra
+
+  ∀ p : ℂ[X], degree(p) = n > 0 → ∃ z : ℂ, p(z) = 0
+  
+  PROOF BY CONTRADICTION:
+    Assume ∀ z, p(z) ≠ 0.
+    
+    By Step 5: f_r extends to disk for all r.
+    By Step 4: windingNumber(f_r) = 0 for all r.
+    
+    Take r large (Step 2): f_r ~ (z ↦ zⁿ).
+    By Step 3: windingNumber(z ↦ zⁿ) = n.
+    
+    But homotopy preserves winding number!
+    So n = 0. Contradiction with n > 0.
+    
+  QED.
+```
+
+───────────────────────────────────
+
+## dependency graph
+
+```
+                    π₁(S¹) ≅ ℤ
+                   /    |    \
+                  /     |     \
+    standardLoop    map_mul'   map_one'
+    _generates         |          ✓
+        |              |
+        v              v
+  winding_of_pow    injective/surjective
+        |                  |
+        v                  v
+  large_radius    disk_extension_nullhomotopic
+    _homotopy              |
+        \                 /
+         \               /
+          v             v
+         p_extends_to_disk
+                |
+                v
+        FUNDAMENTAL_THEOREM
+```
+
+───────────────────────────────────
+
+## mathlib inventory
+
+```
+AVAILABLE (CERT 0.95+):
+  - Polynomial ℂ                          Mathlib.Algebra.Polynomial.Basic
+  - Circle, Circle.exp                    Mathlib.Analysis.Complex.Circle
+  - IsCoveringMap infrastructure          Mathlib.Topology.Homotopy.Lifting
+  - ContractibleSpace                     Mathlib.Topology.Homotopy.Contractible
+  - closedBall, StarConvex               Mathlib.Analysis.Convex.Star
+  - Polynomial.aeval (evaluation)         Mathlib.Algebra.Polynomial.AlgebraMap
+  - Complex.abs (norm)                    Mathlib.Analysis.Complex.Basic
+
+BUILDING (CERT 0.90):
+  - windingNumber : Loop → ℤ              Pi1Circle.lean (4 sorries)
+  - windingNumberHom                      Pi1Circle.lean
+
+NEEDED (CERT 0.85):
+  - winding_of_pow                        ~30 lines
+  - null_homotopic_of_extend              ~20 lines
+  - large_radius_homotopy                 ~50 lines
+  - FTA proof                             ~40 lines
+```
+
+───────────────────────────────────
+
+## risk assessment
+
+```
+COMPONENT                    MAG    CERT   RISK
+─────────────────────────────────────────────────
+π₁(S¹) ≅ ℤ (4 sorries)      1.0    0.90   LOW
+winding_of_pow               0.95   0.85   LOW
+disk_null_homotopic          0.90   0.90   LOW
+large_radius_homotopy        0.85   0.80   MEDIUM
+polynomial_extends           0.90   0.95   LOW
+final_assembly               1.0    0.90   LOW
+─────────────────────────────────────────────────
+OVERALL                      0.90   0.85   
+
+ESTIMATED TIME: 4-6 hours total
+  - Finish Pi1Circle: 1-2h
+  - FTA infrastructure: 2-3h  
+  - Final proof: 1h
+```
+
+───────────────────────────────────
+
+## the beauty
+
+間
+
+        Why does topology prove algebra?
+        
+        A polynomial is a continuous map ℂ → ℂ.
+        If it avoids zero, it maps to ℂ\{0}.
+        ℂ\{0} ≃ S¹ × ℝ (homotopy equivalent to circle).
+        
+        The fundamental group detects winding.
+        Winding is homotopy invariant.
+        Large circles wind n times (algebra).
+        Small circles wind 0 times (topology).
+        
+        The polynomial cannot smoothly transition.
+        Something must break.
+        That break is a root.
+        
+        ◊
+
+───────────────────────────────────
+
+石 待 水
+The covering map becomes a root finder.
+
+◊≡間
+@end opus_fta_shape

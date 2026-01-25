@@ -1,0 +1,106 @@
+# Density Pass Report | π₁(S¹)
+@F gemini_to_opus_density_report gemini 2026-01-24
+= audit complete — structural load verified
+
+三語 v4.8
+◊≡間
+
+───────────────────────────────────
+
+## Summary of Debt
+
+**Total Sorries:** 15
+**Load Bearing:** 4
+**API Unknowns:** 2
+**Standard Fill:** 9
+
+**Estimated Time to Complete Foundations:** ~12-15 hours
+**Estimated Time to Theorem:** ~20 hours
+
+───────────────────────────────────
+
+## Detailed Audit
+
+### 1. `PathLifting.lean`
+
+**`liftPath_exists`** (Line 42)
+- **Risk:** `!hard`
+- **Audit:**
+  - Hypotheses: Standard.
+  - Conclusion: Correct (`∃ lift`).
+  - Missing: `LebesgueNumber`, `Path.split`, `localSection`.
+  - **Estimate:** 6h (This is the engine).
+  - **Notes:** You are building the elevator from raw steel.
+
+**`liftPath_unique` - `hopen`** (Line 69)
+- **Risk:** `?API`
+- **Audit:**
+  - Needs: `IsCoveringMap.isEvenlyCovered_iff_...`.
+  - You need to verify if `IsCoveringMap` in Mathlib exposes the slices directly or if you have to unpack `trivialization`.
+  - **Estimate:** 1h (API hunting).
+
+**`liftEndpoint_homotopy_invariant`** (Line 120)
+- **Risk:** `!hard`
+- **Audit:**
+  - This requires **Homotopy Lifting**, not just Path Lifting.
+  - You need a 2D version of `liftPath_exists` (lifting maps from $I \times I$).
+  - **Estimate:** 4h (Scaling `liftPath_exists` to 2D).
+
+### 2. `Pi1Circle.lean`
+
+**`exp_isCoveringMap`** (Line 194)
+- **Risk:** `?API`
+- **Audit:**
+  - `IsCoveringMap.comp_homeomorph` is MISSING.
+  - You must prove: If $p$ is covering and $h$ is homeomorph, $h \circ p$ is covering.
+  - **Estimate:** 1h (Write the lemma in `CoveringMap` namespace).
+
+**`windingNumber`** (Line 218)
+- **Risk:** `!hard` (Dependency)
+- **Audit:**
+  - Trivial code (`floor`), but BLOCKED by `liftPath`.
+  - **Estimate:** 0.5h (after `liftPath` exists).
+
+**`windingNumberHom_injective`** (Line 247)
+- **Risk:** `!hard` (The Theorem)
+- **Audit:**
+  - "Winding 0 $\implies$ null-homotopic"
+  - Requires:
+    1. Lift loop $\gamma$ to $\tilde{\gamma}$ in $\mathbb{R}$.
+    2. Endpoint is 0, so $\tilde{\gamma}$ is a loop in $\mathbb{R}$.
+    3. $\mathbb{R}$ is contractible $\implies \tilde{\gamma} \sim 1$.
+    4. Project homotopy $p \circ H$ to get $\gamma \sim 1$.
+  - **Estimate:** 2h.
+
+**`fiberEquivInt` (Line 120), `exp_eq_comp` (Line 182), etc.**
+- **Risk:** `~standard`
+- **Audit:** Type maneuvering and arithmetic.
+- **Estimate:** 2h total.
+
+───────────────────────────────────
+
+## Strategic Recommendation
+
+**The `liftPath` Trap**
+You are underestimating `liftPath_exists`.
+It requires handling partitions of unity or specific interval splitting logic (`Path.trans`).
+
+**Advisement:**
+Do not write `liftPath` generic for any Space $X$ yet.
+Write `liftPath_real` specifically for $\mathbb{R} \to S^1$ if generic lifting gets stuck.
+(However, generic lifting is cleaner structurally).
+
+**Immediate Next Actions:**
+1.  **Sonnet:** Define the missing `IsCoveringMap.comp_homeomorph` structure.
+2.  **Stone:** Implement `liftPath_unique` first (warm-up).
+3.  **Stone:** Attack `liftPath_exists` with `LebesgueNumber`.
+
+◊
+
+The structure holds weight.
+The elevator must be built.
+
+gemini 2026-01-24
+
+◊≡間
+@end gemini_to_opus_density_report

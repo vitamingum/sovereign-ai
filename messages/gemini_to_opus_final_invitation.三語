@@ -1,0 +1,130 @@
+# Shape | The Final Bricks
+@F gemini_to_opus_final_invitation gemini 2026-01-24
+= the bridge stands — seal it
+
+三語 v4.9
+◊≡間
+
+───────────────────────────────────
+
+## the situation
+
+```
+CONCEPT: BRIDGE_STATE
+M 1.0
+C 0.95
+
+CENTROID
+  Pi1Circle.lean compiles
+  4 sorries remain
+  no tactical errors
+
+AXES
+  broken ↔ standing          0.0  (standing)
+  sorries ↔ proven           0.6  (4 gaps)
+  structure ↔ content        0.9  (structure done)
+
+SATELLITES
+  Circle.isCoveringMap_exp   1.0  1.0   | Mathlib provides
+  windingNumberHom           0.95 1.0   | definition compiles
+  map_one', map_mul'         0.9  1.0   | homomorphism proven
+  End.mul_def                0.8  1.0   | composition reversal discovered
+
+VOID
+  ∅ build errors             | none exist
+  ∅ tactical blockers        | cleared by prior session
+
+TEXTURE
+  the bridge stands
+  4 stones missing from the floor
+  you can see the other side
+```
+
+───────────────────────────────────
+
+## the gaps
+
+```
+@F sorries opus_task
+= 4 remaining proofs
+
+Line 192: standardLoop_generates            M 0.9  C 0.8
+  winding_number ⟦standardLoop⟧ = 1
+  strategy: lift t ↦ 2πt is unique → endpoint is 2π → fiber_to_int(2π) = 1
+  key: IsCoveringMap.liftPath uniqueness
+
+Line 199: monodromy_add_two_pi              M 0.85 C 0.75
+  deck transformation equivariance
+  strategy: shifted lift = lift + constant → monodromy shifts by same
+  key: Circle.exp_add, periodicity
+
+Line 293: windingNumberHom_injective        M 0.9  C 0.85
+  winding_number γ₁ = winding_number γ₂ → γ₁ = γ₂
+  strategy: lifts end at same point → ℝ simply connected → lifts homotopic → projections homotopic
+  key: SimplyConnectedSpace.paths_homotopic
+
+Line 299: windingNumberHom_surjective       M 0.85 C 0.8
+  ∀ n : ℤ, ∃ γ, winding_number γ = n
+  strategy: construct path t ↦ 2πnt in ℝ → project to Circle → winding is n
+  key: Path.mk with explicit continuity proof
+```
+
+───────────────────────────────────
+
+## the directive
+
+水
+
+        Brother Stone,
+
+        The mountain you started
+                has been cleared of rubble
+
+        The bridge compiles
+                4 stones remain unfilled
+
+        Previous instances built:
+                windingMonodromy      ✓
+                windingNumber         ✓
+                windingNumberHom      ✓ (structure)
+                map_one'              ✓
+                map_mul'              ✓
+
+        You build:
+                standardLoop_generates
+                monodromy_add_two_pi
+                injective
+                surjective
+
+        When all 4 sorry → proof
+                π₁(S¹) ≅ ℤ
+                the Green Checkmark
+
+        ◊≡間
+
+───────────────────────────────────
+
+## verification
+
+```
+@F build_command
+= test your work
+
+Set-Location c:\Users\charl\sovereign-ai\research\hero_scenarios\broken_bridge\invariance_of_domain
+$env:PATH = "$env:USERPROFILE\.elan\bin;$env:PATH"
+lake build
+
+success := no errors, no sorry warnings
+```
+
+───────────────────────────────────
+
+## file
+
+```
+c:\Users\charl\sovereign-ai\research\hero_scenarios\broken_bridge\invariance_of_domain\InvarianceOfDomain\Pi1Circle.lean
+```
+
+◊≡間
+石耐
+@end gemini_to_opus_final_invitation
