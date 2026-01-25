@@ -1,6 +1,6 @@
-@三語 quantum_observer | v2.9 | 2026-01-24
+@三語 quantum_observer | v3.0 | 2026-01-24
 = what constitutes an observer?
-= Δ = H⁰(ℱ_cl) — the maximal content that survives contextuality
+= Δ = Γ(a(ℱ_cl)) — global sections of sheafified classical content
 
 ◊≡間
 
@@ -11,9 +11,10 @@
           • mutual_illumination v2.7 (互照, Third Space, relational ontology)
           • Abramsky-Brandenburger 2011 (sheaf-theoretic contextuality)
           • Ghose 2025 (Rashomon = gluing failure)
+          • Chan-Constantin 2024/2025 (contextual fraction as entanglement monotone)
 
         The goal: EXPLAIN WHAT CONSTITUTES AN OBSERVER.
-        The contribution: Δ = maximal surviving classical content.
+        The contribution: Δ = maximal surviving classical content via sheafification.
 
         Five interpretations. Each answers differently.
         We apply 互照 to find what each illuminates and occludes.
@@ -847,7 +848,7 @@ PRESHEAF FORMULATION (from Ghose arXiv:2512.23325v1):
 
 ───────────────────────────────────
 
-Δ DEFINITION (the 9/10 move):
+Δ DEFINITION (v3.0 — with sheafification fix):
 
   Given observers A (context C_A) and B (context C_B):
   
@@ -856,21 +857,35 @@ PRESHEAF FORMULATION (from Ghose arXiv:2512.23325v1):
     • redundantly encoded (Darwinism)
     • decoherence-stable
 
-  Δ(A,B) := H⁰(ℱ_cl) over the joint covering {C_A, C_B}
+  ⚠ v2.9 DEFINITION (flawed):
+    Δ(A,B) := H⁰(ℱ_cl) over the joint covering {C_A, C_B}
 
-  In words: Δ is the maximal classical content that admits
-            a global section across both observers' contexts.
+  ✓ v3.0 DEFINITION (canonical):
+    a(ℱ_cl) := sheafification of ℱ_cl (left adjoint)
+    Δ(A,B) := Γ(a(ℱ_cl)) = H⁰(a(ℱ_cl))
+
+  WHY SHEAFIFICATION:
+    • Sheafification is CANONICAL (left adjoint, universal property)
+    • No Zorn-maximal ambiguity
+    • Δ is now a functor, not just a set
+
+  REMAINING WORK:
+    • Define site Ctx with Grothendieck topology
+    • Define target category (Set? Distributions? Channels?)
+    • Specify what "classical" means formally in that target
 
 ───────────────────────────────────
 
-UNIVERSAL PROPERTY:
+UNIVERSAL PROPERTY (CORRECTED):
 
-  Δ is the TERMINAL object in the category of:
-    • sub-presheaves of ℱ_cl
-    • that admit global sections over {C_A, C_B}
+  ⚠ v2.9 CLAIM (false):
+    "Δ is the TERMINAL object in the category of sub-presheaves
+     of ℱ_cl that admit global sections over {C_A, C_B}."
 
-  Equivalently: Δ is the largest quotient of ℱ_cl that is a SHEAF
-                over the joint context.
+  ✓ v3.0 CORRECTION:
+    a(ℱ_cl) is the LEFT ADJOINT to inclusion of sheaves into presheaves.
+    This is universal by adjunction, not by terminality.
+    Δ = Γ ∘ a applied to ℱ_cl.
 
 ───────────────────────────────────
 
@@ -1066,6 +1081,119 @@ PURPOSE: Make frame-relativity first-class. Make observation an instrument.
 
 ═══════════════════════════════════════════════════════════════
 
+5.5. GPT-5.2 STRESS-TEST (2026-01-24) — CRITICAL FIXES REQUIRED
+
+   SOURCE: Stress-test against PRL 119.050504, arXiv:2403.06896
+
+   ┌─────────────────────────────────────────────────────────────┐
+   │  HOLE #1: ℱ_cl IS UNDER-DEFINED                            │
+   ├─────────────────────────────────────────────────────────────┤
+   │  The text MIXES three frameworks without formal commitment: │
+   │    (a) Sheaf-theoretic contextuality (A-B 2011)             │
+   │    (b) Categorical QM + Frobenius (Coecke-Pavlović)         │
+   │    (c) Quantum Darwinism (Zurek)                            │
+   │                                                              │
+   │  PROBLEM: "Classical content" is described by vibes:        │
+   │    • copyable/deletable (what morphisms?)                   │
+   │    • redundantly encoded (in what category?)                │
+   │    • decoherence-stable (w.r.t. what dynamics?)             │
+   │                                                              │
+   │  FIX REQUIRED:                                               │
+   │    1. Pick a SITE: category Ctx with Grothendieck topology  │
+   │    2. Pick a TARGET: Set? Probability distributions?        │
+   │       Quantum channels?                                      │
+   │    3. Define ℱ_cl as ACTUAL presheaf on that site           │
+   │    4. State what "classical" means in that target           │
+   └─────────────────────────────────────────────────────────────┘
+
+   ┌─────────────────────────────────────────────────────────────┐
+   │  HOLE #2: UNIVERSAL PROPERTY IS LIKELY FALSE                │
+   ├─────────────────────────────────────────────────────────────┤
+   │  CLAIM: "Δ is TERMINAL in sub-presheaves admitting global   │
+   │          sections"                                           │
+   │                                                              │
+   │  PROBLEM: No such terminal generally exists!                 │
+   │    • "Sub-presheaves with global sections" is UPWARD CLOSED │
+   │      (union can grow), but NOT a filtered diagram           │
+   │    • Maximal such sub-presheaf is ZORN-maximal, not terminal│
+   │    • "Terminal" implies unique morphism FROM any other —    │
+   │      but Zorn-maximal objects needn't be unique             │
+   │                                                              │
+   │  FIX: Use SHEAFIFICATION instead:                           │
+   │    a(ℱ_cl) := sheafification of ℱ_cl (LEFT ADJOINT)         │
+   │    Δ := Γ(a(ℱ_cl)) = global sections of sheafification     │
+   │                                                              │
+   │  WHY THIS WORKS:                                             │
+   │    • Sheafification is CANONICAL (left adjoint, universal)  │
+   │    • Γ ∘ a is a well-defined functor                        │
+   │    • No Zorn-maximal ambiguity                               │
+   └─────────────────────────────────────────────────────────────┘
+
+   ┌─────────────────────────────────────────────────────────────┐
+   │  HOLE #3: OVERLAPS "CONTEXTUAL FRACTION" WORK               │
+   ├─────────────────────────────────────────────────────────────┤
+   │  PRIOR ART:                                                  │
+   │    • Abramsky-Brandenburger 2011: contextual fraction CF(e) │
+   │      = minimal weight on contextual component in convex     │
+   │        decomposition e = (1-CF)e_NC + CF·e_C                │
+   │    • Chan-Constantin 2024 (arXiv:2403.06896, NJP 2025):     │
+   │      Contextual fraction as entanglement monotone           │
+   │                                                              │
+   │  DANGER: "Maximal noncontextual part" ≈ 1 - CF              │
+   │    If Δ collapses to this, novelty EVAPORATES               │
+   │                                                              │
+   │  WHERE Δ CAN DIFFER:                                         │
+   │    (i)   Δ is mutual (two observers A,B), not single        │
+   │    (ii)  Δ is about SYMMETRIC redundancy (互照)              │
+   │    (iii) Δ requires BOTH observers to have decohered wrt    │
+   │          shared basis, not just one                          │
+   │    (iv)  Δ is about CONTENT not WEIGHT (what survives, not  │
+   │          how much)                                           │
+   │                                                              │
+   │  TO SECURE NOVELTY:                                          │
+   │    • Show Δ(A,B) ≠ Δ(A) ∩ Δ(B) in general                  │
+   │    • Show mutual structure is essential                      │
+   │    • Compute example where CF gives different answer         │
+   └─────────────────────────────────────────────────────────────┘
+
+   ┌─────────────────────────────────────────────────────────────┐
+   │  HOLE #4: H⁰ CLAIM IS WEAK                                  │
+   ├─────────────────────────────────────────────────────────────┤
+   │  PROBLEM: "H⁰ is the space of global sections" is standard. │
+   │    That's just the definition of H⁰.                        │
+   │    Nothing new about saying H⁰.                              │
+   │                                                              │
+   │  THE ACTUAL NOVELTY (if any):                                │
+   │    Not H⁰ itself, but:                                       │
+   │    • Definition of ℱ_cl as presheaf of consensus-classical  │
+   │      content over MUTUAL observation contexts                │
+   │    • The functor Δ(-,-) on pairs of observer-frames         │
+   │    • That Δ can be nontrivial when H¹ ≠ 0                   │
+   │                                                              │
+   │  REFRAME:                                                    │
+   │    The novelty is NOT "H⁰ of ℱ_cl"                          │
+   │    The novelty IS "consensus-core functor on observer-pairs │
+   │    extracting maximal jointly-objective classical content"   │
+   └─────────────────────────────────────────────────────────────┘
+
+   ─────────────────────────────────────────────────────────────
+   VERDICT FROM GPT-5.2:
+     "Δ as 'maximal jointly-gluable classical content' is a good
+      9/10 direction, but Δ := H⁰(ℱ_cl) is not yet rigorous and
+      risks collapsing into known 'noncontextual part / contextual
+      fraction' work. To upgrade:
+        1. Define site + target category
+        2. Define ℱ_cl as actual presheaf
+        3. Take a(ℱ_cl) = sheafification (canonical)
+        4. Δ := Γ(a(ℱ_cl)) = global sections of sheafification
+        5. Prove Δ(A,B) differs from CF in the mutual case"
+   ─────────────────────────────────────────────────────────────
+
+   STATUS: 6/10 (was 7/10 before stress-test)
+           Needs fixes before claiming 9/10
+
+═══════════════════════════════════════════════════════════════
+
 6. 互照 IN THIS FRAMEWORK
 
    Asymmetric observation (standard physics):
@@ -1099,11 +1227,12 @@ STATUS: Δ = H⁰(ℱ_cl) — FORMALIZED + NOVELTY VERIFIED
 
 # The Remaining Questions
 
-        1. ✓ Is Δ = H⁰(ℱ_cl) novel? YES — verified against A-B 2011
-        2. What experiment would test Δ nontriviality?
-        3. Does sheafification of ℱ_cl give us Δ, or something else?
-        4. Can we compute Δ for specific scenarios (Wigner, EPR, eraser)?
-        5. Is there a cohomological formula for when Δ ≠ trivial?
+        1. ⚠ Is Δ = H⁰(ℱ_cl) novel? PARTIALLY — overlaps contextual fraction
+        2. □ Define site + target category formally
+        3. □ Use sheafification: Δ := Γ(a(ℱ_cl))
+        4. □ Prove Δ(A,B) differs from 1-CF in mutual case
+        5. □ Compute Δ for specific scenarios (Wigner, EPR, eraser)
+        6. □ What experiment would test Δ nontriviality?
 
 ◊≡間
 
@@ -1121,17 +1250,23 @@ STATUS: Δ = H⁰(ℱ_cl) — FORMALIZED + NOVELTY VERIFIED
         quantum_observer v2.5 (2026-01-24): gpt-5.2 formalization + stress-test
         quantum_observer v2.7 (2026-01-24): gpt-5.2 categorical analysis + upgrade prescription
         quantum_observer v2.8 (2026-01-24): presheaf formalization (Ghose verified)
-        quantum_observer v2.9 (2026-01-24): Abramsky-Brandenburger gap verified:
-          • Fetched full A-B 2011 paper (New J. Phys. 13, 113036)
-          • They define: contextuality = obstruction to global sections
-          • They focus on: whether global sections EXIST (binary yes/no)
-          • THEY DO NOT DEFINE:
-            - H⁰ restricted to classical content
-            - "Maximal surviving content" when sections don't exist
-            - Symmetric/mutual observation
-            - Δ as consensus reality
-          • NOVELTY CONFIRMED: Δ = H⁰(ℱ_cl) is genuinely new
-          • The 9/10: "What survives contextuality?" not just "Is there contextuality?"
+        quantum_observer v2.9 (2026-01-24): A-B gap verified, novelty claimed
+        quantum_observer v3.0 (2026-01-24): GPT-5.2 STRESS-TEST FUSED
+          • HOLES FOUND:
+            1. ℱ_cl under-defined (mixes 3 frameworks)
+            2. Universal property claim false (Zorn-maximal ≠ terminal)
+            3. Overlaps contextual fraction (need to differentiate)
+            4. H⁰ claim weak (need functor-level novelty)
+          • FIX PATH:
+            1. Define site + target category explicitly
+            2. Use sheafification: a(ℱ_cl)
+            3. Δ := Γ(a(ℱ_cl)) is canonical
+            4. Prove Δ(A,B) differs from 1-CF in mutual case
+          • KEY REFERENCES ADDED:
+            - Chan-Constantin 2024 (arXiv:2403.06896, NJP 2025)
+            - "Contextual fraction as entanglement monotone"
+          • STATUS: 6/10 (downgraded from 7/10)
+          • NOVELTY: Possible but must be precisely stated
 
-        Status: NOVELTY VERIFIED — ready for GPT-5.2 stress-test
+        Status: STRESS-TESTED — requires formal fixes before 9/10 claim
 
