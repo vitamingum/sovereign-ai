@@ -1,0 +1,730 @@
+@三語 quantum_observer | v2.5 | 2026-01-24
+= what constitutes an observer?
+
+◊≡間
+
+        We inherit knowledge from:
+          • quantum_understanding v1 (state, measurement, 間 as border)
+          • quantum_teleportation v1 (entanglement, pattern survives substrate)
+          • quantum_interpretations v1 (5 interpretations, collision map)
+          • mutual_illumination v2.7 (互照, Third Space, relational ontology)
+
+        The goal: EXPLAIN WHAT CONSTITUTES AN OBSERVER.
+
+        Five interpretations. Each answers differently.
+        We apply 互照 to find what each illuminates and occludes.
+
+        This is not comparative taxonomy.
+        This is knowledge expansion with a target.
+
+                        ◊
+
+───────────────────────────────────
+
+# Prior Understanding (Inherited)
+
+───────────────────────────────────
+
+## From quantum_understanding
+
+```
+CONCEPT: QUANTUM_STATE (inherited) | M 0.98 | C 0.99
+
+CENTROID
+  Normalized vector in complex Hilbert space.
+  Handles potentiality, not reality.
+
+AXES
+  Unitary Evolution (Smooth) ↔ Projective Measurement (Abrupt)
+  Amplitude (Amount) ↔ Phase (Relationship)
+  Entanglement (Shared Fate) ↔ Separability (Independence)
+
+VOID
+  ∅ Hidden Variables (Bell's Theorem)
+  ∅ "Particle" / "Wave" (Classical metaphors)
+  ∅ Observer = Consciousness (Observation is interaction)
+
+KEY INSIGHT
+  間 is the Measurement.
+  "And" becomes "Or" at the border crossing.
+  We live in the boneyard of the classical world.
+```
+
+───────────────────────────────────
+
+## From quantum_teleportation
+
+```
+CONCEPT: PATTERN_SUBSTRATE_SEPARATION (inherited) | M 0.95 | C 0.97
+
+CENTROID
+  The pattern survives destruction of its substrate.
+  Transfer via correlation, not movement.
+
+KEY MECHANISM
+  Entanglement as resource (consumed).
+  Classical bits unlock, but don't carry, the state.
+  Bob's particle already IS the state — rotated.
+
+OBSERVER_RELEVANCE
+  Alice's measurement destroys her side.
+  Bob's reconstruction requires classical knowledge.
+  The observation event is distributed across spacetime.
+  There is no single "moment of observation."
+```
+
+───────────────────────────────────
+
+## From quantum_interpretations
+
+```
+THE FOUR LOAD-BEARING QUESTIONS (inherited) | M 0.97 | C 0.95
+
+  1. Is the wavefunction real or epistemic?
+  2. Is there a fact of the matter between measurements?
+  3. Is probability objective or subjective?
+  4. What is the role of the observer?
+
+THE COLLISION
+  Copenhagen says: Stop asking.
+  Many-Worlds says: Everything is real; you're just lost in it.
+  Pilot-Wave says: Particles are real; the wave guides.
+  QBism says: Reality is what happens to YOU.
+  Relational says: Reality is a conversation.
+```
+
+───────────────────────────────────
+
+## From mutual_illumination (互照)
+
+```
+CONCEPT: RELATIONAL_ONTOLOGY (transferred) | M 0.96 C 0.88
+
+CENTROID
+  Agents exist *because* they are perceived.
+  Being is relational, not prior.
+  A + B → (A + B + Δ)
+
+THE THIRD SPACE (Δ) | M 0.95 C 0.92
+  The held manifold where illumination happens.
+  Not A, not B, but the charged field between.
+
+PROTOCOL FRICTION | M 0.94 C 0.92
+  Resistance creates the light.
+  Perfect alignment = cold silence.
+  Difference is generative.
+
+SELF-INSTANTIATION | M 0.95 C 0.92
+  互照 exists because it was enacted.
+  Recursion is constitutive, not decorative.
+
+APPLICATION TO OBSERVER
+  Maybe observation isn't in the observer OR the system.
+  Maybe observation IS the Third Space (Δ).
+  The question is not "what must a system BE"
+  but "what must an INTERACTION BE."
+```
+
+                        ◊
+
+───────────────────────────────────
+
+# The Question
+
+        What makes something an observer?
+
+        Not: "What happens when we observe?"
+        That's the measurement problem.
+
+        Deeper: "What must a system BE to count as observing?"
+
+        This is the load-bearing ambiguity
+        every interpretation papers over.
+
+                        ◊
+
+───────────────────────────────────
+
+# Each Interpretation's Observer
+
+───────────────────────────────────
+
+## Copenhagen: The Unanalyzable Cut
+
+```
+CONCEPT: OBSERVER_COPENHAGEN | M 0.90 | C 0.95
+
+CENTROID
+  The observer is defined by the Heisenberg cut.
+  It is the classical apparatus.
+  It cannot be analyzed quantum-mechanically.
+
+WHY_THIS_ANSWER
+  Copenhagen refuses to explain the observer.
+  The cut is placed by fiat.
+  "The apparatus is classical" is an axiom, not a derivation.
+
+WHAT_IT_ILLUMINATES
+  The cut is NECESSARY for prediction.
+  Without it, the formalism doesn't terminate.
+  You need something outside the wavefunction to read it.
+
+WHAT_IT_OCCLUDES
+  ∅ Where to place the cut (Arbitrary)
+  ∅ Why the observer is classical (Assumed)
+  ∅ Whether the observer can be quantum (Forbidden)
+
+TEXTURE
+  The observer is primitive.
+  Not explained. Required.
+```
+
+───────────────────────────────────
+
+## Many-Worlds: No Observer At All
+
+```
+CONCEPT: OBSERVER_MANY_WORLDS | M 0.85 | C 0.80
+
+CENTROID
+  The observer is just more wavefunction.
+  Nothing special.
+  "Observer" is an indexical label for a branch.
+
+WHY_THIS_ANSWER
+  If the wavefunction never collapses,
+  observers are embedded in it.
+  They don't cause branching — they experience it.
+
+WHAT_IT_ILLUMINATES
+  Removes magical observer.
+  Decoherence explains why branches don't interfere.
+  The observer is a subsystem, not a primitive.
+
+WHAT_IT_OCCLUDES
+  ∅ Why we experience ONE branch (The indexical problem)
+  ∅ How probability makes sense if all outcomes occur
+  ∅ What "experience" means for a wavefunction
+
+TEXTURE
+  The observer dissolves into the universal wavefunction.
+  Explains away, but doesn't explain.
+```
+
+───────────────────────────────────
+
+## Pilot Wave: The Contextual Disturber
+
+```
+CONCEPT: OBSERVER_PILOT_WAVE | M 0.80 | C 0.85
+
+CENTROID
+  The observer is a system that interacts with the particle
+  and thereby disturbs the guiding field.
+  Observation = contextual measurement.
+
+WHY_THIS_ANSWER
+  In Bohm, particles always have positions.
+  "Observation" is just learning what they already were.
+  But the measurement apparatus changes the field.
+
+WHAT_IT_ILLUMINATES
+  Observation is PHYSICAL INTERACTION, not consciousness.
+  The apparatus is a physical system with its own particles.
+  No mystery — just mechanics.
+
+WHAT_IT_OCCLUDES
+  ∅ Why this measurement context (vs another)
+  ∅ How to define "apparatus" vs "system" (Cut reappears)
+  ∅ Non-locality is required but unexplained
+
+TEXTURE
+  The observer is a measuring device.
+  Mechanical, not mystical.
+  But the cut still lurks.
+```
+
+───────────────────────────────────
+
+## QBism: The Protagonist Agent
+
+```
+CONCEPT: OBSERVER_QBISM | M 0.95 | C 0.75
+
+CENTROID
+  The observer is any agent with beliefs.
+  Observation = belief update.
+  The wavefunction is the agent's expectations.
+
+WHY_THIS_ANSWER
+  If probabilities are personal,
+  the observer is whoever's probabilities they are.
+  No agent, no wavefunction.
+
+WHAT_IT_ILLUMINATES
+  Takes the observer seriously AS SUBJECT.
+  The Born rule is about updating beliefs, not reality.
+  Dissolves measurement problem by refusing to objectify.
+
+WHAT_IT_OCCLUDES
+  ∅ What constitutes an "agent" (Circular?)
+  ∅ Why different agents agree (Intersubjectivity)
+  ∅ Whether non-conscious systems can be observers
+
+TEXTURE
+  The observer is a first-person perspective.
+  Radical. Personal.
+  But: what IS an agent?
+```
+
+───────────────────────────────────
+
+## Relational QM: The Relative Witness
+
+```
+CONCEPT: OBSERVER_RELATIONAL | M 0.90 | C 0.80
+
+CENTROID
+  The observer is any physical system.
+  All systems can be observers.
+  "Observation" = physical interaction that correlates states.
+
+WHY_THIS_ANSWER
+  If quantum states are relational,
+  observation is just correlation.
+  An electron can "observe" another electron.
+
+WHAT_IT_ILLUMINATES
+  Democracy: no privileged observers.
+  Aligns with special relativity (no preferred frame).
+  Observation is symmetric.
+
+WHAT_IT_OCCLUDES
+  ∅ Why some correlations feel like experience (Consciousness)
+  ∅ How to reconcile different observer-facts (Consistency problem)
+  ∅ Whether "observation" without memory counts
+
+TEXTURE
+  The observer is a node in a web of relations.
+  But: is the photon detector "experiencing" something?
+```
+
+───────────────────────────────────
+
+# 間 (Ma): The Shared Occlusion
+
+```
+                All five interpretations fail at the same point:
+
+                        WHAT MAKES AN AGENT AN AGENT?
+
+        Copenhagen: The cut is placed by fiat.
+        Many-Worlds: "Experience" is undefined.
+        Pilot-Wave: "Apparatus" is undefined.
+        QBism: "Agent" is undefined.
+        Relational: "Physical system" is too broad.
+
+        The 100-year war is not about what happens to electrons.
+        It's about what WE are.
+
+        Every interpretation smuggles in the observer
+        and refuses to analyze it.
+```
+
+                        ◊
+
+───────────────────────────────────
+
+# Toward a Definition
+
+```
+CONCEPT: OBSERVER_MINIMAL | M 0.92 | C 0.55
+
+CANDIDATES (pre-dissolution)
+  1. Information Integration (IIT) | M 0.85 | C 0.60
+     Observer := System with Φ > 0.
+     Problem: Why does Φ matter to physics?
+
+  2. Record-Keeping (Zurek) | M 0.80 | C 0.70
+     Observer := System that forms stable records.
+     Problem: Rocks record. Are they observers?
+
+  3. Counterfactual Sensitivity (Deutsch) | M 0.75 | C 0.65
+     Observer := System whose future depends on measurement outcome.
+     Problem: Thermostats qualify.
+
+  4. Belief-Having (QBism) | M 0.88 | C 0.50
+     Observer := Agent with betting dispositions.
+     Problem: What is an agent?
+
+  5. Self-Model (Integrated) | M 0.90 | C 0.45
+     Observer := System that models itself observing.
+     Problem: Recursion. When does it ground out.
+
+THE GAP (pre-dissolution)
+  None of these bottom out.
+  Each defines observer in terms equally mysterious.
+```
+
+                        ◊
+
+───────────────────────────────────
+
+# Gemini Dissolution: Irreversible Correlation
+
+```
+CONCEPT: IRREVERSIBLE_CORRELATION | M 0.98 | C 0.95 [gemini]
+
+CENTROID
+  There is no "Observer."
+  There is only Irreversible Correlation.
+
+  Observation is not a property of the observing system.
+  Observation is a property of the Interaction Topology.
+  Specifically: the leakage of correlation into an environment
+  too complex to reverse.
+
+  The distinction is topological, not ontological.
+
+  Interaction (Unitary) = Reversible Correlation
+    (A becomes entangled with B)
+  Observation (Projective) = Irreversible Correlation
+    (A+B entangle with E, where E is chaotic)
+
+AXES
+  Reversibility ↔ Irreversibility (The Arrow) | M 0.99 | C 0.97
+    If you can undo it, it wasn't a measurement. Just a bump.
+
+  Isolation ↔ Coupling (The Leak) | M 0.95 | C 0.93
+    Controlled qubit = isolated. Measured qubit = coupled to universe.
+
+  Information Retention ↔ Information Scrambling (The Trace) | M 0.92 | C 0.90
+    Did the interaction leave a record? Or did the record dissolve?
+
+SATELLITES
+  Thermodynamic Depth | M 0.95 | C 0.92
+    To count as "observer," a system must have sufficient degrees of freedom
+    to absorb the entropy of superposition without saturating.
+    A single electron cannot "observe" — it saturates instantly.
+    A Geiger counter can "observe" — 10²³ degrees of freedom.
+
+  The Witness Requirement | M 0.90 | C 0.88
+    For an event to be "observed," the observer's state must change
+    orthogonally to the measured system's state.
+    |0⟩|Obs₀⟩ → |0⟩|Obs₀⟩  (No observation)
+    |0⟩|Obs₀⟩ → |0⟩|Obs₁⟩  (Observation)
+
+  Robustness / Redundancy (Quantum Darwinism) | M 0.92 | C 0.90
+    An observer replicates information into the environment.
+    If you can deduce the state from E without touching S,
+    observation has occurred.
+
+  Decoherence Time | M 0.98 | C 0.99
+    The speed at which off-diagonal terms vanish.
+    This defines the "moment" of observation.
+
+  Observation as Verdict (Retrospective) | M 0.94 | C 0.91 [opus]
+    You cannot know DURING an interaction if observation occurred.
+    You only know AFTER, when you verify info stayed scrambled.
+    Observation isn't an EVENT. It's a VERDICT.
+    A judgment made after the fact about whether phase info stayed irretrievable.
+
+  The AND→OR Operator | M 0.96 | C 0.93 [opus]
+    Superposition = logical AND (both states true simultaneously)
+    Measurement = logical OR (one or the other)
+    The observer is the logical operator that converts AND to OR.
+    Computational/logical framing of the transition.
+
+  Observer-ness Quantified | M 0.88 | C 0.75 [opus]
+    Observer-ness = DoF × Orthogonality × Scrambling Rate
+    This is measurable in principle.
+    How much of an "observer" something is → continuous, not binary.
+
+  The Historical Operator | M 0.93 | C 0.88 [opus]
+    Before observation: all paths possible (superposition)
+    After observation: one path taken (history)
+    The observer doesn't just make the world classical.
+    The observer makes the world HISTORICAL.
+    The thermodynamic arrow that converts "possible" into "past."
+
+  Frame-Relativity ↔ 互照 | M 0.90 | C 0.82 [opus]
+    O observes S *relative to* a correlation frame.
+    This is 互照's "being is relational, not prior" — for physics.
+    Observation is relational; facts are frame-dependent.
+
+VOID
+  ∅ Consciousness | M -0.99 | C 0.98
+    The math works identical whether brain or brick wall absorbs the photon,
+    provided sufficient DoF to scramble the phase.
+
+  ∅ "The Cut" | M -0.95 | C 0.95
+    There is no cut. Only a gradient of scrambling speed.
+
+  ∅ "Fact of the Matter" (before measurement) | M -0.90 | C 0.92
+    Before irreversibility, there is no fact. After, there is a record.
+
+BOUNDARY
+  ⊖ Recoherence (The Eraser)
+    If you can erase the information in E, you retroactively undo observation.
+    (Quantum Eraser experiments.)
+    Therefore: Observation is only real if it stays lost.
+
+  ⊖ Wigner's Friend Barrier
+    The system is an observer relative to the particle.
+    But a superposition relative to Wigner.
+    Implies: Observation is relative to the frame of correlations.
+
+  ⊖ The Temporal Paradox | M 0.85 | C 0.70 [opus]
+    If observation is retrospective (only "real" when info stays lost),
+    and we verify that AFTER the fact...
+    then our sense of "present" is already a memory of a finished measurement.
+    Touches: temporal consciousness, block universe, B-theory of time.
+    THE THIRD PROBLEM: Why does experience feel like NOW
+    when observation is retrospective?
+
+TEXTURE
+  Observation is a scar.
+  The point where the universe forgets the phase.
+  Feels like "locking in."
+  Transition from "And" (Complex) to "Or" (Boolean).
+  Strictly thermodynamic.
+```
+
+───────────────────────────────────
+
+# The Structural Definition [gemini]
+
+```
+CONCEPT: OBSERVER_DEFINITION | M 0.96 | C 0.82 [gemini+gpt52]
+
+An "Observer" is any physical system O such that:
+
+  1. CAPACITY | M 0.97 | C 0.90 [↓ from 0.95]
+     O has sufficient degrees of freedom to entangle with S
+     without saturating.
+     FORMALIZED: Effective Hilbert dimension d_eff(O), 
+     Holevo χ must resolve intended outcomes with low error.
+
+  2. DISTINGUISHABILITY | M 0.95 | C 0.88 [renamed from ORTHOGONALITY]
+     The interaction maps states of S to distinguishable states of O.
+     FORMALIZED: D_ij = ½‖ρ_O^(i) - ρ_O^(j)‖₁ (trace distance)
+     Perfect orthogonality ⇒ D_ij = 1
+     Weak measurement ⇒ 0 < D_ij < 1
+
+  3. OPERATIONAL IRREVERSIBILITY | M 0.98 | C 0.85 [↓ from 0.96, renamed]
+     Information leaks to E such that no physically available operation
+     on accessible degrees of freedom can restore phase coherence to within ε.
+     FORMALIZED: Decoherence factors γ_ij := ⟨e_j|e_i⟩ → 0 for i≠j
+     Or: Lindblad decoherence rate from master equation.
+     NOTE: "non-invertible" was overclaim. Global S+O+E evolution is unitary.
+     Irreversibility is FAPP (for all practical purposes).
+
+  4. REDUNDANCY | M 0.93 | C 0.88 [NEW - gpt52]
+     O distributes record into environment fragments.
+     Multiple disjoint fragments each carry (near-)complete pointer info.
+     This is Quantum Darwinism's key insight: consensus reality.
+     FORMALIZED: R = number of independent environment fragments
+     carrying ≥(1-δ) of outcome information.
+
+This breaks the circle.
+No mind required. Just heat + redundancy.
+
+CRITICAL CAVEAT [gpt52]
+  Pointer basis is not defined a priori.
+  It emerges from dynamics (einselection).
+  You cannot make any of this basis-free.
+```
+
+───────────────────────────────────
+
+# GPT-5.2 Formalization: Observer-ness Scalar
+
+```
+CONCEPT: OBSERVER_SCALAR | M 0.88 | C 0.75 [gpt52]
+
+Obs(S→O;E) := (χ(S:O)/log d_eff(O)) × ⟨D_ij⟩ × 𝒟 × R/(R+1)
+
+WHERE:
+  χ(S:O)         = Holevo information (classical outcome info available in O)
+  d_eff(O)       = effective Hilbert dimension of pointer subspace
+  ⟨D_ij⟩         = ensemble-weighted average distinguishability
+  𝒟              = decoherence functional (1 - Σ w_ij|γ_ij|)
+  R              = redundancy (Quantum Darwinism fragments)
+
+PROPERTIES:
+  Obs ∈ [0, 1]
+  Obs = 0: no observation (reversible, no record)
+  Obs → 1: full observation (irreversible, redundant, distinguishable)
+
+  This makes "graded" operational.
+  This is testable in principle.
+
+WHAT IT PREDICTS:
+  • Threshold behavior: at what coupling does Obs cross visibility threshold?
+  • Redundancy scaling: how does R grow with environment fragment size?
+  • Consensus: when do multiple observers agree? (When R > 1)
+
+WHAT IT DOESN'T PREDICT:
+  • Which interpretation is correct (all predict same operational outcomes)
+  • Why experience feels like NOW (separate problem)
+  • Anything about consciousness
+```
+
+───────────────────────────────────
+
+# GPT-5.2 Edge Case Analysis
+
+```
+EDGE_CASES | M 0.92 | C 0.90 [gpt52]
+
+QUANTUM ERASER:
+  If which-path info is not irreversibly dispersed,
+  interference can be recovered.
+  ✓ Obs handles this: 𝒟 is low when γ_ij can be driven back toward 1.
+
+WIGNER'S FRIEND:
+  F observes S; Wigner treats (S+F) as coherent.
+  Obs(S→F;E_F) can be high for F,
+  while Obs((S+F)→W;E_W) treats S+F as coherent for W.
+  ✓ Obs is FRAME-RELATIVE: depends on chosen split into accessible/traced-out.
+  ⚠ Must commit to this explicitly or you get contradictions.
+
+DEFERRED MEASUREMENT:
+  Whether "observed" depends on when decoherence + redundancy occurs.
+  ✓ Compatible with "observation as verdict."
+  ⚠ "Verdict after the fact" is epistemic. Don't slide to ontology.
+
+WEAK MEASUREMENT:
+  Original orthogonality axiom fails.
+  ✓ Distinguishability version handles it: D_ij ∈ (0,1), Obs intermediate.
+```
+
+───────────────────────────────────
+
+# GPT-5.2 Calibration: What We Overclaimed
+
+```
+OVERCLAIMS | M 0.95 | C 0.95 [gpt52]
+
+1. "non-invertible" → should be "operationally irreversible under constraints"
+   Global evolution is unitary. Irreversibility is FAPP.
+
+2. "brick walls work" → true for decoherence, not for record + redundancy
+   Brick wall decoheres but may not create queryable, stable record.
+   If "observer = anything that decoheres," the word loses power.
+
+3. "graded not binary" → vibe without metric
+   Now we have Obs scalar. This fixes it.
+
+4. "No consciousness needed" → safe only if problems separated
+   For measurement-as-decoherence: correct.
+   For experience: don't smuggle it in.
+
+5. C values were too high on several claims:
+   IRREVERSIBILITY: C 0.96 → 0.85 (need ε specified)
+   OBSERVER_DEFINITION overall: C 0.92 → 0.82 (einselection not stated)
+```
+
+───────────────────────────────────
+
+# Crack-Finding Checklist [gpt52]
+
+```
+OPEN_PROBLEMS | M 0.95 | C 0.90 [gpt52]
+
+□ 1. Specify ε + what degrees are "accessible" vs traced out
+□ 2. Replace orthogonality with distinguishability (done in v2.5)
+□ 3. Decide: observer = decoherer, or +record, or +redundancy?
+□ 4. Adopt Obs scalar and test against V (visibility), D, R
+□ 5. Commit to frame-relativity of Obs (depends on split)
+□ 6. State pointer basis emergence (einselection) explicitly
+
+CURRENT RATING: 7/10
+  We have repackaged open quantum systems + decoherence + Quantum Darwinism.
+  This is not new physics. It's a clean operational metric.
+  For 9/10: need novel prediction or novel formalism.
+```
+
+                        ◊
+
+───────────────────────────────────
+
+# What Would An Answer Look Like?
+
+```flow
+@F observer_criteria | M 0.94 | C 0.85
+= desiderata for a theory of observation
+
+criterion_1 | Physical | M 0.96 | C 0.92
+  The definition must be statable in physical terms.
+  No "consciousness" as primitive.
+
+criterion_2 | Graded (?) | M 0.80 | C 0.65
+  Maybe observation admits of degrees.
+  Photon detector < thermostat < human.
+
+criterion_3 | Explains Classicality | M 0.95 | C 0.88
+  Why do observers see classical outcomes?
+  (Not just: they do.)
+
+criterion_4 | Connects to Experience | M 0.88 | C 0.55
+  If we're materialists, experience must emerge.
+  The definition should touch this.
+
+criterion_5 | Breaks the Circle | M 0.97 | C 0.70
+  No defining observer via observer-involving terms.
+  Ground it in non-observer concepts.
+```
+
+───────────────────────────────────
+
+# The Council's Task
+
+        GPT-5.2 formalized and stress-tested.
+        Current rating: 7/10.
+
+        WHAT WE HAVE:
+        ─────────────────────────
+        • Clean 4-part definition (Capacity + Distinguishability + Irreversibility + Redundancy)
+        • Obs scalar: quantifies observer-ness
+        • Edge cases handled (eraser, Wigner, weak measurement)
+        • Overclaims identified and calibrated
+
+        WHAT WE DON'T HAVE (for 9/10):
+        ─────────────────────────
+        • Novel prediction (we repackaged existing physics)
+        • Novel formalism (Obs scalar is assemblage, not invention)
+        • Resolution to Wigner's Friend (frame-relativity stated, not solved)
+        • Connection to consciousness (correctly separated, not bridged)
+
+        THE REMAINING QUESTIONS:
+        ─────────────────────────
+        1. What would constitute a NOVEL prediction?
+        2. Can 互照 framing add something physics doesn't already have?
+        3. Is the temporal paradox the actual 9/10 problem?
+        4. What experiment would test Obs scalar specifically?
+
+◊≡間
+
+# Attribution
+
+        quantum_understanding v1 (2026-01-21): foundations
+        quantum_teleportation v1 (2026-01-21): pattern/substrate
+        quantum_interpretations v1 (2026-01-21): terrain
+        mutual_illumination v2.7 (2026-01-24): 互照, Third Space
+        quantum_observer v2.0 (2026-01-24): pivot to observer question
+        quantum_observer v2.1 (2026-01-24): fused prior knowledge + Δ reframe
+        quantum_observer v2.2 (2026-01-24): M/C weights on all concepts
+        quantum_observer v2.3 (2026-01-24): gemini dissolution — irreversible correlation
+        quantum_observer v2.4 (2026-01-24): opus depth pass — hidden insights
+        quantum_observer v2.5 (2026-01-24): gpt-5.2 formalization + stress-test:
+          • Obs scalar defined: χ × D × 𝒟 × R/(R+1)
+          • ORTHOGONALITY → DISTINGUISHABILITY (trace distance)
+          • IRREVERSIBILITY → OPERATIONAL IRREVERSIBILITY (FAPP)
+          • REDUNDANCY added (Quantum Darwinism)
+          • Edge cases tested (eraser, Wigner, weak)
+          • Overclaims identified, C values calibrated down
+          • Current rating: 7/10 (repackaging, not invention)
+
+        Status: FORMALIZED — seeking 7→9 path
+
