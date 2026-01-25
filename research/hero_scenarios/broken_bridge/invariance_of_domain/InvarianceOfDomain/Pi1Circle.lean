@@ -37,13 +37,7 @@ open Topology Real
 -/
 
 /-- Circle.exp is periodic with period 2π -/
-lemma exp_periodic : Function.Periodic Circle.exp (2 * π) := by
-  intro x
-  simp only [Circle.exp_add]
-  have h : Circle.exp (2 * π) = 1 := by
-    ext
-    simp [Circle.coe_exp, Complex.exp_two_pi_mul_I]
-  simp [h]
+lemma exp_periodic : Function.Periodic Circle.exp (2 * π) := Circle.periodic_exp
 
 /-- The fiber of Circle.exp over 1 is ℤ (scaled by 2π) -/
 lemma exp_fiber_one : Circle.exp ⁻¹' {1} = Set.range (fun n : ℤ => (2 * π * n : ℝ)) := by
@@ -150,15 +144,11 @@ lemma monodromy_bijective (γ : Path.Homotopic.Quotient (1 : Circle) 1) :
 noncomputable def standardLoop : Path (1 : Circle) (1 : Circle) where
   toFun := fun t => Circle.exp (2 * π * t)
   source' := by simp [Circle.exp_zero]
-  target' := by
-    simp only [Set.Icc.coe_one, mul_one]
-    have h : Circle.exp (2 * π) = 1 := by
-      ext
-      simp [Circle.coe_exp, Complex.exp_two_pi_mul_I]
-    exact h
+  target' := by simp only [Set.Icc.coe_one, mul_one, Circle.exp_two_pi]
 
 /-- Shifted point is in fiber -/
-lemma shifted_mem_fiber (x : Fiber1) (k : ℤ) : (x : ℝ) + 2 * π * k ∈ Circle.exp ⁻¹' {(1 : Circle)} := by
+lemma shifted_mem_fiber (x : Fiber1) (k : ℤ) :
+    (x : ℝ) + 2 * π * k ∈ Circle.exp ⁻¹' {(1 : Circle)} := by
   simp only [Set.mem_preimage, Set.mem_singleton_iff]
   have hx := x.2
   simp only [Set.mem_preimage, Set.mem_singleton_iff] at hx
@@ -169,10 +159,10 @@ lemma shifted_mem_fiber (x : Fiber1) (k : ℤ) : (x : ℝ) + 2 * π * k ∈ Circ
   ring
 
 /-- fiber_to_int of shifted element -/
-lemma fiber_to_int_add (x : Fiber1) (k : ℤ) : 
+lemma fiber_to_int_add (x : Fiber1) (k : ℤ) :
     fiber_to_int ⟨(x : ℝ) + 2 * π * k, shifted_mem_fiber x k⟩ = fiber_to_int x + k := by
   apply fiber_to_int_unique
-  simp only [Subtype.coe_mk]
+  simp only []
   rw [fiber_to_int_spec x]
   push_cast
   ring
@@ -210,9 +200,9 @@ lemma standardLoop_generates :
   have h_proof_eq : standardLoop.source.trans (Set.mem_singleton_iff.mp fiber_zero.2).symm = 
       h_base := rfl
   -- The result from monodromy equals our computed endpoint
-  have h_mon_eq : (exp_isCoveringMap.liftPath standardLoop (fiber_zero : ℝ) 
+  have h_mon_eq : (exp_isCoveringMap.liftPath standardLoop (fiber_zero : ℝ)
       (standardLoop.source.trans (Set.mem_singleton_iff.mp fiber_zero.2).symm) 1 : ℝ) = 2 * π := by
-    simp only [fiber_zero, h_proof_eq, h_end]
+    simp only [fiber_zero, h_end]
   -- Now compute fiber_to_int
   apply fiber_to_int_unique
   simp only [h_mon_eq]
@@ -224,7 +214,7 @@ lemma monodromy_add_two_pi (γ : Path.Homotopic.Quotient (1 : Circle) 1) (x : Fi
     (windingMonodromy γ x : ℝ) + 2 * π * k := by
   obtain ⟨p⟩ := γ
   unfold windingMonodromy
-  simp only [IsCoveringMap.monodromy, Quotient.lift_mk]
+  simp only [IsCoveringMap.monodromy]
   -- Build the start proofs
   have hx_mem : (x : ℝ) ∈ Circle.exp ⁻¹' {(1 : Circle)} := x.2
   have hxk_mem : (x : ℝ) + 2 * π * k ∈ Circle.exp ⁻¹' {(1 : Circle)} := shifted_mem_fiber x k
@@ -285,7 +275,8 @@ lemma monodromy_translation (γ : Path.Homotopic.Quotient (1 : Circle) 1) (x y :
 
 /-- Winding number is additive on monodromy -/
 lemma fiber_to_int_monodromy_add (γ : Path.Homotopic.Quotient (1 : Circle) 1) (x : Fiber1) :
-    fiber_to_int (windingMonodromy γ x) = fiber_to_int x + fiber_to_int (windingMonodromy γ fiber_zero) := by
+    fiber_to_int (windingMonodromy γ x) =
+    fiber_to_int x + fiber_to_int (windingMonodromy γ fiber_zero) := by
   have htrans := monodromy_translation γ fiber_zero x
   -- fiber_zero = ⟨0, zero_mem_fiber⟩ by definition, so fiber_zero.val = 0
   have hfz : (fiber_zero : ℝ) = 0 := rfl
@@ -298,10 +289,10 @@ lemma fiber_to_int_monodromy_add (γ : Path.Homotopic.Quotient (1 : Circle) 1) (
   have h0 := fiber_to_int_spec (windingMonodromy γ fiber_zero)
   have hx := fiber_to_int_spec x
   rw [hres, h0, hx] at h
-  have hreal : (fiber_to_int (windingMonodromy γ x) : ℝ) = 
-         (fiber_to_int x : ℝ) + (fiber_to_int (windingMonodromy γ fiber_zero) : ℝ) := by
-    have h2 : 2 * π * ↑(fiber_to_int (windingMonodromy γ x)) = 
-              2 * π * ↑(fiber_to_int (windingMonodromy γ fiber_zero)) + 2 * π * ↑(fiber_to_int x) := h
+  have hreal : (fiber_to_int (windingMonodromy γ x) : ℝ) =
+      (fiber_to_int x : ℝ) + (fiber_to_int (windingMonodromy γ fiber_zero) : ℝ) := by
+    have h2 : 2 * π * ↑(fiber_to_int (windingMonodromy γ x)) =
+        2 * π * ↑(fiber_to_int (windingMonodromy γ fiber_zero)) + 2 * π * ↑(fiber_to_int x) := h
     have hpi : (2 : ℝ) * π ≠ 0 := by positivity
     field_simp at h2
     linarith
@@ -333,11 +324,12 @@ noncomputable def windingNumberHom : FundamentalGroup Circle 1 →* Multiplicati
     congr 1
     -- Goal: fiber_to_int(mon(γ₁ * γ₂) 0) = fiber_to_int(mon γ₁ 0) + fiber_to_int(mon γ₂ 0)
     -- γ₁ * γ₂ = γ₂.trans γ₁ by End.mul_def
-    have hmul : (γ₁ * γ₂ : FundamentalGroup Circle 1) = Path.Homotopic.Quotient.trans γ₂ γ₁ := 
+    have hmul : (γ₁ * γ₂ : FundamentalGroup Circle 1) =
+        Path.Homotopic.Quotient.trans γ₂ γ₁ :=
       CategoryTheory.End.mul_def γ₁ γ₂
     rw [hmul, h]
-    -- hadd gives us: fiber_to_int(mon γ₁ (mon γ₂ 0)) = fiber_to_int(mon γ₂ 0) + fiber_to_int(mon γ₁ 0)
-    -- We need: fiber_to_int(mon γ₁ (mon γ₂ 0)) = fiber_to_int(mon γ₁ 0) + fiber_to_int(mon γ₂ 0)
+    -- hadd: fiber_to_int(mon γ₁ (mon γ₂ 0)) = fiber_to_int(mon γ₂ 0) + fiber_to_int(mon γ₁ 0)
+    -- need: the same with terms swapped, which `ring` handles
     rw [hadd]
     ring
 
@@ -417,10 +409,10 @@ lemma windingNumberHom_injective : Function.Injective windingNumberHom := by
         have hp1 : H (t, 1) = l₁ 1 := H.eq_fst t (Set.mem_insert_of_mem 0 rfl)
         rcases hs with rfl | rfl
         · -- s = 0: Need Circle.exp (H (t, 0)) = p₁ 0
-          show Circle.exp (H (t, 0)) = p₁ 0
+          change Circle.exp (H (t, 0)) = p₁ 0
           rw [hp0, hl₁_start, Circle.exp_zero, p₁.source]
-        · -- s = 1: Need Circle.exp (H (t, 1)) = p₁ 1 
-          show Circle.exp (H (t, 1)) = p₁ 1
+        · -- s = 1: Need Circle.exp (H (t, 1)) = p₁ 1
+          change Circle.exp (H (t, 1)) = p₁ 1
           rw [hp1, hl₁_end, h_exp_e, p₁.target]
     }⟩
   exact Quotient.sound h_proj
@@ -435,7 +427,10 @@ lemma windingNumberHom_surjective : Function.Surjective windingNumberHom := by
   let loop_n : Path (1 : Circle) (1 : Circle) := {
     toFun := fun t => Circle.exp (2 * π * n * t)
     source' := by simp [Circle.exp_zero]
-    target' := by simp [mul_comm, Circle.exp_eq_one]; use n; ring
+    target' := by
+      simp only [Set.Icc.coe_one, mul_one, Circle.exp_eq_one]
+      use n
+      ring
   }
   use ⟦loop_n⟧
   -- Show windingNumberHom ⟦loop_n⟧ = x
