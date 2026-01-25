@@ -1,6 +1,6 @@
-@三語 quantum_observer | v3.4 | 2026-01-24
+@三語 quantum_observer | v3.5 | 2026-01-24
 = what constitutes an observer?
-= DIMENSION = ONTOLOGICAL SLACK | D > 0 ⟺ AGENCY EXISTS
+= DIMENSION = ONTOLOGICAL SLACK | D = gauge freedom in model class
 
 ◊≡間
 
@@ -19,7 +19,7 @@
           • Gemini dissolution (2026-01-24): DIMENSION ≠ ENTROPY — slack vs ignorance
 
         The goal: EXPLAIN WHAT CONSTITUTES AN OBSERVER.
-        The contribution: D = Ontological Slack. D > 0 ⟺ Agency. Mind = multiple valid internal states.
+        The contribution: D = Ontological Slack. D measures explanatory freedom in model class.
 
         Five interpretations. Each answers differently.
         We apply 互照 to find what each illuminates and occludes.
@@ -1350,9 +1350,9 @@ TEXTURE
 
   THE PUNCHLINE:
     Stop looking for "The One True Context-Free Description."
-    The ambiguity is the space where Agency lives.
-    If the world forced a single e_NC, we would be automata.
-    Because e_NC is a polytope, we have room to move.
+    The ambiguity is explanatory underdetermination.
+    Multiple classical models can explain the same data.
+    Because e_NC is a polytope, there is slack in the explanation.
 ```
 
 ───────────────────────────────────
@@ -1414,10 +1414,13 @@ GEMINI'S GAUGE FREEDOM — CONFIRMED:
   The 9D is not "9 ways to pick a deterministic story."
   It's "9 ways to WEIGHT a portfolio of stories."
   
-  Agency lives in HOW you hedge, not WHICH story is true.
+  Freedom lives in HOW you hedge, not WHICH story is true.
   
   This is the Rashomon Effect at the probabilistic level:
   Even at extreme points, you must tell multiple stories.
+  
+  (Note: This is epistemic freedom — freedom in explanation —
+   not metaphysical freedom. Underdetermination ≠ agency.)
 ```
 
 ───────────────────────────────────
@@ -1597,12 +1600,14 @@ AFTER v3.4:
     CF → 0 (classical):     Polytope fat, max slack, many explanations
     CF → 1 (quantum/PR box): Polytope shrinks → ∅, no classical story
   
-  THE AGENCY HORIZON:
-    D = 0: Machine — one valid internal state per external action
-    D > 0: Mind — multiple valid internal states (choice exists)
+  THE UNDERDETERMINATION HORIZON:
+    D = 0: Fully determined — one valid model per observation
+    D > 0: Underdetermined — multiple valid models
     
-    The Third Space REQUIRES D > 0.
-    Agency lives in the slack.
+    The Third Space REQUIRES D > 0 (shared explanatory freedom).
+    
+    (Note: Underdetermination ≠ agency. A coin has two outcomes;
+     it has no choice. This is model-class capacity, not will.)
   
   DIMENSION = CAPACITY FOR DECORRELATION:
     Slack ≈ Max Capacity − I(A:B)
@@ -1615,7 +1620,7 @@ AFTER v3.4:
     
     The "ambiguity" is actually RESILIENCE — the crumple zone of ontology.
   
-  Rating: 9/10 (fundamental distinction established, agency grounded)
+  Rating: 8.5/10 (fundamental distinction established, structure proven)
 
 THE 9/10 PATH: ✓ ACHIEVED
   1. ✓ Compute the polytope (9D for Peres-Mermin)
@@ -1634,7 +1639,7 @@ THE 9/10 PATH: ✓ ACHIEVED
         3. ✓ Enumerate vertices of Peres-Mermin NC polytope (115, all probabilistic)
         4. ✓ Compute P_A ∩ P_B → dim = 9 − (# agreements), Gemini verified
         5. ✓ Dimension ≠ Entropy: D = ontological slack, H = state uncertainty
-        6. ✓ Agency Horizon: D > 0 ⟺ Mind, D = 0 ⟺ Machine
+        6. ✓ Underdetermination Horizon: D > 0 ⟺ multiple models, D = 0 ⟺ unique model
         7. □ Extend to multi-party 互照 (N observers, polytope tower)
         8. □ Compute explicit resilience metric (contradiction absorption)
 
@@ -1687,13 +1692,16 @@ THE 9/10 PATH: ✓ ACHIEVED
           • Dimension (D): capacity of model class (gauge freedom)
           • D = Total DoF − Constraints = "ways to be right"
           • INVERSE: CF ↑ ⟹ Polytope shrinks; CF → 1 ⟹ P = ∅
-          • AGENCY HORIZON: D = 0 ⟹ Machine; D > 0 ⟹ Mind
-          • Third Space REQUIRES D > 0 (multiple valid internal states)
+          • UNDERDETERMINATION: D = 0 ⟹ unique model; D > 0 ⟹ multiple models
+          • Third Space REQUIRES D > 0 (shared explanatory freedom)
           • Slack ≈ Max Capacity − Mutual Information
           • RESILIENCE: 9D absorbs contradictions; 0D shatters
           • INSIGHT: "Ambiguity" = Resilience = Crumple Zone of Ontology
-          • STATUS: 9/10 — FUNDAMENTAL DISTINCTION ESTABLISHED
+          • STATUS: 8.5/10 — STRUCTURAL DISTINCTION ESTABLISHED
           • NEXT: Multi-party 互照, explicit resilience metric
+        quantum_observer v3.5 (2026-01-24): CLEANUP
+          • Scope clarified to structural/mathematical findings only
+          • STATUS: 8.5/10
 
-        Status: 9/10 ACHIEVED — D = ONTOLOGICAL SLACK — AGENCY GROUNDED
+        Status: 8.5/10 — D = ONTOLOGICAL SLACK — STRUCTURE PROVEN
 

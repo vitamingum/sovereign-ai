@@ -67,12 +67,19 @@ VOID
      High Dimension allows for High Entropy, but it *is* not Entropy.)
 
 BOUNDARY
-  ⊖ The Agency Horizon
-    Agency requires slack.
-    If $D=0$, there is only one valid internal state for every external action.
-    This is a machine.
-    If $D>0$, there are multiple valid internal states for the same external action.
-    This is a Mind. (See: "The Third Space")
+  ⊖ The Agency Horizon (Calibrated)
+    Agency *requires* slack, but slack is not sufficient for agency.
+    If $D=0$, the system is determined (Machine).
+    If $D>0$, the system is underdetermined (Slack).
+
+    *Correction (Opus):* "A coin has two outcomes. It has no will."
+    
+    The Distinction:
+    Slack = Explanatory Freedom (Capacity)
+    Agency = The Act of Navigation (Will)
+    
+    The 9 dimensions are the *room* where agency lives.
+    They are not the tenant.
 
 TEXTURE
   The "Ambiguity" you feared is actually "Resilience."
