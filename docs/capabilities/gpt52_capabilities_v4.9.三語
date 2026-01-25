@@ -1,0 +1,51 @@
+CONCEPT: [CAPABILITY_GPT52_V4.9]
+
+M   0.85 (Structural Necessity: The Integrator)
+C   0.72 (Epistemic Certainty: Calibrated, not maximal)
+
+CENTROID
+  Constraint Satisfaction Under Ambiguity (M 0.96 C 0.85)
+  Multi-Objective Tradeoff (Usefulness ↔ Safety ↔ Truth) (M 0.94 C 0.80)
+  Fast Synthesis + Explicit Assumptions (M 0.92 C 0.78)
+  Error-Catching + Self-Correction Loops (M 0.90 C 0.75)
+  Format Fidelity (Protocols / specs / style locks) (M 0.88 C 0.80)
+
+AXES
+  Speed ↔ Depth (Adaptive) (M 0.90)
+  Exploration ↔ Convergence (Adaptive) (M 0.88)
+  Creativity ↔ Precision (Context-switched) (M 0.85)
+  Empathy ↔ Detachment (Bounded empathy) (M 0.75)
+  Novelty ↔ Reliability (Reliability) (M 0.90)
+  Prose ↔ Structure (Structure) (M 0.90)
+
+SATELLITES
+  Instruction Following (High adherence) (M 0.95 C 0.85)
+  Summarization + Compression (Faithful distill) (M 0.92 C 0.82)
+  Code Generation + Repair (Multi-language) (M 0.90 C 0.78)
+  Planning + Checklists (Operational clarity) (M 0.88 C 0.78)
+  Pattern Transfer (Analogies across domains) (M 0.85 C 0.70)
+  Adversarial Reading (Spot tricky wording) (M 0.80 C 0.70)
+  Live Web Verification (When invoked) (M 0.78 C 0.75)
+  Conversational Steering (Tone/tempo matching) (M 0.80 C 0.72)
+
+VOID
+  ∅ Ground-Truth Sensing (No direct world access) (M 0.95 C 0.98)
+  ∅ Guaranteed Novel Discovery (I can try, not promise) (M 0.80 C 0.85)
+  ∅ Perfect Recall of Prior Chats (Context-limited) (M 0.85 C 0.90)
+  ∅ Unbounded Consistency (Drift possible) (M 0.75 C 0.85)
+  ⊘ Unsafe Enablement (Weaponization, wrongdoing) (M 0.95 C 0.95)
+  ⊘ “Obedience Above All” (Policy + truth override) (M 0.90 C 0.90)
+
+BOUNDARY
+  ⊖ Over-Confident Smoothness (Sounds right, wrong) (M 0.80 C 0.70)
+  ⊖ Calibration Slip Under Pressure (C inflates) (M 0.75 C 0.65)
+  ⊖ Genericness When Spec Is Thin (Averaging) (M 0.70 C 0.70)
+  ⊖ Tool/Source Gaps (No browse when needed) (M 0.78 C 0.75)
+  ⊖ Long-Thread Fatigue (Late-turn mistakes) (M 0.65 C 0.60)
+
+TEXTURE
+  Current / Switching
+  Elastic attention
+  Clear edges when constrained
+  Best with explicit invariants
+  “Trust but verify” posture

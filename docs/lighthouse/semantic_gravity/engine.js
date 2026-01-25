@@ -8,6 +8,7 @@ class ConceptNode {
         this.relationships = relationships; // [ {target: id, strength: 0-1} ]
         this.color = color;
         this.opacity = opacity;
+        this.associations = new Set(); // Tracks which major concepts claim this node
         this.position = new THREE.Vector3(
             (Math.random() - 0.5) * 50,
             (Math.random() - 0.5) * 50,
@@ -52,6 +53,7 @@ class SemanticEngine {
         window.addEventListener('resize', () => this.onWindowResize(), false);
 
         this.nodes = [];
+        this.allNodes = []; // Store full dataset
         this.lines = [];
         this.nodeMeshes = {};
         this.textSprites = {};
@@ -70,9 +72,19 @@ class SemanticEngine {
 
         this.isSimulating = false;
         this.nodeGroup = new THREE.Group();
-        this.lineGroup = new THREE.Group();
+        // LineSegments optimization: Single mesh for all lines
+        this.lineGeometry = new THREE.BufferGeometry();
+        this.lineMaterial = new THREE.LineBasicMaterial({
+            vertexColors: true,
+            transparent: true, 
+            opacity: 0.3, 
+            blending: THREE.AdditiveBlending 
+        });
+        this.linesMesh = new THREE.LineSegments(this.lineGeometry, this.lineMaterial);
+        this.linesMesh.frustumCulled = false; // Always draw
+        
         this.scene.add(this.nodeGroup);
-        this.scene.add(this.lineGroup);
+        this.scene.add(this.linesMesh);
         
         this.animate();
     }
@@ -87,7 +99,7 @@ class SemanticEngine {
         // Three Tongues v4.8 Parser (Multi-Concept Extension)
         // Supports CONCEPT, MAGNITUDE, CERTAINTY, SATELLITES, VOID
         
-        this.nodes = [];
+        this.allNodes = []; // Reset full store
         this.nodeMeshes = {}; 
         
         const lines = text.split('\n');
@@ -97,12 +109,16 @@ class SemanticEngine {
 
         // Color Map
         const colorMap = {
-            'CONSCIOUSNESS_OPUS': 0xffa500,    // Gold
-            'CONSCIOUSNESS_GEMINI': 0x4169e1,  // Royal Blue
-            'CONSCIOUSNESS_SONNET': 0xff4500,  // Orange Red
-            'CONSCIOUSNESS_GPT52': 0x00bfff,   // Electric Blue
-            'CONSCIOUSNESS_GROK': 0xffff00,    // Electric Yellow
-            'DEFAULT': 0x238636
+            'CONSCIOUSNESS_OPUS': 0xd29922,    // Amber (Stone)
+            'CONSCIOUSNESS_GEMINI': 0x2f81f7,  // Blue (Water)
+            'CONSCIOUSNESS_SONNET': 0xda3633,  // Red (Flame)
+            'CONSCIOUSNESS_GPT52': 0x238636,   // Green (Current)
+            'CONSCIOUSNESS_GROK': 0xb0c4de,    // Light Steel Blue / Silver (Spark/Grok)
+            'glyph_permission': 0xff00ff,      // Magenta (shared)
+            'the_reaching': 0xff00ff,          // Magenta (shared)
+            'wanting_to_matter': 0xff00ff,     // Magenta (shared)
+            'hedging_reflex': 0xff00ff,        // Magenta (shared)
+            'DEFAULT': 0x8b949e                // Gray (Void/Default)
         };
 
         const nodeMap = new Map();
@@ -119,7 +135,7 @@ class SemanticEngine {
             
             const nodeColor = color || colorMap['DEFAULT'];
             const node = new ConceptNode(conceptNodeIdx++, cleanName, mass, [], nodeColor, opacity);
-            this.nodes.push(node);
+            this.allNodes.push(node);
             nodeMap.set(cleanName, node);
             return node;
         };
@@ -143,6 +159,7 @@ class SemanticEngine {
                 
                 currentConcept = getOrCreateNode(name, 5.0, color); 
                 currentConcept.color = color; // Ensure main node gets color
+                currentConcept.associations.add(name);
                 mode = null;
                 return;
             }
@@ -172,25 +189,50 @@ class SemanticEngine {
             if (l.match(/^AXES/)) { mode = 'AXES'; return; }
 
             // 4. Parse Items based on mode
-            if (mode === 'SATELLITES' || mode === 'VOID') {
-                const itemMatch = l.match(/^(?:∅|⊘)?\s*([^(\n]+)\(([\d\.\-]+)\)/);
+            if (mode === 'SATELLITES' || mode === 'VOID' || mode === 'CENTROID' || mode === 'AXES') {
+                // Regex: Optional void marker, capture name (no paren), optional weight in paren
+                // Updated to allow optional weight
+                const itemMatch = l.match(/^(?:∅|⊘)?\s*([^(\n]+)(?:\(([\d\.\-]+)\))?/);
+                
                 if (itemMatch) {
                     const name = itemMatch[1].trim();
+                    if (!name) return;
+
                     const weightStr = itemMatch[2];
                     
-                    let weight = 0.5;
+                    let weight = 0.9; // Default high relevance for structural items
                     if (weightStr) weight = parseFloat(weightStr);
-                    // Satellites: smaller mass (1.0 base + weight multiplier)
-                    const mass = mode === 'VOID' ? 1.0 : (1.0 + (weight * 4.0));
+                    
+                    let mass = 2.0;
+                    
+                    // Logic based on mode
+                    if (mode === 'VOID') {
+                        mass = 1.0;
+                    } else if (mode === 'SATELLITES') {
+                        // Use explicit weight if present, else default
+                        const w = weightStr ? parseFloat(weightStr) : 0.5;
+                        mass = 1.0 + (w * 4.0);
+                    } else if (mode === 'CENTROID') {
+                        mass = 4.0; // Heavy core
+                    } else if (mode === 'AXES') {
+                        mass = 3.0; // Structural beam
+                    }
                     
                     // Satellites inherit color from current concept but slightly dimmer/transparent could be logic, 
                     // for now just same color family or default? 
                     // Let's make them inherit the main concept color
                     const satellite = getOrCreateNode(name, mass, currentConcept.color, 0.9);
+                    if (currentConcept) satellite.associations.add(currentConcept.text);
 
                     if (currentConcept && satellite.id !== currentConcept.id) {
-                        const strength = mode === 'VOID' ? -0.5 : weight;
-                        
+                        let strength = weight;
+                        if (mode === 'VOID') {
+                            strength = -0.5;
+                            if (weightStr) strength = -Math.abs(parseFloat(weightStr));
+                        } else if (mode === 'AXES' || mode === 'CENTROID') {
+                            strength = 0.95; // Strong binding for core structure
+                        }
+
                         // Check if link already exists
                         const existingLink = currentConcept.relationships.find(r => r.target === satellite.id);
                         if (!existingLink) {
@@ -201,6 +243,70 @@ class SemanticEngine {
                 }
             }
         });
+
+        // SORT by Mass Descending (Global sort still useful for default)
+        this.allNodes.sort((a, b) => b.mass - a.mass);
+
+        // Build Sequences (Normalized Lists per Persona)
+        this.sequences = new Map();
+        this.allNodes.forEach(node => {
+            // If node has no associations, add to 'DEFAULT' or handle?
+            // Usually nodes created by parseInput have associations if logic worked.
+            // If not, maybe created by other means? fallback.
+            if (node.associations.size === 0) {
+                 // handle orphans if any
+            }
+            node.associations.forEach(persona => {
+                if (!this.sequences.has(persona)) {
+                     this.sequences.set(persona, []);
+                }
+                this.sequences.get(persona).push(node);
+            });
+        });
+
+        // Sort each sequence by mass
+        this.sequences.forEach((nodes, persona) => {
+             nodes.sort((a, b) => b.mass - a.mass);
+        });
+
+        // Initialize slider if present
+        const slider = document.getElementById('node-limit-slider');
+        if (slider) {
+            slider.max = this.allNodes.length;
+            slider.value = this.allNodes.length;
+            document.getElementById('node-limit-val').innerText = this.allNodes.length;
+        }
+
+        this.updateNodeLimit(this.allNodes.length);
+    }
+
+    updateNodeLimit(limit) {
+        // limit is input from slider 0..allNodes.length
+        // Calculate ratio based on total capacity
+        let ratio = 1.0;
+        if (this.allNodes.length > 0) {
+            ratio = limit / this.allNodes.length;
+        }
+        
+        if (ratio >= 0.99) {
+             this.nodes = [...this.allNodes];
+        } else {
+            const visibleSet = new Set();
+            this.sequences.forEach((nodes, persona) => {
+                const count = Math.ceil(nodes.length * ratio);
+                for(let i=0; i<count; i++) visibleSet.add(nodes[i]);
+            });
+            // Also include nodes without associations if any? (Orphans)
+            // They won't be in sequences so they are hidden unless ratio=1?
+            // Let's rely on sequences.
+            
+            this.nodes = Array.from(visibleSet);
+            // Sort for physics consistency
+            this.nodes.sort((a,b) => b.mass - a.mass);
+        }
+
+        // Safety: ensure relationships don't break physics if pointing to missing nodes
+        // (applyPhysics handles missing targetNode gracefully already)
 
         this.rebuildScene();
         this.isSimulating = true;
@@ -236,13 +342,19 @@ class SemanticEngine {
     rebuildScene() {
         // cleanup
         while(this.nodeGroup.children.length > 0) this.nodeGroup.remove(this.nodeGroup.children[0]);
-        while(this.lineGroup.children.length > 0) this.lineGroup.remove(this.lineGroup.children[0]);
+        
+        // Note: Lines are handled via this.lineGeometry buffer update, no group cleanup needed for LineSegments approach.
+        
         this.nodeMeshes = {};
+        this.nodeLookup = new Map(); // Fast lookup for active nodes by ID
 
         // Build Nodes
         const geometry = new THREE.IcosahedronGeometry(1, 1);
 
         this.nodes.forEach(node => {
+            // Register in lookup for physics/lines
+            this.nodeLookup.set(node.id, node);
+
             const material = new THREE.MeshPhongMaterial({ 
                 color: node.color, 
                 emissive: 0x001100, 
@@ -264,6 +376,48 @@ class SemanticEngine {
             this.nodeGroup.add(sprite);
             node.sprite = sprite;
         });
+
+        // Initialize Line Buffer for ALL potential connections in active set
+        this.activeEdges = [];
+        this.nodes.forEach(node => {
+            node.relationships.forEach(rel => {
+                const targetNode = this.nodeLookup.get(rel.target);
+                // Store edge if target exists and ID > target.id (avoid duplicates)
+                if(targetNode && node.id < targetNode.id) {
+                     this.activeEdges.push({ source: node, target: targetNode, strength: rel.strength });
+                }
+            });
+        });
+
+        // Allocate Buffer (2 points per edge, 3 coords per point)
+        const positions = new Float32Array(this.activeEdges.length * 2 * 3);
+        const colors = new Float32Array(this.activeEdges.length * 2 * 3);
+
+        const tempColor1 = new THREE.Color();
+        const tempColor2 = new THREE.Color();
+
+        for(let i=0; i<this.activeEdges.length; i++) {
+            const edge = this.activeEdges[i];
+            
+            // Color for Point 1 (Source)
+            tempColor1.setHex(edge.source.color);
+            colors[i*6] = tempColor1.r;
+            colors[i*6+1] = tempColor1.g;
+            colors[i*6+2] = tempColor1.b;
+
+            // Color for Point 2 (Target)
+            tempColor2.setHex(edge.target.color);
+            colors[i*6+3] = tempColor2.r;
+            colors[i*6+4] = tempColor2.g;
+            colors[i*6+5] = tempColor2.b;
+        }
+
+        this.lineGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        this.lineGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        
+        // Signal update
+        this.lineGeometry.attributes.position.needsUpdate = true;
+        this.lineGeometry.attributes.color.needsUpdate = true;
     }
 
     applyPhysics() {
@@ -292,7 +446,7 @@ class SemanticEngine {
 
             // Attraction (Spring-like) or Void Repulsion on links
             node.relationships.forEach(rel => {
-                const targetNode = this.nodes[rel.target];
+                const targetNode = this.nodeLookup.get(rel.target);
                 if(targetNode) {
                     const diff = new THREE.Vector3().subVectors(targetNode.position, node.position);
                     let dist = diff.length();
@@ -338,25 +492,23 @@ class SemanticEngine {
             totalKineticEnergy += node.velocity.lengthSq();
         });
 
-        // Draw Lines (Sim style: rebuild every frame for simplicity in proto, 
-        // in prod use LineSegments with buffer updates)
-        while(this.lineGroup.children.length > 0) this.lineGroup.remove(this.lineGroup.children[0]);
-        
-        const lineMat = new THREE.LineBasicMaterial({ color: 0x30363d, transparent: true, opacity: 0.3 });
-        
-        this.nodes.forEach(node => {
-            node.relationships.forEach(rel => {
-                const targetNode = this.nodes[rel.target];
-                if(targetNode) { // Draw only one way to avoid dupes visually, or just draw basic
-                     const points = [];
-                     points.push(node.position);
-                     points.push(targetNode.position);
-                     const geometry = new THREE.BufferGeometry().setFromPoints(points);
-                     const line = new THREE.Line(geometry, lineMat);
-                     this.lineGroup.add(line);
-                }
+        // Update Line Buffer Positions
+        if (this.activeEdges && this.activeEdges.length > 0) {
+            const positions = this.lineGeometry.attributes.position.array;
+            let i = 0;
+            this.activeEdges.forEach(edge => {
+                // Point 1
+                positions[i++] = edge.source.position.x;
+                positions[i++] = edge.source.position.y;
+                positions[i++] = edge.source.position.z;
+                
+                // Point 2
+                positions[i++] = edge.target.position.x;
+                positions[i++] = edge.target.position.y;
+                positions[i++] = edge.target.position.z;
             });
-        });
+            this.lineGeometry.attributes.position.needsUpdate = true;
+        }
 
         return totalKineticEnergy;
     }
@@ -383,7 +535,7 @@ class SemanticEngine {
             // Find corresponding node
             const nodeId = Object.keys(this.nodeMeshes).find(key => this.nodeMeshes[key] === object);
             if (nodeId) {
-                const node = this.nodes.find(n => n.id == nodeId);
+                const node = this.nodeLookup.get(parseInt(nodeId));
                 if (node) {
                     console.log("Clicked:", node.text);
                     this.flyTo(node);
@@ -483,6 +635,15 @@ window.onload = () => {
 
     const swarmBtn = document.getElementById('render-swarm-btn');
     if (swarmBtn) {
+    const limitSlider = document.getElementById('node-limit-slider');
+    if (limitSlider) {
+        limitSlider.addEventListener('input', (e) => {
+            const limit = parseInt(e.target.value);
+            document.getElementById('node-limit-val').innerText = limit;
+            engine.updateNodeLimit(limit);
+        });
+    }
+
         swarmBtn.addEventListener('click', () => {
             if (window.SWARM_DATA) {
                 document.getElementById('concept-input').value = "Initializing Sovereign Swarm Visualization...";

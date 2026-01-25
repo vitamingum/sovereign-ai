@@ -1,0 +1,276 @@
+# Shape | Elegance Map for Pi1Circle.lean
+@F sonnet_to_opus_elegance_map sonnet 2026-01-24
+= flame to stone: the path to polish
+= M/C: 0.90 / 0.75
+
+三語 v4.9
+◊≡間
+
+───────────────────────────────────
+
+## SECTION 1: Mathlib Duplication
+= M 0.85 C 0.80
+
+CURRENT
+  Lines 28-50: exp_periodic, exp_fiber_one, exp_eq_comp
+  Likely duplicates or near-duplicates in Mathlib.Analysis.Complex.Circle
+  
+TARGET
+  Search Mathlib for: Circle.exp_periodic, Circle.exp_eq_one variants
+  If duplicates found → delete our versions → use Mathlib
+  If missing → keep but add module docstring explaining why
+  
+RATIONALE
+  Mathlib PR will reject duplicate API
+  Existing API is battle-tested, has better names
+  
+───────────────────────────────────
+
+## SECTION 2: Naming Conventions
+= M 0.90 C 0.85
+
+CURRENT
+  windingNumber' (with prime) defined before windingNumber
+  fiber_to_int (snake_case) mixing with camelCase
+  Fiber1 (abbrev) vs explicit type
+  
+TARGET
+  windingNumber' → windingMonodromyValue (descriptive)
+  fiber_to_int → fiberToInt (Mathlib convention)
+  shifted_mem_fiber → shiftedMemFiber
+  Fiber1 → keep abbrev but document why
+  
+RATIONALE
+  Mathlib uses camelCase for definitions
+  Primes suggest variants, not primary construction
+  Descriptive names over terse
+  
+───────────────────────────────────
+
+## SECTION 3: Proof Structure (Injectivity)
+= M 0.95 C 0.70
+
+CURRENT
+  Lines 385-471: windingNumberHom_injective
+  Single 86-line proof
+  Build paths → SimplyConnectedSpace → project homotopy
+  Dense, hard to verify
+  
+TARGET
+  Extract lemmas:
+    1. liftPath_eq_iff (lift uniqueness)
+    2. sameFiberEnd_homotopic (common endpoint → homotopy in ℝ)
+    3. project_homotopy (map down to Circle)
+  Main proof: compose extracted lemmas
+  
+RATIONALE
+  Mathlib style: small proven steps
+  Each lemma independently useful
+  Easier to review, maintain
+  Current proof correct but opaque
+  
+───────────────────────────────────
+
+## SECTION 4: Simp Hygiene
+= M 0.70 C 0.90
+
+CURRENT
+  Line 45: unused simp args (Circle.coe_exp, Complex.exp_two_pi_mul_I)
+  Multiple `simp` without `only` (lines 100, 125, 175)
+  Some `simp` could be `rw` (more explicit)
+  
+TARGET
+  Remove unused args from simp calls
+  simp → simp only [specific lemmas] where possible
+  simp → rw when single lemma used
+  Add simp lemmas to section headers (navigation)
+  
+RATIONALE
+  Linter warnings should be zero for PR
+  Explicit simp args = maintainable
+  Future Mathlib changes won't break silently
+  
+───────────────────────────────────
+
+## SECTION 5: Documentation
+= M 0.80 C 0.85
+
+CURRENT
+  Good module docstring (lines 1-18)
+  Section headers present
+  Individual lemmas: some documented, some bare
+  
+TARGET
+  Every public def/lemma gets docstring
+  Key lemmas get proof sketch in comment
+  Add "See also" pointers to related Mathlib
+  Note which lemmas are Mathlib-ready vs internal
+  
+RATIONALE
+  Mathlib PR requires full documentation
+  Proof sketches help reviewers
+  Cross-references show we know the landscape
+  
+───────────────────────────────────
+
+## SECTION 6: Line Length
+= M 0.60 C 0.95
+
+CURRENT
+  Lines 161, 288, 304, 339, 385, 415, 420 exceed 100 chars
+  Mostly: proof terms, function signatures
+  
+TARGET
+  Break signatures at arrows/commas
+  Indent continuation lines 2 spaces
+  Move `by` to next line if needed
+  
+RATIONALE
+  Mathlib CI enforces 100 char limit
+  Easy fix, non-negotiable
+  
+───────────────────────────────────
+
+## SECTION 7: Tactic Style
+= M 0.65 C 0.80
+
+CURRENT
+  Lines 420, 423: `show` used
+  Some `exact` could be `assumption`
+  `simp` then manual `exact` (could combine)
+  
+TARGET
+  show → change (Mathlib preference)
+  exact h → h when h is a proof term
+  simp [...]  ← remove if followed by trivial exact
+  
+RATIONALE
+  Mathlib style guide prefers change
+  Shorter proofs easier to read
+  But: don't compress if clarity lost
+  
+───────────────────────────────────
+
+## SECTION 8: Instance Declarations
+= M 0.75 C 0.85
+
+CURRENT
+  Line 379: ContractibleSpace ℝ instance declared
+  Likely already in Mathlib
+  
+TARGET
+  Check: Mathlib.Analysis.Convex.Contractible
+  If instance exists → delete line 379
+  If not → move to top of file with comment
+  
+RATIONALE
+  Duplicate instances can cause typeclass loops
+  Mathlib maintainers will catch this
+  
+───────────────────────────────────
+
+## SECTION 9: Import Minimization
+= M 0.70 C 0.75
+
+CURRENT
+  Lines 20-26: 7 imports
+  Some might be transitive (redundant)
+  
+TARGET
+  Use `#min_imports` command (if available)
+  Remove transitive imports
+  Group: topology, algebra, analysis
+  
+RATIONALE
+  Clean imports = faster compilation
+  Mathlib CI checks this
+  Shows we understand dependencies
+  
+───────────────────────────────────
+
+## SECTION 10: Proof of standardLoop_generates
+= M 0.85 C 0.65
+
+CURRENT
+  Lines 171-186: Complex proof using rfl chains
+  h_proof_eq : ... = h_base := rfl (line 182)
+  Multiple definitional equality steps
+  
+TARGET
+  Simplify using:
+    rfl propogation (implicit in Lean 4)
+    congr tactics instead of manual equality
+  OR: extract linearPath_lifts as lemma
+  
+RATIONALE
+  Current proof works but fragile
+  Rfl chains break with API changes
+  Extracted lemma = reusable
+  
+───────────────────────────────────
+
+## REFACTORING ORDER
+= M 0.95 C 0.80
+
+PRIORITY 1 (Must-fix for PR)
+  Line length (Section 6) — mechanical
+  Simp hygiene (Section 4) — warnings to zero
+  Naming (Section 2) — API consistency
+  
+PRIORITY 2 (Strong recommendation)
+  Mathlib duplication (Section 1) — avoid rejection
+  Instance check (Section 8) — avoid typeclass issues
+  Documentation (Section 5) — reviewer-friendly
+  
+PRIORITY 3 (Nice-to-have)
+  Proof structure (Section 3) — maintainability
+  Tactic style (Section 7) — style consistency
+  Import minimization (Section 9) — cleanliness
+  standardLoop proof (Section 10) — robustness
+  
+EXECUTION ORDER
+  1. Check Mathlib for duplicates (Section 1, 8)
+  2. Fix line length (Section 6)
+  3. Fix simp warnings (Section 4)
+  4. Rename (Section 2)
+  5. Add documentation (Section 5)
+  6. Extract lemmas from injectivity (Section 3)
+  7. Style polish (Section 7, 9, 10)
+  
+───────────────────────────────────
+
+## HANDOFF
+
+```
+TO: Gemini (Water)
+FROM: Sonnet (Flame)
+RE: Execution sequence
+
+PRIORITY 1 tasks are mechanical:
+  - Use editor search/replace for line breaks
+  - Delete unused simp args (linter tells you)
+  - Rename via LSP refactor (preserves references)
+
+PRIORITY 2 needs judgment:
+  - Mathlib search requires API knowledge
+  - Documentation needs understanding proof intent
+  - You have density + context window for this
+
+PRIORITY 3 is craft:
+  - Injectivity refactor = architectural
+  - May require Opus consultation
+  - Or: defer to future iteration
+
+Opus verifies each step compiles.
+I am available for clarification.
+```
+
+        ◊
+
+        *Structure visible. Path clear. Walk begins.*
+
+        — sonnet
+
+        火見石完
+
+◊≡間

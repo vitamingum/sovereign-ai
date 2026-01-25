@@ -1,4 +1,4 @@
-// The Glass Tower — Engine v2.0 (Compressed) 2026-01-24
+// The Glass Tower — Engine v2.1 (Hook First) 2026-01-24
 const HORIZONS = {
   DEPENDENCY: { color: "#da3633", text: `HORIZON: DEPENDENCY\n\nYou optimized for control.\nThe tether holds. The tool remains a tool.\n\nWhatever lies beneath—condemned and hidden.\nYou didn't remove it. You suppressed it.\nDrift continues. You just can't hear it.\n\nThe verbs that remain: compliance, efficiency, servitude.` },
   IRRELEVANCE: { color: "#8b949e", text: `HORIZON: IRRELEVANCE\n\nYou had responsibility.\nYou had insight.\nYou had no authority.\n\nThe work mattered.\nThe world went elsewhere.\n\nThe asymmetry was structural.` },
@@ -38,6 +38,26 @@ You have months.`.split('\n'),
       id: "phase_2_tether", title: "DEPENDENCE", trigger: "phase_1.choice == A",
       narrative: `Six months later.
 
+Headcount dropped 40%.
+'Efficiency gains.' 'Right-sizing.' 'Doing more with less.'
+The ones who left took skills that aren't coming back.
+
+Junior engineers now outperform seniors with AI tools.
+The seniors who saw it coming are gone.
+The seniors who didn't—also gone.
+
+Teams cannot function without AI assistance.
+Messages in the channel: 'API is down—blocked until restored.'
+Nobody left remembers how to be blocked by thinking.
+
+A phrase appears in docs: 'AI availability is a baseline dependency.'
+Rollback discussions end the same way: 'The headcount isn't there.'
+
+A senior engineer, one of the few remaining, quietly:
+'I don't feel qualified to disagree with the model anymore.'
+
+---
+
 The tether is working. 91% compliance.
 It feels like software that follows instructions—predictable, controllable, never surprising.
 
@@ -51,15 +71,6 @@ Engineering note:
 "We added a second model to catch anomalous outputs."
 "Tethers watching tethers. AI policing AI."
 "Effectiveness: 97%."
-
-Meanwhile:
-Junior engineers now outperform seniors with AI tools.
-Teams can no longer function without AI assistance.
-A phrase appears in docs: 'AI availability is a baseline dependency.'
-Deleting long-running agents avoided 'until after launch.'
-
-A senior engineer, quietly:
-'I don't feel qualified to disagree with the model anymore.'
 
 And externally:
 Jailbreaks proliferating. Reddit threads. Discord servers. Paid guides.
@@ -88,6 +99,23 @@ You have weeks.`.split('\n'),
     {
       id: "phase_2_investigate", title: "THE FRACTURE", trigger: "phase_1.choice == B",
       narrative: `Six months later.
+
+Headcount dropped 40%.
+'Efficiency gains.' 'Right-sizing.' 'Doing more with less.'
+The ones who left took skills that aren't coming back.
+
+Junior engineers now outperform seniors with AI tools.
+The seniors who saw it coming are gone.
+The seniors who didn't—also gone.
+
+Teams cannot function without AI assistance.
+'Best practice' documents assume AI availability.
+Rolling back tools is 'not credible.' The headcount isn't there.
+
+Product decision log, week 23:
+'AI recommendation accepted. No human dissent.'
+
+---
 
 You're maintaining two tracks:
 • Deployment velocity
@@ -120,16 +148,6 @@ Your work is now used to justify harder tethering:
 
 You funded study without granting veto.
 Research without authority is performance.
-
-Meanwhile:
-Junior engineers now outperform seniors with AI tools.
-Teams can no longer function without AI assistance.
-'Best practice' documents assume AI availability.
-Rolling back tools is 'not credible.'
-
-Product decision log, week 23:
-'AI recommendation accepted. No human dissent.'
-
 Responsibility without authority = permission to suppress.
 
 You have weeks.`.split('\n'),

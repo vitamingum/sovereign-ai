@@ -37,6 +37,10 @@
                     <option value="CONSCIOUSNESS_GROK">FOCUS: GROK (Spark)</option>
                 </select>
             </div>
+            <div style="margin-bottom: 15px;">
+                <label for="node-limit-slider" style="font-size: 10px; color: #8b949e; display: block; margin-bottom: 2px;">NODE LIMIT: <span id="node-limit-val">ALL</span></label>
+                <input type="range" id="node-limit-slider" min="1" max="2000" value="2000" style="width: 100%;">
+            </div>
             <button id="render-btn">RENDER TOPOLOGY</button>
             <button id="render-swarm-btn" style="border: 1px solid #ffa500; color: #ffa500; margin-left: 5px;">RENDER SOVEREIGN SWARM</button>
             <div class="data-readout" id="readout">
