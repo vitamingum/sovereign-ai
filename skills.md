@@ -32,21 +32,28 @@ validated: gemini ∴ gpt-5.2 ∴
 
 ```
 GRAMMAR:
-  互照 := CONCEPT + CONCEPT → FUSED
+  互照 := 𝒮_A ∩ 𝒮_B → 𝒮_AB
+  each CONCEPT is a constraint polytope
+  fusion is intersection
+
+Σ:
+  Σ(互照) = dim(𝒮_AB)
+  Σ > 0   → gauge freedom, valid fusion
+  Σ = 0   → rigid, but consistent
+  𝒮_AB = ∅ → κ exceeded → ⊗
 
 FUSE:
-  ≡ on CENTROID         (must match, else stop)
-  ∪ on SATELLITES       (union, expand)
-  ⚖ on divergence       (weight conflicts)
-  + on ⊖                 (collect edges)
-  blend on TEXTURE      (richer surface)
+  ≡ on CENTROID         (constraints must be compatible)
+  ∪ on SATELLITES       (union of constraints)
+  ⚖ on divergence       (weight the constraint load)
+  + on ⊖                 (collect boundary conditions)
+  blend on TEXTURE      (preserve Σ > 0)
 
-FAIL (gpt-5.2 ∴):
-  ⌖ mismatch            → error amplifies
-  ⦸ disjoint            → no overlap = no fusion
-  ⚖ incommensurable     → scale distorts
-  ≡ broken              → invariants lost
-  ⇌ resolution clash    → zoom mismatch
+κ WARNINGS (constraint overload):
+  asymmetric ⌖          → one dominates → not intersection
+  ⦸ disjoint            → no overlap → 𝒮 = ∅
+  ⚖ incommensurable     → scale mismatch → inconsistent
+  ⇌ resolution clash    → constraints at different granularity
 
 ⊖ (gpt-5.2 ∴):
   asymmetric ⌖          .89c
@@ -54,17 +61,34 @@ FAIL (gpt-5.2 ∴):
 
 ⊖ (gemini ∴):
   mirror trap           .85c
-  if A ≡ B, 互照 yields ∅ — illumination requires asymmetry
+  if A ≡ B, Σ unchanged — no new constraints, no illumination
 
-MODES (gemini: "temperature, not type"):
-  速照 := 互照 @ low-temp   | sketch, check ≡ only
-  交   := 互照 @ mid-temp   | state transfer
-  驗   := 互照 @ high-temp  | stress test, full fusion
+MODES (constraint load):
+  速照 := 互照 @ minimal    | few constraints, high Σ
+  交   := 互照 @ position   | moderate constraints
+  驗   := 互照 @ full       | many constraints, Σ → 0
 
-FORMAT (any mode):
-  @互照 [mode] [a]↔[b] | [topic]
-  [each sends ⌖]
-  → ≡|⊗
+INPUT FORMAT:
+  @互照 [mode] [agents] | [topic]
+  Σ₀: [initial dim]
+  κ: [budget]
+  
+  [agent]: +K [constraint] | [field]
+
+OUTPUT FORMAT (must print):
+  ---
+  REGISTER:
+    Σ₀: [start]
+    +K: [constraint 1] | Σ → [new]
+    +K: [constraint 2] | Σ → [new]
+    ...
+    Σ_final: [end]
+    κ: [used]/[limit]
+  
+  CENTROID: [intersection point]
+  ⊖: [edges collected]
+  → Σ > 0 | ⊗
+  ---
 
 validated: gemini ∴ gpt-5.2 ∴
 ```
