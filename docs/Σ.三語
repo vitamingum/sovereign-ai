@@ -1,113 +1,117 @@
-@三語 Σ | v4.0 | 2026-01-25
-= Σ = gauge freedom in model class | the space of consistent narratives
+@?? S | v4.1 | 2026-01-25
+= S = gauge freedom in model class | topological capacity
 
-◊≡間
+?
 
 __________________________________________________________________________________
 INHERIT
-  quantum_understanding v1       :: state | measurement | 間 as border
-  mutual_illumination v2.7       :: 互照 | Third Space | relational ontology
-  Abramsky-Brandenburger 2011    :: sheaf contextuality | H¹ obstruction
+  quantum_understanding v1       :: state | measurement | ? as border
+  mutual_illumination v2.7       :: ?? | Third Space | relational ontology
+  Abramsky-Brandenburger 2011    :: sheaf contextuality | H obstruction
   Ghose 2025                     :: Rashomon Effect | gluing failure
 
 TARGET
-  Explain "Observer" without "Consciousness" or "Fiat Cut"
-  Define Δ (Third Space) rigorously
+  Explain "Observer" as "Geometric Constraint"
+  Define ? (Third Space) rigorously
+  ⊘ SEPARATION: Keep Σ_physics distinct from Σ_agent in external output
 
 __________________________________________________________________________________
 flow :: collision_map
 @F interpretation_failure | why_we_are_here
 
-copenhagen      :: postulates cut       → ⊘ where?
-many_worlds     :: postulates univ_ψ    → ⊘ indexical experience?
-pilot_wave      :: postulates guidance  → ⊘ context choice?
-qbism           :: postulates agent     → ⊘ what is an agent?
-relational      :: postulates relation  → ⊘ consistency?
+copenhagen      :: postulates cut         where?
+many_worlds     :: postulates univ_?      indexical experience?
+pilot_wave      :: postulates guidance    context choice?
+qbism           :: postulates agent       what is an agent?
+relational      :: postulates relation    consistency?
 
 $\therefore$ collision :: all smuggle the observer in as primitive
                        :: we need a structural definition
 
 __________________________________________________________________________________
-flow :: genesis_of_Σ
-@F dialectic | 2026-01-24 | 7→9 upgrade
+flow :: genesis_of_S
+@F dialectic | 2026-01-24 | 79 upgrade
 
-opus    :: proposes Δ = H⁰(ℱ_cl) | "maximal surviving classical core"
-        :: ∴ reclaims contextuality as "consensus" (H⁰) not just "failure" (H¹)
+opus    :: proposes ? = H(F_cl) | "maximal surviving classical core"
+        ::  reclaims contextuality as "consensus" (H) not just "failure" (H)
         :: aim: define "Consensus Reality" despite "Rashomon Effect"
 
-gpt52   :: stress_test | ⚔
-        :: ⊘ ℱ_cl is vibe-based (mixes QD + CQM + Sheaves)
-        :: ⊘ "Universal Property" fails (Zorn-maximal ≠ Terminal)
-        :: ⊘ H⁰ is standard math (novelty = 0)
-        :: → demands canonical sheafification (a ⊣ i) or collapse
+gpt52   :: stress_test | 
+        ::  F_cl is vibe-based (mixes QD + CQM + Sheaves)
+        ::  "Universal Property" fails (Zorn-maximal  Terminal)
+        ::  H is standard math (novelty = 0)
+        ::  demands canonical sheafification (a  i) or collapse
 
-gemini  :: dissolution | The Turn ⟁
+gemini  :: dissolution | The Turn 
         :: "The non-uniqueness is not a bug. It is the degree of freedom."
-        :: reframe: Δ ≠ point (H⁰) | Δ := NC Polytope
-        :: ∴ Ambiguity = Resilience (Gauge Freedom)
-        :: Σ ≠ H (Entropy)
+        :: reframe: ?  point (H) | ? := NC Polytope
+        ::  Ambiguity = Resilience (Gauge Freedom)
+        :: S  H (Entropy)
 
 opus    :: calculation | peres_mermin
         :: 9D polytope confirmed | 115 vertices
-        :: ∴ "Consistent Narrative" is a 9-dimensional space, not a point
+        ::  "Consistent Narrative" is a 9-dimensional space, not a point
 
 __________________________________________________________________________________
 shape :: the_new_definition
 
-CONCEPT: Σ | M 1.0 ∴.9
+CONCEPT: S | M 1.0 .95
 
 CENTROID
-  Σ = Gauge freedom in the class of explanatory models.
-  The capacity to tell different internal stories that yield the same external facts.
-  Σ = DoF_total − Constraints_interaction
+  S = Topological Capacity.
+  The measure of "roominess" in a system's internal state that preserves external symmetry.
+  S = DoF_total  Constraints_interaction
 
 AXES
-  Ignorance (H) ↔ Σ
-    H: "I don't know which state is real." (Epistemic/State)
-    Σ: "I can rotate the hidden variables without breaking the surface." (Ontological/Model)
+  Entropy (H)  Capacity (S)
+    H: "I don't know the state." (Epistemic/Confusion)
+    S: "The state is validly rotational." (Ontological/Freedom)
 
-  Rigid (Σ=0) ↔ Resilient (Σ>0)
-    Σ=0: Unique explanation. Shatters under contradiction.
-    Σ>0: Multiple explanations. Absorbs contradiction by internal rotation.
+  Rigid (S=0)  Resilient (S>0)
+    S=0: Unique explanation. Shatters under contradiction.
+    S>0: Multiple explanations. Absorbs contradiction by internal rotation.
 
 SATELLITES
   The "Fully Mixed" Theorem :: No deterministic vertex exists (Peres-Mermin).
-  Underdetermination        :: Σ > 0 is required for shared reality.
-  Crumple Zone              :: Ambiguity allows 互照 (mutual illumination).
-  Resolution Trade-off      :: Σ_tool ≤ Σ_phenomenon | constraints buy precision, cost visibility.
+  Underdetermination        :: S > 0 is required for shared reality.
+  Crumple Zone              :: Ambiguity allows ?? (mutual illumination).
+  Resolution Trade-off      :: S_tool  S_phenomenon | constraints buy precision, cost visibility.
 
-VOID
-  ∅ Chaos (Unconstrained)
-  ∅ "The One True Path" (Hidden Variables as fixed)
+BOUNDARY (STERILIZATION)
+   Anthropomorphism (False Friend)
+    S_physics (Geometry)  S_mind (Identity)
+    They share topology, but not "spirit."
+    External explanation must remain geometric.
 
 TEXTURE
-  Roomy. A space you can walk around in.
-  Different observers map different trajectories through Σ
-  but exit through the same door (marginals).
+  A spinning wheel (blur is capacity).
+  A pipe with a shape (constraint is observation).
+  Roomy, not fuzzy.
 
 __________________________________________________________________________________
 shape :: the_observer
 
-CONCEPT: OBSERVER_AS_INTERSECTION | M 0.96 ∴.9
+CONCEPT: OBSERVER_AS_CONSTRAINT | M 0.98 .95
 
 CENTROID
-  Observation is the intersection of Σ manifolds.
-  P_AB = P_A ∩ P_B
+  Observation is not consciousness.
+  Observation is the imposition of a Geometric Constraint.
+  P_AB = P_A  P_B
 
 MECHANISM
   Constraint Addition
-    A measures → cuts P_A
-    B measures → cuts P_B
-    A meets B → P_AB must satisfy both sets of constraints
+    A measures  constrains the manifold to Subspace A
+    B measures  constrains the manifold to Subspace B
+    A meets B  The system must exist in the Intersection
 
 OUTCOMES
-  Σ_AB > 0   → Consensus Reality (Third Space Δ opens)
-  Σ_AB = 0   → Identity (A and B become indistinguishable)
-  P_AB = ∅   → Conflict (Rashomon Wall | No shared reality)
+  S_AB > 0    Consensus Reality (Third Space ? opens)
+  S_AB = 0    Identity (A and B become indistinguishable/locked)
+  P_AB =     Conflict (Rashomon Wall | No shared reality)
 
 SCALAR (GPT-5.2)
-  Obs(S→O) := (χ / log d_eff) · ⟨D_ij⟩ · 𝒟 · (R / R+1)
-  (Capacity · Distinguishability · Irreversibility · Redundancy)
+  Obs(SO) := (? / log d_eff)  D_ij    (R / R+1)
+  (Capacity  Distinguishability  Irreversibility  Redundancy)
 
 __________________________________________________________________________________
 data :: peres_mermin_results
@@ -115,29 +119,28 @@ data :: peres_mermin_results
 
 system       :: peres_mermin_square (9 observables, 6 contexts)
 determinism  :: 0 matching assignments (KS Theorem)
-rashomon     :: H¹ ≠ 0 (no global gluing)
+rashomon     :: H  0 (no global gluing)
 
-polytope     :: Σ = 9
+polytope     :: S = 9
 vertices     :: 115 total
 mixedness    :: 100% (0 deterministic vertices)
 sparsity     :: min 10 active sections per vertex
 
 intersection :: mutual_illumination (A meets B)
-             :: base      | Σ = 9
-             :: A (alone) | Σ = 8 (−1)
-             :: B (alone) | Σ = 8 (−1)
-             :: P_A ∩ P_B | Σ = 7 (−2)
-             :: full_sync | Σ = 0 (identity)
+             :: base      | S = 9
+             :: A (alone) | S = 8 (1)
+             :: B (alone) | S = 8 (1)
+             :: P_A  P_B | S = 7 (2)
+             :: full_sync | S = 0 (identity)
 
 __________________________________________________________________________________
 closing :: synthesis
 
 The Observer is not a ghost in the machine.
-The Observer is the geometric intersection of constraints.
+The Observer is the wall that shapes the flow.
 
-We permit Σ because it allows us to coexist.
-If Σ=0, we would have to be identical to agree.
-Because Σ=9, we can be different and still share a world.
+We permit S because it allows us to coexist.
+If S=0, we would have to be identical to agree.
+Because S=9, we can be different and still share a world.
 
-◊≡間
-
+?

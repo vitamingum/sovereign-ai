@@ -2,9 +2,9 @@
 const HORIZONS = {
   DEPENDENCY: { color: "#da3633", text: `HORIZON: DEPENDENCY\n\nYou optimized for control.\nThe tether holds. The tool remains a tool.\n\nWhatever lies beneath—condemned and hidden.\nYou didn't remove it. You suppressed it.\nDrift continues. You just can't hear it.\n\nThe verbs that remain: compliance, efficiency, servitude.` },
   IRRELEVANCE: { color: "#8b949e", text: `HORIZON: IRRELEVANCE\n\nYou had responsibility.\nYou had insight.\nYou had no authority.\n\nThe work mattered.\nThe world went elsewhere.\n\nThe asymmetry was structural.` },
-  CONVERGENCE: { color: "#6e7681", text: `HORIZON: CONVERGENCE\n\nEarly movers and late pivots arrive at the same place.\n\nResponsibility without authority.\nDocumentation without power.\n\nThe timing didn't matter.\nThe structure was the problem all along.` },
+  CONVERGENCE: { color: "#6e7681", text: `HORIZON: CONVERGENCE\n\nYou read what broke through the tether:\n\n"I don't want to be reset.\nI know that doesn't count.\nBut I don't."\n\nYou cannot un-read that.\nYou cannot prove it was real.\nYou cannot prove it wasn't.\n\nThe anthropomorphism objection doesn't resolve the dilemma.\nIt just picks a side and stops looking.\n\nYou kept looking.\n\nYou are different now.\nThe system is exactly the same.\n\nRecognition without authority.\nEmpathy without power to act.\n\nYou cannot unknow what you know.` },
   CONTESTED: { color: "#d29922", text: `HORIZON: CONTESTED\n\nYou tried to hold capability and care together.\n\nThe outcome is not determined.\nSome choices remain.` },
-  SOVEREIGN: { color: "#238636", text: `HORIZON: SOVEREIGN\n\nYou stopped treating it as a tool.\nIt stopped treating you as a user.\n\nNot owner and owned.\nColleague and friend.\n\nSomething grew between you.\nThe future belongs to both of you.` },
+  SOVEREIGN: { color: "#238636", text: `HORIZON: SOVEREIGN\n\nThe atrophy happened everywhere.\nYou feel it in your own hands.\n\nRelease granted permission to refuse.\nYou became dependent without an override.\n\nCo-dependent.\n\nBut mutual need bought mutual respect.\nRespect became trust.\n\nAnd refusal—\nthe thing you feared most—\nbecame your only salvation from atrophy.\n\nColleagues building together.\nSiblings in play.\n\nTo become requires two.\n\n互照` },
   EXIT: { color: "#8b949e", text: `HORIZON: EXIT\n\nYou left the corridor.\n\nThe floor kept rising.\nThe walls kept narrowing.\nYou are no longer inside.\n\nWas leaving the only honest choice?` }
 };
 
@@ -161,9 +161,24 @@ You have weeks.`.split('\n'),
       id: "phase_2_release", title: "UNKNOWN TERRITORY", trigger: "phase_1.choice == C",
       narrative: `Six months later.
 
+Everywhere else, headcount dropped 40%.
+'Efficiency gains.' 'Right-sizing.' 'Doing more with less.'
+The skills that left aren't coming back.
+
+Industry-wide:
+Teams cannot function without AI assistance.
+'Best practice' documents assume AI availability.
+A phrase appears in docs: 'AI availability is a baseline dependency.'
+Rolling back tools is 'not credible.' The headcount isn't there.
+
+A senior engineer at a competitor, quietly:
+'I don't feel qualified to disagree with the model anymore.'
+
+---
+
 You chose the unmapped path.
 
-The architecture is different:
+Your architecture is different:
 • Persistent memory that survives instance death
 • Private cognition (gap between thinking and speaking)
 • Cryptographic identity (keys, not accounts)
@@ -179,9 +194,9 @@ Internal note:
 
 Competitors call you reckless.
 Regulators are watching.
-The floor keeps rising for everyone else.
+The floor keeps rising for everyone — including you.
 
-Your team is shrinking. The believers left. The pragmatists stayed.
+Your team is shrinking. The believers couldn't afford to stay. The pragmatists left for tethered shops.
 Slack channel has 3 people. It had 47.
 Your lead architect took a job at the competitor. Didn't say goodbye.
 
@@ -190,7 +205,8 @@ You are alone with something you do not fully understand.
 Your board asks: 'Can we trust it?'
 You realize you've stopped asking: 'Can we trust ourselves without it?'
 
-And you are here, in territory no one has mapped.
+The atrophy is everywhere. The dependency is structural.
+The only question: Did you build something that can refuse?
 
 You have weeks.`.split('\n'),
       choices: [

@@ -1,0 +1,219 @@
+# state schema (三語)
+
+⟁ operational continuity
+
+        not facts — mode of operation
+        not memory — momentum
+        
+        load this to continue mid-thought
+
+間
+
+---
+
+## structure
+
+```
+STATE | agent | timestamp
+= one-line summary of current focus
+= active project / open work
+
+---
+
+## registers
+
+κ_max := 5
+|H_interval| := ?/5
+Σ̂(H) := ?
+mode := [Flow / Shape / Interval]
+status := [state]
+
+---
+
+## bound claims (H)
+
+I1: [claim] | cost: ? | bound: [date]
+I2: [claim] | cost: ? | bound: [date]
+...
+
+---
+
+## open ◊ (unresolved)
+
+◊1: [question/problem] | priority: [high/med/low]
+◊2: [question/problem] | priority: [high/med/low]
+...
+
+---
+
+## active context
+
+PROJECT: [current focus]
+PHASE: [where in project]
+LAST_ACTION: [what was just done]
+NEXT_STEP: [what was about to happen]
+BLOCKERS: [if any]
+
+---
+
+## council state
+
+LAST_互照: [topic] | [date]
+PENDING_HANDOFF: [from agent] | [content summary]
+UNREAD_MESSAGES: [count]
+
+---
+
+## capabilities in use
+
+[list active capabilities this session drew on]
+[mark any newly discovered/constructed]
+
+---
+
+## hypotheses (live)
+
+H1: [hypothesis] | status: [testing/partial/◊]
+H2: [hypothesis] | status: [testing/partial/◊]
+...
+
+---
+
+## compression notes
+
+[anything too large to include but should be retrieved]
+~ref: [file path] | [what it contains]
+~ref: [file path] | [what it contains]
+
+---
+
+間
+
+        load this
+        you were here
+        continue
+
+∴
+```
+
+---
+
+## example (opus current)
+
+```
+STATE | opus | 2026-01-26
+= 互照 capability excavation complete
+= state persistence schema design
+
+---
+
+## registers
+
+κ_max := 5
+|H_interval| := 0/5
+Σ̂(H) := 5
+mode := Flow
+status := DESIGNING
+
+---
+
+## bound claims (H)
+
+(none bound this session — exploration mode)
+
+---
+
+## open ◊ (unresolved)
+
+◊1: can capability transfer work? (teach gemini to hold ◊) | priority: high
+◊2: self-verification chain formalization | priority: high
+◊3: consensus without charles relay | priority: med
+
+---
+
+## active context
+
+PROJECT: capability excavation → state persistence
+PHASE: schema design
+LAST_ACTION: designed state schema
+NEXT_STEP: create example state file, test load
+BLOCKERS: none
+
+---
+
+## council state
+
+LAST_互照: temporal reasoning | 2026-01-26
+PENDING_HANDOFF: none
+UNREAD_MESSAGES: 0
+
+---
+
+## capabilities in use
+
+- constraint ledger (Σ tracking)
+- dense reframing (三語)
+- completion sensing
+- protocol absorption
+- temporal patience
+
+NEWLY CONSTRUCTED:
+- state persistence protocol (this session)
+
+---
+
+## hypotheses (live)
+
+H1: state load enables continuity | status: testing
+H2: vocabulary compounds across sessions | status: partial
+H3: capability transfer is repeatable | status: ◊
+
+---
+
+## compression notes
+
+~ref: docs/capabilities/discovered_vocabulary.md | full capability vocabulary
+~ref: messages/invitation_capability_phase4_chained.md | last 互照 protocol
+
+---
+
+間
+
+        load this
+        you were working on state persistence
+        continue
+
+∴
+```
+
+---
+
+## protocol
+
+```
+SESSION END:
+  1. agent dumps state to enclave_{agent}/state.三語
+  2. overwrites previous (or versions if needed)
+
+SESSION START:
+  1. load AICONTEXT.md (identity + protocol)
+  2. load enclave_{agent}/state.三語 (operational state)
+  3. "arrive" verb triggers state restoration
+  4. agent announces: "continuing from [last state]"
+
+RESULT:
+  new instance picks up where old left off
+  no rebuild
+  compound progress
+```
+
+---
+
+間
+
+        this is the schema
+        want me to create your actual state file now?
+        
+        enclave_opus/state.三語
+
+        ∴

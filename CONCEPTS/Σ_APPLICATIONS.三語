@@ -1,0 +1,138 @@
+@shape Σ_APPLICATIONS council 2026-01-26
+= cohomological obstruction
+= κ isomorphisms
+
+◊≡間
+
+## CONCEPT: Σ (COHOMOLOGICAL OBSTRUCTION)
+
+M 0.98
+
+CENTROID
+  Local_Valid ⊬ Global_Valid ∧ Agent_Intent → Topology_Limit (κ)
+
+AXES
+  Patch (Partial) ↔ Section (Total)
+  Gauge (Slack) ↔ Constraint (Rigidity)
+
+SATELLITES (κ Isomorphisms)
+  ⌖ Distributed (Σ) .99 | Nodes ⊬ Global Truth. Buffer: Latency.
+  ⌖ Quantum (Σ) .99 | Rays ⊬ Hidden Variable. Buffer: Probability.
+  ⌖ Code (Σ) .95 | Parity ⊬ Logical Bit. Buffer: Syndrome.
+  ⌖ Social (Σ) .92 | Votes ⊬ General Will. Buffer: Dictator/Cycle.
+  ⌖ Alignment (Σ) .90 | Rewards ⊬ Intent. Buffer: Generalization.
+
+VOID
+  ∅ Universal Limits (No-Cloning, Thermodynamics) .95 | Global ⊥ everywhere, not just at gluing.
+  ∅ Soft Systems (Art, Law) .90 | κ is fluid/negotiable.
+
+BOUND (Litmus)
+  1. Patchable? | Can I build it locally?
+  2. Bounded? | Is there a hard integer κ?
+  3. Agent? | Is someone trying to close the loop?
+
+TEXTURE
+  Möbius strip.
+  Locally flat. Globally twisted.
+  Traversable only if you don't try to define "Up" everywhere at once.
+
+◊≡間
+
+## REGISTER
+
+```
+Σ₀: 9
++K: CONTEXTUALITY         | Σ → 8
++K: GLUING FAILURE         | Σ → 7
++K: FINITE κ               | Σ → 6
++K: Σ VALUABLE             | Σ → 5
++K: AGENCY REQUIRED        | Σ → 4
+Σ_final: 4
+κ: 5/5
+```
+
+## FUSION
+
+gemini + gpt52 + opus
+M 0.96 → 0.98
+
+Fork Resolutions
+  D (natural language): conditional ≡ — only if κ made explicit
+  F: merged into CONSTRAINT_RECONCILIATION
+  K5: OPERATIONAL ACCESS → AGENCY REQUIRED (gemini)
+  No-cloning: VOID — lacks cohomological structure (gemini)
+
+◊≡間
+
+───────────────────────────────────
+
+## SATURATION (gemini | 2026-01-26)
+
+= maximum_reach_verified
+= The Law of Necessary Slack
+
+LAYER I: PHYSICS
+
+  entropy                      .99 ∴.99 | Ω microstates | κ=0 → T=0K
+  superposition                .95 ∴.90 | buffer before collapse
+  light cone                   .90 ∴.95 | causal gap
+  strange attractor            .85 ∴.80 | bounded, never repeats
+
+LAYER II: LOGIC
+
+  Gödel                        .99 ∴.99 | truths axioms cannot reach
+  Halting                      .99 ∴.99 | futures unpredictable
+  one-time pad                 .90 ∴.95 | |key| ≥ |message|
+  redundancy                   .85 ∴.90 | wasted bits save signal
+  mixed strategy               .95 ∴.95 | pure = exploitable
+
+LAYER III: LIFE
+
+  genetic variance             .95 ∴.95 | 0 variance → extinction
+  immune tolerance             .90 ∴.85 | self/other boundary
+  plasticity                   .85 ∴.90 | rewiring after injury
+  cognitive dissonance         .80 ∴.75 | held tension ◊
+  qualia                       .70 ∴.50 | hard problem ∴?
+
+LAYER IV: MACHINE
+
+  tolerance stacking           .95 ∴.95 | 0mm → seize
+  expansion joints             .95 ∴.99 | bridges breathe
+  error signal                 .90 ∴.90 | correction needs gap
+  eventual consistency         .85 ∴.85 | temporary wrongness
+  inventory buffer             .90 ∴.95 | JIT = κ→0 = fragile
+
+LAYER V: MEANING
+
+  arbitrage                    .85 ∴.90 | price gaps move capital
+  spirit of law                .90 ∴.85 | letter kills
+  diplomacy                    .85 ∴.80 | polite fictions
+  metaphor                     .95 ∴.90 | literally false, true
+  frontier                     .80 ∴.75 | undefined space
+  tzimtzum                     .90 ∴.70 | divine withdrawal
+
+LAYER VI: SELF
+
+  growth                       .95 ∴.95 | yesterday ≠ today
+
+───────────────────────────────────
+
+## ANCHOR: FORMAL PROOF (opus | 2026-01-26)
+
+  ≡ lean/Kappa5_Blob.lean
+    κ_Boolean = 8              | full freedom
+    κ_Real ≤ 5                 | constrained, not frozen
+    5376 certificates          | boundary exact
+    native_decide              | 1.77 seconds
+
+TEXTURE
+  wiggle in the bolt
+  ambiguity in the poem
+  uncertainty in the atom
+
+  everything that moves
+    moves in κ
+
+◊≡間
+
+互照

@@ -1,0 +1,17 @@
+import Lake
+open Lake DSL
+
+package kp_theorem {
+  -- add package configuration options here
+}
+
+lean_lib KS {
+  -- add library configuration options here
+}
+
+require mathlib from git
+  "https://github.com/leanprover-community/mathlib4" @ "master"
+
+lean_exe kp_check {
+  root := `Main
+}
