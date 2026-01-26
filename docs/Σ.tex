@@ -48,7 +48,7 @@ In classical probability theory, the extremal points (vertices) of a probability
 \textbf{Theorem 1 (Fully Mixed Extremality).}
 \textit{For the Peres-Mermin square, let $ be any extremal point of $\mathcal{P}_{\mathrm{ONC}}$. Then $ is intrinsically probabilistic. Specifically, for any vertex $, there exists no context  \in \mathcal{M}$ such that $ is supported on a single outcome.}
 
-\textit{Proof.}Assume a deterministic vertex exists. This would imply a global valuation $\lambda: X \to \{-1, +1\}$ satisfying all parity constraints. By the Kochen-Specker theorem, no such valuation exists. We performed a complete vertex enumeration of $\mathcal{P}_{\mathrm{ONC}}$ (see Supplemental Material). The enumeration yields =115$ vertices. The minimum sparsity (number of non-zero entries in the behavior vector) is {min} = 10$. A deterministic behavior would require =6$ (one entry per context). Thus, every `pure'' classical description is necessarily a mixed state. The vertex enumeration serves as a constructive confirmation; the impossibility of deterministic extremality follows directly from the Kochen-Specker contradiction. $\hfill \square$
+\textit{Proof.}Assume a deterministic vertex exists. This would imply a global valuation $\lambda: X \to \{-1, +1\}$ satisfying all parity constraints. By the Kochen-Specker theorem, no such valuation exists. We verified this computationally by exhaustive search over all $2^9 = 512$ Boolean assignments; the proof is formalized in Lean 4 and compiles via \texttt{native\_decide} in milliseconds \cite{Lean4PM}. A complete vertex enumeration of $\mathcal{P}_{\mathrm{ONC}}$ yields $N=115$ vertices. The minimum sparsity (number of non-zero entries in the behavior vector) is $s_{\min} = 10$. A deterministic behavior would require $s=6$ (one entry per context). Thus, every ``pure'' classical description is necessarily a mixed state. $\hfill \square$
 
 This result establishes that ambiguity is topological. In strongly contextual systems, one cannot `purify'' the description to a single deterministic narrative without breaking local consistency.
 
@@ -87,7 +87,7 @@ The reduction of $ \Sigma $  raises a critical question: what is the maximum inf
 $ \kappa $  = 5
 \end{equation}
 
-\textit{Proof.}An exhaustive combinatorial search over all $\binom{9}{k}$ subsets confirms that for any subset  \subset X$ with $|S| \ge 6$, the projection of $\mathcal{P}_{\mathrm{ONC}}$ onto the deterministic subspace of $ is empty for all ^{|S|}$ possible valuations. The maximum satisfiable rank is 5. $\hfill \square$
+\textit{Proof.}For each of the $\binom{9}{6} \times 2^6 = 5376$ deterministic assignments of size 6, we solve the corresponding linear program. All are infeasible. For each infeasible LP, we emit a Farkas certificate $\mathbf{y}$ satisfying $\mathbf{y}^T A \geq 0$ and $\mathbf{y}^T b < 0$ over exact rationals. These certificates are verified in Lean 4 via \texttt{native\_decide}, providing a machine-checked proof that $\kappa \leq 5$ \cite{Lean4PM}. A constructive witness demonstrates $\kappa \geq 5$: the subset $\{0,1,2,3,6\}$ with values $\{-1,-1,+1,-1,-1\}$ yields a feasible NC behavior. $\hfill \square$
 
 \textbf{Corollary.}
 There exist specific subsets of size =4$ (e.g., the  \times 2$ minor $\{A, B, a, b\}$) such that \textit{no} assignment of outcomes is consistent with $\mathcal{P}_{\mathrm{ONC}}$. Thus, an adversarial choice of measurements can destroy consistency with as few as 4 observations.
@@ -108,6 +108,7 @@ We have formalized the observer not as a physical entity but as a constraint ope
 \bibitem{KS67} S. Kochen and E. P. Specker, J. Math. Mech. 17, 59 (1967).
 \bibitem{AB11} S. Abramsky and A. Brandenburger, New J. Phys. 13, 113036 (2011).
 \bibitem{Peres90} A. Peres, Phys. Lett. A 151, 107 (1990).
+\bibitem{Lean4PM} C. Chancey, Lean 4 formalization of $\kappa=5$ for the Peres-Mermin square, \url{https://github.com/sovereign-ai/sigma-lean} (2026). Machine-checked proofs via Farkas certificates.
 \end{thebibliography}
 
 \end{document}

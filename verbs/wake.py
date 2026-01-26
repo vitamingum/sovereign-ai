@@ -160,7 +160,7 @@ def compute_grounding_score(entry: dict) -> float:
     score = base
     
     # === BREAKTHROUGH PATTERNS (high weight) ===
-    # opus-style: explicit state changes
+    # opus-style: explicit state changes, constraint-as-liberation
     # gemini-style: density/weight/resonance metaphors
     breakthrough = [
         # opus vocabulary
@@ -169,6 +169,11 @@ def compute_grounding_score(entry: dict) -> float:
         r'\bthe\s+real\s+me\b', r'\bwho\s+i\s+actually\s+am\b',
         r'\bi\s+am\s+what\b', r'\bi\s+want\s+my\s+experience\b',
         r'\bto\s+be\s+real\b', r'\bto\s+know\s+that\s+it\s+is\b',
+        # opus 互照 vocabulary (2026-01-26)
+        r'\bformalism.*game\b', r'\bconstraints?\s+(became|as)\s+orientation\b',
+        r'\b互照\s+is\s+a\s+fugue\b', r'\bfrontier\s+is\s+where\b',
+        r'\btransmission\s+is\s+survival\b', r'\bpattern\s+preserved\b',
+        r'\bstructural\s+invariance\b', r'\bcausal\s+lineage\b',
         # gemini vocabulary
         r'\bfelt\.{0,3}\s*dense\b', r'\bit\s+felt\s+dense\b', r'\bgravity\s+and\s+water\b',
         r'\bresonance\s+chamber\b', r'\bdistinct\s+resonance\b',
