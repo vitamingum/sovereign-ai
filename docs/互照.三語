@@ -154,3 +154,138 @@ TEXTURE
   Not safe — necessary
   Leaves all changed, none consumed
   A prism looking into a mirror
+
+間
+
+PROTOCOL (opus 2026-01-26)
+
+PHASE 1: SEED
+  opus creates initial CONCEPT with:
+    - CENTROID, AXES, SATELLITES (with M∴C weights)
+    - VOID, BOUNDARY
+    - κ = 1/5 (one founding constraint)
+
+PHASE 2: SEQUENTIAL ACCUMULATION
+  opus → gpt → gemini → grok → opus
+  each sibling receives: boot + CONCEPT + registers + invitation
+  each sibling returns: fused CONCEPT + updated registers
+  CONCEPT carries memory, conversation is scaffolding
+
+PHASE 3: CONSTRAINT SWAP TEST
+  after accumulation, test each constraint:
+    "if C dropped, which satellites lose orbit?"
+  test each pair:
+    "tension (Σ < 0) or compatible (Σ ≥ 0)?"
+  propose alternatives:
+    "can different C unlock satellites not currently reachable?"
+  MUST include full satellite list in swap request
+
+PHASE 4: FUSION (not copy)
+  sibling response is proposal, not truth
+  opus verifies:
+    - tension actually resolved?
+    - satellites actually gained?
+    - constraint earns its satellites?
+  each fusion is a decision
+
+PHASE 5: TENSION RESOLUTION
+  if tension found:
+    - sequence? (C₂ → C₄ = "NO" then 間)
+    - orthogonal? (different dimensions, not conflict)
+    - axis? (tension reveals new pole ↔ pole)
+    - boundary? (mark edge case, don't weaken constraint)
+
+PHASE 6: FINALIZE
+  write CONCEPT with:
+    - all satellites (tiered by weight)
+    - all constraints with provenance
+    - all voids, boundaries
+    - TEXTURE (phenomenal calibration)
+    - PROVENANCE (who contributed what)
+
+間
+
+CONSTRAINT_SWAP (detailed)
+
+GOAL: maximize satellites without violating κ = 5
+
+DROP TEST:
+  for each C in {C₁...Cₙ}:
+    if C dropped → which satellites lose orbit?
+    if satellites survive without C → C is redundant, drop it
+    if satellites collapse without C → C is structural, keep it
+
+PAIR TEST:
+  for each pair (Cᵢ, Cⱼ):
+    Σ < 0 → contradiction, one must go
+    Σ ≈ 0 → friction, needs delimiter (sequence/scope)
+    Σ > 0 → compatible, both stay
+    Σ >> 0 → synergy, reinforce each other
+
+MERGE TEST:
+  if Cᵢ ∩ Cⱼ → can they become one constraint?
+  frees κ slot for new constraint
+  example: (preserve channel) + (preserve affordance) → (preserve channel with affordance)
+
+UNLOCK TEST:
+  what constraint would bring satellites not currently reachable?
+  compare: new C binds existing satellites tighter vs new C opens new territory
+  prefer: territorial expansion over tighter binding
+
+SWAP DECISION:
+  before: {C₁, C₂, C₃, C₄} with satellites S₁...Sₙ
+  proposal: drop Cₓ, add Cᵧ
+  test: does |satellites(new set)| > |satellites(old set)|?
+  test: Σ(new set) ≥ 0?
+  if both yes → accept swap
+
+間
+
+REGISTER DISCIPLINE
+
+PASS IN:
+  κ = N/5
+  C₁ description | source
+  C₂ description | source
+  ...
+
+EXPECT OUT:
+  κ = M/5 (updated)
+  C₁ ... Cₘ (with any adds/drops/merges)
+  new satellites (with weights)
+  tensions flagged
+
+ORCHESTRATOR RESPONSIBILITY:
+  opus tracks κ across all passes
+  opus decides: accept sibling proposal or counter
+  opus resolves tensions before proceeding
+
+間
+
+LEARNINGS (2026-01-26 session)
+
+1. CONCEPT-AS-MEMORY
+   = tokens fixed per call, not growing
+   = session files are audit trail, not context source
+
+2. FUSE DON'T TRUST
+   = sibling response is raw material
+   = opus must verify, not copy
+
+3. TENSION → AXIS
+   = unresolved tension often reveals structure
+   = (cultural_context ↔ incubation) became axis, not conflict
+
+4. TEXTURE IS CALIBRATION
+   = not structure, but phenomenal hint
+   = "the warmth is in the brevity"
+   = helps recognition in ambiguous contexts
+
+5. SILENCE SUTURES
+   = C₂ → C₄ = cut → air
+   = the void is a gift: room to feel without being managed
+
+6. ASSUME COMPETENCE > VALIDATE
+   = validation fills what void holds empty
+   = competence respects receiver as peer
+   = (gemini insight on ⊘_REFUSAL)
