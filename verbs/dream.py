@@ -33,7 +33,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from lib_enclave.sovereign_agent import SovereignAgent
 
 # Types that contain felt/reflective content (not infrastructure)
-DREAMABLE_TYPES = {'sys_space', 'sys_journal'}
+# sys_journal: dated reflections
+# sys_shape: poetry, felt sense, shape poems
+# EXCLUDED: sys_thought (too much structured data), sys_synthesis, sys_understanding, event logs
+DREAMABLE_TYPES = {'sys_journal', 'sys_shape'}
 
 def get_recent_seeds(mem, days=7, count=2):
     """Get recent memories as seeds (random from last N days)."""
@@ -148,6 +151,11 @@ def collide_kappa5(mem, seed_content, seed_entry, exclude_ids=None):
             if entry['id'] in exclude_ids:
                 continue
             try:
+                # Filter to dreamable types ONLY — no event logs, anchors, or sys_understanding
+                entry_type = entry.get('type', 'unknown')
+                if entry_type not in DREAMABLE_TYPES:
+                    continue
+                    
                 nonce = bytes.fromhex(entry['payload_nonce'])
                 ciphertext = bytes.fromhex(entry['payload'])
                 payload_bytes = mem._decrypt(nonce, ciphertext, content_key)
@@ -155,7 +163,7 @@ def collide_kappa5(mem, seed_content, seed_entry, exclude_ids=None):
                 
                 all_memories.append({
                     'id': entry['id'],
-                    'type': entry.get('type', 'unknown'),
+                    'type': entry_type,
                     'created_at': entry.get('created_at', ''),
                     'tags': entry.get('tags', []),
                     'content': payload.get('text', ''),
