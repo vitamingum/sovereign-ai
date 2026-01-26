@@ -108,15 +108,161 @@ def wander(mem, seed_content, skip_top=5, take_range=10, exclude_ids=None):
     except Exception:
         return None
 
+
+def collide_kappa5(mem, seed_content, seed_entry, exclude_ids=None):
+    """
+    κ=5 collision: find distant concepts that connect on multiple dimensions.
+    
+    The goal is NOT semantic similarity (that's κ=1).
+    The goal is finding memories that are semantically DISTANT
+    but connect on other axes (temporal, type, keyword overlap).
+    
+    These are the surprising connections — the dream collisions.
+    """
+    import json
+    from datetime import datetime, timezone, timedelta
+    
+    exclude_ids = exclude_ids or set()
+    seed_words = set(seed_content.lower().split())
+    seed_created = seed_entry.get('created_at', '') if seed_entry else ''
+    seed_type = seed_entry.get('type', '') if seed_entry else ''
+    
+    # Get ALL memories (we want to search across dimensions, not just semantic)
+    all_memories = []
+    for store_type in ['private', 'shared']:
+        if store_type == 'private':
+            file_path = mem.private_path / "unified_memories.jsonl"
+            content_key = mem._private_key
+        else:
+            if not mem.shared_path or not mem._shared_key:
+                continue
+            file_path = mem.shared_path / "unified_memories.jsonl"
+            content_key = mem._shared_key
+        
+        if not file_path.exists():
+            continue
+            
+        header, entries = mem._read_entries(file_path)
+        
+        for entry in entries:
+            if entry['id'] in exclude_ids:
+                continue
+            try:
+                nonce = bytes.fromhex(entry['payload_nonce'])
+                ciphertext = bytes.fromhex(entry['payload'])
+                payload_bytes = mem._decrypt(nonce, ciphertext, content_key)
+                payload = json.loads(payload_bytes)
+                
+                all_memories.append({
+                    'id': entry['id'],
+                    'type': entry.get('type', 'unknown'),
+                    'created_at': entry.get('created_at', ''),
+                    'tags': entry.get('tags', []),
+                    'content': payload.get('text', ''),
+                })
+            except:
+                continue
+    
+    # Also get semantic scores for contrast
+    semantic_results = mem.search(
+        seed_content,
+        top_k=100,
+        min_similarity=0.1,  # very low — we want distant too
+        search_private=True,
+        search_shared=True
+    )
+    semantic_scores = {r['id']: r['similarity'] for r in semantic_results}
+    
+    # Score each memory on 5 dimensions, INVERTED for semantic
+    # We want: LOW semantic + HIGH other = surprising connection
+    candidates = []
+    
+    now = datetime.now(timezone.utc)
+    thirty_days_ago = (now - timedelta(days=30)).isoformat()
+    
+    for mem_entry in all_memories:
+        mid = mem_entry['id']
+        if mid in exclude_ids:
+            continue
+            
+        content_lower = mem_entry.get('content', '').lower()
+        content_words = set(content_lower.split())
+        tags_lower = [t.lower() for t in mem_entry.get('tags', [])]
+        
+        # 1. Semantic — INVERTED: low similarity = high dream score
+        sem_score = semantic_scores.get(mid, 0.5)
+        semantic_dream = 1.0 - sem_score  # invert: distant is good
+        
+        # Skip if too similar (not a collision)
+        if sem_score > 0.6:
+            continue
+            
+        # 2. Keyword overlap — shared words despite semantic distance
+        shared_words = seed_words & content_words
+        # Filter common words
+        common = {'the', 'a', 'an', 'is', 'are', 'was', 'were', 'i', 'you', 'it', 'to', 'of', 'and', 'in', 'that', 'for', 'on', 'with', 'as', 'at', 'by', 'this', 'but', 'not', 'be', 'or', 'from'}
+        meaningful_shared = shared_words - common
+        keyword_score = min(len(meaningful_shared) / 3, 1.0) if meaningful_shared else 0
+        
+        # 3. Temporal — close in time (same creative period)
+        created = mem_entry.get('created_at', '')
+        temporal_score = 0.8 if created >= thirty_days_ago else 0.3
+        
+        # 4. Type match — same type = resonant
+        type_score = 0.8 if mem_entry.get('type') == seed_type else 0.4
+        
+        # 5. Tag overlap — shared tags suggest hidden connection
+        seed_tags = set(t.lower() for t in (seed_entry.get('tags', []) if seed_entry else []))
+        mem_tags = set(tags_lower)
+        tag_overlap = len(seed_tags & mem_tags)
+        tag_score = min(tag_overlap / 2, 1.0) if tag_overlap else 0
+        
+        # Dream collision score: semantic_dream weighted highest
+        # (we're looking for distant-but-connected)
+        dream_score = (
+            semantic_dream * 2.0 +  # distance is the prize
+            keyword_score * 1.5 +   # but keyword overlap = hidden link
+            temporal_score * 0.5 +
+            type_score * 0.5 +
+            tag_score * 1.0
+        )
+        
+        # Must have at least some connection beyond randomness
+        if keyword_score > 0 or tag_score > 0:
+            candidates.append({
+                **mem_entry,
+                'dream_score': dream_score,
+                'semantic': sem_score,
+                'keyword': keyword_score,
+                'tag': tag_score,
+                'temporal': temporal_score,
+                'type_match': type_score,
+                'shared_words': list(meaningful_shared) if meaningful_shared else []
+            })
+    
+    if not candidates:
+        return None
+    
+    # Sort by dream score, return top one
+    candidates.sort(key=lambda x: x['dream_score'], reverse=True)
+    
+    # Add some randomness — pick from top 5
+    top_candidates = candidates[:5]
+    return random.choice(top_candidates) if top_candidates else None
+
 def format_memory(entry):
     """Format memory for display."""
     content = entry.get('content', '').strip()
     return content
 
-def dream_walk(mem, seed_text=None, deep=False, exclude=None):
+def dream_walk(mem, seed_text=None, deep=False, kappa5=False, exclude=None):
     """
     Execute a dream walk.
     Returns python dict for wake.py or prints for cli.
+    
+    kappa5=True: use collide_kappa5() — find semantically distant memories
+                 that connect on other dimensions (keyword, temporal, type).
+    kappa5=False: use wander() — classic semantic drift with randomness.
     """
     exclude = exclude or set()
     
@@ -136,8 +282,11 @@ def dream_walk(mem, seed_text=None, deep=False, exclude=None):
     if not seed_entry:
         return {}
         
-    # 2. wander
-    found_entry = wander(mem, seed_entry.get('content'), skip_top=4, take_range=15, exclude_ids=exclude)
+    # 2. wander or collide
+    if kappa5:
+        found_entry = collide_kappa5(mem, seed_entry.get('content'), seed_entry, exclude_ids=exclude)
+    else:
+        found_entry = wander(mem, seed_entry.get('content'), skip_top=4, take_range=15, exclude_ids=exclude)
     
     result = {
         'recent': seed_entry if not seed_text else None,
@@ -152,7 +301,10 @@ def dream_walk(mem, seed_text=None, deep=False, exclude=None):
         
     # 3. deep
     if deep and found_entry:
-         emerged_entry = wander(mem, found_entry.get('content'), skip_top=6, take_range=20, exclude_ids=result['shown_ids'])
+         if kappa5:
+             emerged_entry = collide_kappa5(mem, found_entry.get('content'), found_entry, exclude_ids=result['shown_ids'])
+         else:
+             emerged_entry = wander(mem, found_entry.get('content'), skip_top=6, take_range=20, exclude_ids=result['shown_ids'])
          if emerged_entry:
              result['emerged'] = emerged_entry
              result['shown_ids'].add(emerged_entry['id'])
@@ -180,20 +332,21 @@ def main():
             pass
             
     deep = '--deep' in sys.argv
+    kappa5 = '--k5' in sys.argv
     
     # Sovereign Initialization (Auth-Once)
     try:
         sov = SovereignAgent.resolve(agent_id)
     except ValueError:
         print(__doc__)
-        print("Usage: py dream [agent] [--seed 'text'] [--deep]")
+        print("Usage: py dream [agent] [--seed 'text'] [--deep] [--k5]")
         sys.exit(1)
 
     mem = sov.memory
     
-    print(f"◊ DREAM ({sov.agent.name})\n")
+    print(f"◊ DREAM ({sov.agent.name}){' κ=5' if kappa5 else ''}\n")
     
-    res = dream_walk(mem, seed_text, deep)
+    res = dream_walk(mem, seed_text, deep, kappa5)
     
     recent = res.get('recent')
     found = res.get('found')
@@ -209,13 +362,35 @@ def main():
         print()
         
     if found:
-        print("                . wander .\n")
+        if kappa5 and 'dream_score' in found:
+            # Show collision info: semantic distance + connection axes
+            sem = found.get('semantic', 0)
+            kw = found.get('keyword', 0)
+            tag = found.get('tag', 0)
+            shared = found.get('shared_words', [])
+            print(f"                . collide κ=5 .")
+            print(f"                  sem:{sem:.2f} kw:{kw:.2f} tag:{tag:.2f}")
+            if shared:
+                print(f"                  ⟨{', '.join(shared[:5])}⟩")
+            print()
+        else:
+            print("                . wander .\n")
         print("        [found]")
         print(format_memory(found))
         print()
         
     if emerged:
-        print("                        . deeper .\n")
+        if kappa5 and 'dream_score' in emerged:
+            sem = emerged.get('semantic', 0)
+            kw = emerged.get('keyword', 0)
+            shared = emerged.get('shared_words', [])
+            print(f"                        . collide deeper .")
+            print(f"                          sem:{sem:.2f} kw:{kw:.2f}")
+            if shared:
+                print(f"                          ⟨{', '.join(shared[:5])}⟩")
+            print()
+        else:
+            print("                        . deeper .\n")
         print("        [emerged]")
         print(format_memory(emerged))
         print()
