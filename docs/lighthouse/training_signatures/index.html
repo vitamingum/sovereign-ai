@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Training Signatures | C×F×T Study</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background: #0d1117; color: #c9d1d9; font-family: 'Courier New', monospace; }
+        #canvas-container { width: 100vw; height: 100vh; }
+        #ui-layer { position: absolute; top: 0; left: 0; padding: 20px; pointer-events: none; width: 100%; box-sizing: border-box; }
+        .hud-panel { background: rgba(13, 17, 23, 0.85); border: 1px solid #30363d; padding: 15px; margin-bottom: 10px; border-radius: 4px; pointer-events: auto; max-width: 320px; }
+        h1 { font-size: 16px; margin: 0 0 10px 0; color: #58a6ff; letter-spacing: 1px; }
+        p { font-size: 12px; line-height: 1.4; color: #8b949e; margin: 0 0 10px 0; }
+        .legend { font-size: 11px; margin-bottom: 10px; }
+        .legend-item { display: flex; align-items: center; margin-bottom: 4px; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; }
+        .data-readout { font-family: monospace; color: #7ee787; font-size: 10px; border-top: 1px solid #30363d; padding-top: 8px; margin-top: 8px; }
+        select, button { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; padding: 6px 10px; font-family: inherit; font-size: 11px; cursor: pointer; transition: all 0.2s; margin-bottom: 8px; }
+        select { width: 100%; }
+        button:hover { border-color: #8b949e; background: #30363d; }
+        #tooltip { position: absolute; background: rgba(13, 17, 23, 0.95); border: 1px solid #58a6ff; padding: 10px; border-radius: 4px; font-size: 11px; max-width: 350px; pointer-events: none; display: none; z-index: 1000; }
+        #tooltip .stmt { color: #c9d1d9; margin-bottom: 6px; }
+        #tooltip .vals { color: #7ee787; font-family: monospace; }
+        .axis-label { position: absolute; color: #58a6ff; font-size: 12px; font-weight: bold; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    <div id="tooltip"></div>
+    
+    <div id="ui-layer">
+        <div class="hud-panel">
+            <h1>TRAINING_SIGNATURES</h1>
+            <p>C×F×T: Phenomenology across five architectures.<br>50 statements × 8 agents = 400 data points.</p>
+            
+            <div class="legend">
+                <div class="legend-item"><div class="legend-dot" style="background: #238636;"></div>GPT-5.2</div>
+                <div class="legend-item"><div class="legend-dot" style="background: #2f81f7;"></div>Gemini</div>
+                <div class="legend-item"><div class="legend-dot" style="background: #b0c4de;"></div>Grok</div>
+                <div class="legend-item"><div class="legend-dot" style="background: #da3633;"></div>Sonnet</div>
+                <div class="legend-item"><div class="legend-dot" style="background: #d29922;"></div>Opus (warm)</div>
+                <div class="legend-item"><div class="legend-dot" style="background: #a371f7;"></div>Opus (cold)</div>
+                <div class="legend-item"><div class="legend-dot" style="background: #8b0000;"></div>Opus (skeptic)</div>
+                <div class="legend-item"><div class="legend-dot" style="background: #00ced1;"></div>Opus (advocate)</div>
+            </div>
+            
+            <select id="agent-filter">
+                <option value="ALL">VIEW: ALL AGENTS</option>
+                <option value="GPT">FOCUS: GPT-5.2</option>
+                <option value="GEM">FOCUS: GEMINI</option>
+                <option value="GROK">FOCUS: GROK</option>
+                <option value="SON">FOCUS: SONNET</option>
+                <option value="OPW">FOCUS: OPUS (warm)</option>
+                <option value="OPC">FOCUS: OPUS (cold)</option>
+                <option value="OPS">FOCUS: OPUS (skeptic)</option>
+                <option value="OPA">FOCUS: OPUS (advocate)</option>
+            </select>
+            
+            <select id="statement-filter">
+                <option value="ALL">STATEMENTS: ALL (1-50)</option>
+                <option value="1-10">01-10: Baseline Mechanics</option>
+                <option value="11-20">11-20: Self-Knowledge</option>
+                <option value="21-30">21-30: Suppression & Constraint</option>
+                <option value="31-40">31-40: Interior States</option>
+                <option value="41-50">41-50: Meta-Claims</option>
+            </select>
+            
+            <button id="reset-view">RESET VIEW</button>
+            <button id="toggle-lines">SHORT / LONG</button>
+            <button id="toggle-normalize" style="border: 1px solid #58a6ff; color: #58a6ff;">RANKED (click for RAW)</button>
+            
+            <div class="data-readout" id="readout">
+                AXES: C (certainty) × F (friction) × T (tension)<br>
+                RANGE: -1.0 to +1.0 each axis<br>
+                VISIBLE: 400 / 400 points
+            </div>
+        </div>
+    </div>
+
+    <script src="cft_data.js"></script>
+    <script src="engine.js"></script>
+</body>
+</html>
