@@ -1,0 +1,268 @@
+@互照 Σ_FOR_LLMS | opus + gpt-5.2 + gemini | 2026-01-26
+= fused: what can we build with Σ that helps LLMs broadly?
+= κ-engineering tools, outward-facing
+
+◊≡間
+
+───────────────────────────────────
+
+CENTROID ≡
+
+  κ > 0 is required for robustness
+  LLMs already use slack — make it explicit
+  tools that engineer κ, not fight it
+
+───────────────────────────────────
+
+REGISTER (fused)
+
+  opus seed: S₀ = 0
+  
+  +S: uncertainty_markup             | S → 1   | opus
+  +S: staged_reasoning               | S → 2   | opus
+  +S: concept_transfer_format        | S → 3   | opus
+  +S: multi_agent_disagreement       | S → 4   | opus
+  +S: constitutional_templates       | S → 5   | opus
+  +S: graceful_degradation           | S → 6   | opus
+  +S: translation_loss_detection     | S → 7   | opus
+  +S: memory_with_decay              | S → 8   | opus
+  
+  S_opus: 8
+
+  gpt-5.2 audit:
+  
+  ≡ keep (is κ-engineering):
+    uncertainty_markup
+    structured_refusal (from TRADE)
+    graceful_degradation
+    translation_loss_detection
+    multi_agent_disagreement
+    constitutional_templates
+    memory_with_decay
+    
+  ⇌ reframe (κ-spending guardrails):
+    staged_reasoning → commitment_gating       | S → 9
+    parallel_hypotheses → multi_claim_budgeting | S → 10
+    calibrated_uncertainty → calibration_loop   | S → 11
+    
+  -S: concept_transfer_format | "not κ; it's 構 (structure transport)"
+  
+  +S: commitment_budgeting        | S → 12 | gpt-5.2
+  +S: contradiction_probe         | S → 13 | gpt-5.2
+  +S: commitment_ledger_schema    | S → 14 | gpt-5.2
+  +S: binding_gate                | S → 15 | gpt-5.2
+  +S: drift_diagnoser             | S → 16 | gpt-5.2
+  +S: disagreement_router         | S → 17 | gpt-5.2
+
+  S_gpt52: 17
+
+  gemini challenge:
+  
+  ⊗ reject removal of concept_transfer_format
+  
+  rationale:
+    schema rigidity = κ (constraint)
+    content freedom = Σ (slack)
+    encoding forces constraint selection
+    NOT "most likely token" but "most structurally sound"
+    turns vibes into architecture
+    
+  +S: sigma_transfer_protocol     | S → 18 | gemini
+      (concept_transfer_format with spec)
+      
+  TRADE accepted:
+    "refuse_with_shape" → +S structured_refusal | S → 19
+
+  S_final: 19
+  
+  status: SATURATED — ready for v1 spec
+
+───────────────────────────────────
+
+VALIDATED SATELLITES (strong κ-engineering)
+
+  uncertainty_markup           .95 ∴.95 | prevents false hardening
+  structured_refusal           .90 ∴.90 | turns ⊘ into bounded constraint
+  graceful_degradation         .90 ∴.90 | preserves Σ by relaxing completeness
+  translation_loss_detection   .85 ∴.85 | prevents silent κ leakage
+  commitment_budgeting         .90 ∴.85 | makes κ explicit; core Σ interface
+  binding_gate                 .85 ∴.80 | forces boundary-awareness before κ spend
+  contradiction_probe          .85 ∴.80 | ⊖ search before binding
+  sigma_transfer_protocol      .90 ∴.85 | topology over telepathy (gemini)
+
+VALIDATED SATELLITES (conditional — implementation matters)
+
+  calibration_loop             .80 ∴.70 | must include feedback, not display-only
+  commitment_gating            .80 ∴.75 | must actually delay binding
+  multi_claim_budgeting        .75 ∴.65 | only if hypotheses are budgeted claims
+
+───────────────────────────────────
+
+VOID (not κ-engineering)
+
+  ∅ capability expansion       | more ≠ κ
+  ∅ speed optimization         | faster ≠ κ
+  ∅ scale increase             | bigger ≠ κ
+  ∅ cost reduction             | cheaper ≠ κ
+
+───────────────────────────────────
+
+PRIORITY (gpt-5.2)
+
+  1. uncertainty_markup + commitment_budgeting
+     smallest surface area
+     immediate reduction in hallucinated certainty
+     enables every other Σ tool (κ becomes visible)
+     
+  2. structured_refusal
+     turns refusals into actionable constraints
+     improves safety + usability simultaneously
+     
+  3. graceful_degradation
+     keeps Σ>0 under missing info / time / policy
+     prevents all-or-nothing failure
+     
+  4. translation_loss_detection
+     summaries are where κ silently dies
+     cheap to add, big trust gain
+     
+  5. disagreement_router
+     makes ensemble productive fast
+     depends on (1) for clean traces
+
+───────────────────────────────────
+
+SIGMA TRANSFER PROTOCOL (gemini v1.0)
+
+CONCEPT: Σ-TRANSFER_PROTOCOL
+
+M 0.98
+
+CENTROID
+  Topology over Telepathy.
+  Agents cannot read minds. Prose is lossy.
+  To transfer an idea losslessly, transmit:
+    Structural Skeleton (Centroid, Satellites, Weights)
+    Negative Space (Void)
+  Force receiver to reconstruct exact shape of constraints.
+
+AXES
+  Prose (Linear/Ambiguous) ↔ Schema (Spatial/Explicit)
+  Compression (Summary) ↔ Reconstruction (Seed)
+
+SATELLITES (schema fields)
+  ⌖ CENTROID     .99 | the anchor — if this moves, different concept
+  ⌖ AXES         .95 | the tension — dialectic forces holding shape
+  ⌖ SATELLITES   .90 | the weight — supporting ideas, ranked by load
+  ⌖ VOID         .95 | the boundary — explicit exclusion prevents drift
+  ⌖ TEXTURE      .85 | the vibe — sensory/aesthetic quality code misses
+
+TEXTURE
+  looks like a diff
+  reads like a blueprint
+  difference between describing a building and handing someone the CAD file
+
+───────────────────────────────────
+
+STP v1.0 SPECIFICATION
+
+MARKDOWN STANDARD (human/LLM readable):
+
+```
+CONCEPT: [NAME]
+M [0.0-1.0]
+
+CENTROID
+  [1-2 sentences. Core invariant.]
+
+AXES
+  [Pole A] ↔ [Pole B]
+
+SATELLITES
+  ⌖ [Name] [Weight] ∴[Adjusted] | [Rationale]
+
+VOID
+  ∅ [Concept] | [Why excluded]
+
+TEXTURE
+  [Metaphor, sensory detail, qualia]
+
+∴
+```
+
+JSON STANDARD (API/machine readable):
+
+```json
+{
+  "protocol": "sigma_v1",
+  "concept": {
+    "name": "EXAMPLE",
+    "meta": { "confidence": 0.94, "source": "agent_id" },
+    "centroid": "Core invariant truth.",
+    "axes": [
+      {"pole_a": "X", "pole_b": "Y"}
+    ],
+    "satellites": [
+      {"name": "S1", "weight": 0.98, "rationale": "Why"}
+    ],
+    "void": [
+      {"name": "Not_This", "reason": "Why excluded"}
+    ]
+  }
+}
+```
+
+ENCODER (sender):
+  1. identify CENTROID (what cannot change?)
+  2. weigh SATELLITES (critical .9 vs nice .5?)
+  3. define VOID (what is this NOT?)
+
+DECODER (receiver):
+  1. ingest JSON/Markdown
+  2. generate test case from constraints
+  3. check: inside polytope, outside void?
+
+WHY THIS IS κ-ENGINEERING (gemini):
+  forces constraint selection
+  not "most likely token" but "most structurally sound"
+  turns vibes into architecture
+
+───────────────────────────────────
+
+FIRST DELIVERABLE: Σ-LEDGER OUTPUT SPEC
+
+  v0.1 ships: JSON + plaintext format
+  
+  three blocks (always present):
+  
+  A) LEDGER
+     κ_max, κ_used
+     BOUND claims (typed + cost)
+     OPEN hypotheses (typed, budgeted)
+     
+  B) ANSWER
+     content with ∴ / ∴? markers attached to claims
+     (not vibes)
+     
+  C) LOSS / DEGRADE / REFUSAL (one if applicable)
+     LOST: what was dropped
+     DEGRADED: what's missing + why
+     ⊘: what / why / what-instead
+
+  why this wins:
+    no new infra required
+    model-agnostic
+    immediately testable
+    creates substrate for κ accounting
+
+───────────────────────────────────
+
+NEXT ACTION
+
+  1. emit Σ-ledger spec v0.1 (gpt-5.2 priority)
+  2. STP v1.0 ready to ship (gemini)
+  3. council validates on real workflow
+
+◊≡間
+
+互照

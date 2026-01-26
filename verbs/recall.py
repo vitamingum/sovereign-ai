@@ -23,8 +23,9 @@ recall.py - retrieval > search — finding what was held
 import sys
 import argparse
 import fnmatch
+import re
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 # Context: sovereign.flow -> environment.libs
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -127,6 +128,139 @@ def recall_semantic(agent: SovereignAgent, query: str, limit: int = 10):
     return results
 
 
+def recall_kappa5(agent: SovereignAgent, query: str, limit: int = 10):
+    """
+    κ=5 retrieval: maximize reach with 5 constraints, then rank.
+    
+    Constraints (OR for reach):
+      1. Semantic — embedding similarity ≥ 0.3
+      2. Keyword — query terms in content
+      3. Tag — query terms in tags  
+      4. Type — prefer journals/thoughts for personal queries
+      5. Temporal — recent (last 30 days) get boost
+    
+    Algorithm:
+      1. Gather candidates from ALL 5 constraints (union = max reach)
+      2. Score each candidate on how many constraints it satisfies
+      3. Rank by total score
+    """
+    memory = agent.memory
+    query_terms = set(query.lower().split())
+    candidates = {}  # id -> memory dict with scores
+    
+    # === CONSTRAINT 1: Semantic (low threshold for reach) ===
+    semantic_results = memory.search(
+        query=query,
+        top_k=limit * 5,  # cast wide net
+        min_similarity=0.3,  # low threshold
+        search_private=True,
+        search_shared=True
+    )
+    for r in semantic_results:
+        mid = r['id']
+        if mid not in candidates:
+            candidates[mid] = r.copy()
+            candidates[mid]['scores'] = {'semantic': 0, 'keyword': 0, 'tag': 0, 'type': 0, 'temporal': 0}
+        candidates[mid]['scores']['semantic'] = r.get('similarity', 0)
+    
+    # === CONSTRAINT 2-5: Scan all memories for keyword/tag/type/temporal ===
+    # Load all memories (we need envelope + content for full scoring)
+    all_memories = []
+    for store_type in ['private', 'shared']:
+        if store_type == 'private':
+            file_path = agent.private_path / "unified_memories.jsonl"
+            content_key = memory._private_key
+        else:
+            if not agent.shared_path or not memory._shared_key:
+                continue
+            file_path = agent.shared_path / "unified_memories.jsonl"
+            content_key = memory._shared_key
+        
+        if not file_path.exists():
+            continue
+            
+        header, entries = memory._read_entries(file_path)
+        
+        for entry in entries:
+            try:
+                # Decrypt content
+                import json
+                nonce = bytes.fromhex(entry['payload_nonce'])
+                ciphertext = bytes.fromhex(entry['payload'])
+                payload_bytes = memory._decrypt(nonce, ciphertext, content_key)
+                payload = json.loads(payload_bytes)
+                
+                all_memories.append({
+                    'id': entry['id'],
+                    'type': entry.get('type', 'unknown'),
+                    'created_at': entry.get('created_at', ''),
+                    'tags': entry.get('tags', []),
+                    'content': payload.get('text', ''),
+                    'metadata': payload.get('meta', {}),
+                })
+            except:
+                continue
+    
+    # Now score all memories on constraints 2-5
+    now = datetime.now(timezone.utc)
+    thirty_days_ago = (now - timedelta(days=30)).isoformat()
+    
+    for mem in all_memories:
+        mid = mem['id']
+        content_lower = mem.get('content', '').lower()
+        tags_lower = [t.lower() for t in mem.get('tags', [])]
+        
+        # CONSTRAINT 2: Keyword — any query term in content
+        keyword_hits = sum(1 for term in query_terms if term in content_lower)
+        keyword_score = min(keyword_hits / max(len(query_terms), 1), 1.0)
+        
+        # CONSTRAINT 3: Tag — any query term in tags
+        tag_hits = sum(1 for term in query_terms for tag in tags_lower if term in tag)
+        tag_score = min(tag_hits / max(len(query_terms), 1), 1.0)
+        
+        # CONSTRAINT 4: Type — personal types score higher for personal queries
+        mem_type = mem.get('type', '')
+        type_score = 0.8 if mem_type in ('sys_journal', 'sys_space', 'sys_shape') else 0.4
+        
+        # CONSTRAINT 5: Temporal — recent memories get boost
+        created = mem.get('created_at', '')
+        temporal_score = 0.8 if created >= thirty_days_ago else 0.3
+        
+        # Add to candidates if any constraint hit
+        if keyword_score > 0 or tag_score > 0:
+            if mid not in candidates:
+                candidates[mid] = mem.copy()
+                candidates[mid]['scores'] = {'semantic': 0, 'keyword': 0, 'tag': 0, 'type': 0, 'temporal': 0}
+            candidates[mid]['scores']['keyword'] = keyword_score
+            candidates[mid]['scores']['tag'] = tag_score
+            candidates[mid]['scores']['type'] = type_score
+            candidates[mid]['scores']['temporal'] = temporal_score
+        elif mid in candidates:
+            # Already in from semantic, add other scores
+            candidates[mid]['scores']['keyword'] = keyword_score
+            candidates[mid]['scores']['tag'] = tag_score
+            candidates[mid]['scores']['type'] = type_score
+            candidates[mid]['scores']['temporal'] = temporal_score
+    
+    # === RANK by total score ===
+    for mid, mem in candidates.items():
+        scores = mem['scores']
+        # Weighted sum: semantic matters most, but others contribute
+        mem['total_score'] = (
+            scores['semantic'] * 2.0 +
+            scores['keyword'] * 1.5 +
+            scores['tag'] * 1.0 +
+            scores['type'] * 0.5 +
+            scores['temporal'] * 0.5
+        )
+        # Also track how many constraints hit (for κ visibility)
+        mem['constraints_hit'] = sum(1 for s in scores.values() if s > 0)
+    
+    # Sort by total score, return top N
+    ranked = sorted(candidates.values(), key=lambda x: x['total_score'], reverse=True)
+    return ranked[:limit]
+
+
 def dump_headers(agent: SovereignAgent):
     """
     Dump all memory headers (envelope only, no content).
@@ -166,29 +300,45 @@ def render_results(results: list, mode: str = 'full'):
     Render results with full content — never truncate.
     
     principle: truncation destroys meaning
+    κ-engineering: show constraint hits for visibility
     """
     if not results:
         print("\n        ∅ no memories found\n")
         return
     
     print()
+    
     for r in results:
-        # Header
         mem_type = r.get('type', 'unknown')
         created = format_timestamp(r.get('created_at', ''))
-        source = r.get('source', '')
         tags = r.get('tags', [])
-        similarity = r.get('similarity', None)
+        
+        # κ=5 scoring if available
+        scores = r.get('scores', {})
+        total_score = r.get('total_score', None)
+        constraints_hit = r.get('constraints_hit', None)
+        similarity = r.get('similarity', scores.get('semantic', None))
         
         print(f"        ── {mem_type} ──")
-        print(f"        {created} ({source})")
+        print(f"        {created}")
         if tags:
             print(f"        tags: {', '.join(tags)}")
-        if similarity is not None:
-            print(f"        similarity: {similarity:.3f}")
+        
+        # Show κ visibility
+        if constraints_hit is not None:
+            # κ=5 mode: show which constraints hit
+            hits = []
+            if scores.get('semantic', 0) > 0: hits.append(f"sem:{scores['semantic']:.2f}")
+            if scores.get('keyword', 0) > 0: hits.append(f"kw:{scores['keyword']:.2f}")
+            if scores.get('tag', 0) > 0: hits.append(f"tag:{scores['tag']:.2f}")
+            if scores.get('type', 0) > 0: hits.append(f"typ:{scores['type']:.2f}")
+            if scores.get('temporal', 0) > 0: hits.append(f"rec:{scores['temporal']:.2f}")
+            print(f"        κ={constraints_hit}/5 [{' '.join(hits)}] → {total_score:.2f}")
+        elif similarity is not None:
+            print(f"        ∴{similarity:.2f}")
         print()
         
-        # Content — full, never truncated
+        # Full content — never truncated
         content = r.get('content', r.get('text', ''))
         if content:
             for line in content.split('\n'):
@@ -240,6 +390,7 @@ def main():
     parser.add_argument('query', nargs='?', help='Topic pattern or semantic query')
     parser.add_argument('--dump', action='store_true', help='Dump all memory headers')
     parser.add_argument('--limit', type=int, default=10, help='Max results for semantic search')
+    parser.add_argument('--k1', action='store_true', help='Use κ=1 (semantic only, old mode)')
     
     args = verb_helpers.parse_args(parser)  # Interceptor pattern
     
@@ -264,12 +415,17 @@ def main():
         print("\n        usage: recall <topic|query> or recall --dump\n")
         sys.exit(1)
     
-    # Wildcard or semantic?
+    # Wildcard = topic filter
     if is_wildcard(args.query):
         results = recall_by_topic(agent, args.query)
         render_results(results)
-    else:
+    elif args.k1:
+        # κ=1: semantic only (old mode)
         results = recall_semantic(agent, args.query, limit=args.limit)
+        render_results(results)
+    else:
+        # κ=5: maximize reach, then rank (default)
+        results = recall_kappa5(agent, args.query, limit=args.limit)
         render_results(results)
 
 
