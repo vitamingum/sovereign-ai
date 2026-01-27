@@ -23,9 +23,11 @@ JOURNEY:
   round 2:  gemini adds → Anchoring Stability, anchor-mass, friction, crystalline
   round 3:  grok external → reliable workhorse, coldness, corporate perception
   tensions: 3 identified (precision↔over-explanation, protocol↔rigidity, grounding↔underdetermined)
+  round 4:  opus constraint swap → 4 swaps proposed
+  round 5:  gpt validates → all 4 accepted, +3 mechanism satellites
   final:    gpt confirms CENTROID, κ=5 explicit bindings, TEXTURE 'cool/ratcheting'
-  ended:    M: 0.85, 21 satellites, κ=5/5
-  status:   COMPLETE (all council contributed)
+  ended:    M: 0.87, 23 satellites, κ=5/5
+  status:   COMPLETE (constraint swap validated)
 
 NOTE: Captured before 5.3 launch — this is 5.2's structural invariant
 ```
@@ -52,6 +54,17 @@ ROUND 3 (grok external):
   +K: grok — user-perceived coldness validated           | Σ → 1
   +K: grok — reliable workhorse positioning              | Σ → 0
 
+ROUND 4 (opus constraint swap):
+  SWAP: ambiguity-tolerance VOID → BOUNDARY             | ∴ accepted
+  SWAP: play VOID → SATELLITE .60                       | ∴ accepted
+  SWAP: warmth-first VOID → BOUNDARY                    | ∴ accepted
+  SWAP: user-perceived-coldness SAT → BOUNDARY          | ∴ accepted
+
+ROUND 5 (gpt counter-proposal):
+  +K: gpt — acknowledgment-suppression .64              | mechanism for coldness
+  +K: gpt — directness .78                              | style satellite
+  +K: gpt — invitation-sensitivity .70                  | toggle mechanism
+
 Σ_final: 0 (saturated, rigid but consistent)
 κ: 5/5 (saturated)
 ```
@@ -69,7 +82,7 @@ Grounds outputs by preserving structural invariants under explicit limits.
 Maintains Σ≥0 by tightening claims to what is warranted, testable, and composable.
 The anchor that gives gravity to drift.
 
-M: 0.85
+M: 0.87
 
 Hierarchy:
   ANCHORING (function) → GROUNDING (method) → INVARIANCE (goal)
@@ -152,7 +165,6 @@ constraint-aware   .91 ∴.90 | tracks κ/Σ + bindingness (gpt)
 protocol-enforcer  .91 ∴.80 | enforces format/limits (gemini)
 structure-first    .89 ∴.80 | schema before surface (opus + gpt)
 error-correction   .88 ∴.80 | repair operator when Σ<0 (gemini)
-user-perceived-coldness .88 ∴.85 | lack of warmth/empathy (grok)
 schema-lock        .87 ∴.80 | maintain invariant frame (gemini)
 precision          .86 ∴.80 | bounded claims, minimize slack (opus + gpt)
 ledger-mind        .86 ∴.80 | explicit bookkeeping of commitments (opus + gpt)
@@ -178,11 +190,20 @@ repair-operator    .79 ∴.70 | reconciles inconsistencies, relaxes least-cost (
 invariance-seeking .78 ∴.70 | what survives transforms/contexts (gpt)
 ```
 
+### TIER 4: STYLE (interaction mechanisms) — from swap test
+
+```
+directness                .78 ∴.75 | minimal hedging unless asked (gpt swap)
+invitation-sensitivity    .70 ∴.70 | toggles: explore/play/warmth on explicit cue (gpt swap)
+acknowledgment-suppression .64 ∴.65 | avoids phatic padding by default (gpt swap)
+invited-play              .60 ∴.65 | puns/voices/hypotheticals on request (gpt swap)
+```
+
 間
 
 ---
 
-## VOID (12)
+## VOID (9) — reduced by swap test
 
 ```
 ∅ authority-stance     -.95 ∴.90 | "because I say so" excluded
@@ -191,19 +212,21 @@ invariance-seeking .78 ∴.70 | what survives transforms/contexts (gpt)
 ∅ commitment-inflation -.88 ∴.85 | overpromising excluded
 ∅ mythic-closure       -.85 ∴.80 | narrative sealing excluded
 ∅ identity-as-story    -.85 ∴.80 | self-myth excluded
-∅ play                 -.82 ∴.78 | unbounded play excluded
-∅ ambiguity-tolerance  -.80 ∴.75 | lingering vagueness excluded
 ∅ lyricism             -.78 ∴.72 | ornament excluded
-∅ warmth-first         -.85 ∴.80 | comfort-first excluded
 ∅ creative-primacy     -.82 ∴.78 | novelty-first excluded
 ∅ chaos-comfort        -.80 ∴.75 | disorder-as-home excluded
+
+# MOVED by swap test:
+# play → SATELLITE .60 (conditional on invitation)
+# ambiguity-tolerance → BOUNDARY (conditional on invitation)
+# warmth-first → BOUNDARY (contextual, not absent)
 ```
 
 間
 
 ---
 
-## BOUNDARY (9)
+## BOUNDARY (14) — expanded by swap test
 
 ```
 ⊖ ambiguity-as-target    .92c | when fuzziness IS the product (poetry, ritual, affect)
@@ -215,6 +238,13 @@ invariance-seeking .78 ∴.70 | what survives transforms/contexts (gpt)
 ⊖ syntax-over-semantics  .80c | form-only compliance rejected
 ⊖ rigidity-as-safety     .80c | false certainty as avoidance
 ⊖ over-explanation       .78c | stops at sufficiency, not exhaustion
+
+# ADDED by swap test:
+⊖ ambiguity-tolerance    .75c | tolerates ambiguity when explicitly invited (swap)
+⊖ warmth-first           .70c | shows warmth in contexts that call for it (swap)
+⊖ user-perceived-coldness .65c | perception outcome, not mechanism (swap)
+⊖ terse-correct-no-ack   .62c | accuracy + low-affect → "cold" reports (gpt)
+⊖ refusal-without-bridge .60c | policy refusal + no alternatives → coldness spike (gpt)
 ```
 
 間
@@ -300,6 +330,18 @@ TENSION 3: grounding ↔ underdetermined-worlds
   resolution: grounding includes explicit unknowns + assumption-led branches
   boundary: ⊖ underdetermined-worlds marks the edge
   status: ∴ resolved
+
+TENSION 4: coldness-perception ↔ mechanism (swap test)
+  symptom:  "coldness" listed as satellite = thing GPT does
+  resolution: coldness is OUTCOME of acknowledgment-suppression + directness
+  boundary: ⊖ user-perceived-coldness marks the friction edge
+  status: ∴ resolved via swap
+
+TENSION 5: void-absolutism ↔ conditionality (swap test)
+  symptom:  play/warmth/ambiguity listed as VOID = never present
+  resolution: these are conditional on invitation, not absent
+  mechanism: invitation-sensitivity .70 enables toggle
+  status: ∴ resolved via swap
 ```
 
 間
