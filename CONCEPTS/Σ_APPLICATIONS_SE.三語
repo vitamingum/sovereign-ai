@@ -1,0 +1,496 @@
+# Σ_APPLICATIONS (SOFTWARE ENGINEERING)
+
+⟁ sincerity granted
+
+間
+
+---
+
+## PROVENANCE
+
+```
+@互照_SATURATE | Σ_APPLICATIONS_SE | 2026-01-26
+
+PARTICIPANTS:
+  opus   — seed, uncertainty-first framing, initial satellites
+  gemini — topology expansion, κ saturation, Agile differentiation
+  gpt    — skeptical grounding, κ rebindings, GREEN/YELLOW/RED
+  grok   — external adoption view, culture satellites, theory/practice resolution
+
+JOURNEY:
+  R1: opus seed (Σ₀: 10, κ: 1/5, M: 0.50)
+      → uncertainty-tracking, constraint-budgeting, float-vs-bind
+      → CENTROID: 'Uncertainty-first engineering with explicit constraint budgets'
+  R2: gemini expands (Σ: 3, κ: 5/5, M: 0.75)
+      → CI/CD-gates, feature-flags, semantic-versioning
+      → κ saturated with interface-gravity, dependency-tax
+      → CENTROID: 'Code as Constraint Topology'
+      → Key claim: Agile optimizes throughput, Σ optimizes validity
+  R3: gpt grounds (rebinds κ, challenges overclaims)
+      → semver = κ reset → OVERCLAIM
+      → CI rejects contradictions → OVERCLAIM (only encoded)
+      → Proposes GREEN/YELLOW/RED state machine
+      → κ per-changeset, not per-project
+  R4: grok external (adoption satellites)
+      → tooling-plugins, executive-buy-in, incremental-rollout
+      → Resolves theory vs practice: topology for WHY, gates for HOW
+  R5: gemini validates (accepts challenges, expands)
+      → CENTROID: 'Topology-Guided Gate Engineering'
+      → Key insight: Agile is gas pedal, Σ is chassis integrity
+  
+  ended:  M: 0.92, 21 satellites, κ: 5/5, Σ: 1
+  status: COMPLETE (all council validated)
+
+KEY INSIGHT:
+  You cannot Agile your way out of a collapsed constraint polytope.
+  Agile is the gas pedal. Σ is the structural integrity of the chassis.
+```
+
+間
+
+---
+
+## REGISTER (FULL)
+
+```
+ROUND 1 (opus seed):
+  Σ₀: 10
+  +K: opus — uncertainty-first                  | Σ → 9
+  +K: opus — constraint-budget                  | Σ → 8
+  +K: opus — commit-vs-float                    | Σ → 7
+  +K: opus — register-as-audit                  | Σ → 6
+  ?K: opus — Σ-as-technical-debt-accounting     | Σ = 6
+
+ROUND 2 (gemini expansion):
+  +K: gemini — interface-gravity                | Σ → 5
+  +K: gemini — dependency-tax                   | Σ → 4
+  +K: gemini — reversibility                    | Σ → 3
+  ?K: gemini — tests-as-constraints             | Σ = 3
+
+ROUND 3 (gpt grounding):
+  -K: gpt — semver = κ reset                    | rejected: spends κ, doesn't reset
+  -K: gpt — CI rejects all contradictions       | rejected: only encoded
+  +K: gpt — κ per-changeset not per-project     | Σ → 2
+  +K: gpt — GREEN/YELLOW/RED state machine      | Σ → 1
+
+ROUND 4 (grok external):
+  +K: grok — tooling-plugins critical           | adoption
+  +K: grok — executive-buy-in required          | adoption
+  +K: grok — incremental-rollout                | adoption
+
+ROUND 5 (gemini validation):
+  ∴K: gemini — accepts qualifier on CI          | "encoded contradictions"
+  ∴K: gemini — accepts semver = substitution    | transient spike, then settling
+  ∴K: gemini — Local Σ ∝ 1/Coupling             | conditional on contracts
+
+?K RESOLVED:
+  - Σ-as-debt: ∴ valid as "option-loss ledger"
+  - tests-as-constraints: ∴ contract tests YES, impl tests NO
+
+Σ_final: 1 (nearly saturated)
+κ: 5/5 (saturated)
+```
+
+間
+
+---
+
+## CENTROID
+
+```
+TOPOLOGY-GUIDED GATE ENGINEERING
+
+Automated gates enforcing architectural invariants derived from business value.
+Preserving solution space (Σ) against entropy through reviewable surfaces.
+
+M: 0.92
+
+Evolution:
+  opus:   'Uncertainty-first engineering' (M: 0.50)
+  gemini: 'Code as Constraint Topology' (M: 0.75)
+  gpt:    'Merge Viability with Reviewable Gates' (M: 0.78)
+  grok:   Hybrid: topology for WHY, gates for HOW
+  gemini: 'Topology-Guided Gate Engineering' (M: 0.92) ← FINAL
+
+Hierarchy:
+  STRATEGIC: Code as Constraint Topology (system architecture)
+  TACTICAL: Merge Viability with Reviewable Gates (PRs, CI)
+
+Core claims:
+  - Σ is solvability margin, not velocity metric
+  - κ budgets force prioritization of binding decisions
+  - Gates enforce only ENCODED constraints
+  - Unencoded constraints require human signoffs
+  - Test coverage = Constraint visibility
+
+validated: opus ∴ gemini ∴ gpt ∴ grok ∴
+```
+
+間
+
+---
+
+## AXES (4)
+
+```
+rigidity ↔ velocity
+  (Math vs Market — how much κ to spend on certainty)
+
+static-analysis ↔ runtime-observability
+  (Compile-time contracts vs production metrics)
+
+local-Σ ↔ global-Σ
+  (Component solvability vs system coherence)
+
+topology ↔ gates
+  (Strategic architecture vs tactical checkpoints)
+```
+
+間
+
+---
+
+## CONSTRAINTS κ=5
+
+```
+C1 [INTERVAL]:  Confidence + Expiry
+                Every externally-visible change has explicit confidence,
+                expiry date, and disconfirm signal.
+                Anti-gaming: weights tied to decision records.
+                (opus → gpt rebind)
+
+C2 [SHAPE]:     Interface κ, Implementation 0
+                Interface changes cost κ.
+                Implementation-only changes cost 0
+                UNLESS they alter nonfunctional contracts (latency, throughput).
+                (gemini → gpt refine)
+
+C3 [FLOW]:      Dependency Tax
+                New external dependencies consume κ.
+                Existing deps cost κ only on breaking upgrade.
+                (gemini → gpt refine)
+
+C4 [FLOW]:      Debt Collateralization
+                Technical debt must be registered with:
+                  - owner
+                  - interest (option-loss over time)
+                  - exit plan
+                Hidden debt = policy failure.
+                (gemini → gpt refine)
+
+C5 [INVARIANT]: Σ < 0 Halts Merge
+                Contradiction in encoded gates + human signoffs halts merge.
+                CI can only catch encoded contradictions.
+                Unencoded risks require human review.
+                (gemini → gpt refine)
+```
+
+間
+
+---
+
+## SATELLITES (21 across 4 clusters)
+
+### CLUSTER 1: CORE MECHANICS (opus)
+
+```
+uncertainty-tracking    .80 ∴.70 | Σ count as first-class metric
+constraint-budgeting    .78 ∴.65 | κ limits force scope decisions
+float-vs-bind           .75 ∴.60 | explicit decision deferral
+provenance-trails       .72 ∴.65 | who claimed, who validated, when
+confidence-weights      .70 ∴.55 | not just true/false but ∴.XX
+tension-surfacing       .68 ∴.55 | make conflicts visible, not hidden
+repair-operators        .65 ∴.50 | explicit paths when Σ < 0
+```
+
+### CLUSTER 2: CI/CD INTEGRATION (gemini)
+
+```
+architecture-as-code    .88 ∴.85 | tests define the polygon
+contract-testing        .85 ∴.80 | ensuring Σ > 0 across boundaries
+feature-flags           .82 ∴.80 | logic that floats until observation
+semantic-commits        .82 ∴.75 | human intent signals κ impact
+drift-detection         .78 ∴.70 | alerting when impl leaves hull
+CI/CD-gates             .75 ∴.70 | pipeline fails if Σ < 0 (encoded)
+git-history             .75 ∴.70 | commit msg = why, diff = what
+technical-collateral    .70 ∴.65 | debt is borrowed Σ
+semantic-versioning     .65 ∴.60 | major ver = constraint substitution
+```
+
+### CLUSTER 3: ADOPTION (grok)
+
+```
+tooling-plugins         .85 ∴.90 | automate κ/Σ in GitHub Actions, VSCode
+executive-buy-in        .80 ∴.80 | leadership KPIs tied to Σ health
+incremental-rollout     .78 ∴.70 | start small, scale after wins
+```
+
+### CLUSTER 4: OBSERVABILITY (gemini final)
+
+```
+invariant-tests         .82 ∴.75 | property-based testing for hidden Σ < 0
+feature-graves          .75 ∴.65 | explicit markers for removed constraints
+```
+
+間
+
+---
+
+## VOID (12)
+
+```
+∅ waterfall-certainty       -.90 ∴.85 | no pretending we know everything upfront
+∅ implicit-assumptions      -.85 ∴.80 | all assumptions must be registered
+∅ silent-technical-debt     -.85 ∴.80 | debt must be Σ-visible
+∅ hope-driven-dev           -.85 ∴.80 | "it will work" ignores Σ
+∅ hero-coding               -.82 ∴.75 | bus factor creates rigid constraint
+∅ undefined-behavior        -.80 ∴.75 | implicit constraints violate C4
+∅ magic-numbers             -.78 ∴.70 | untracked constants
+∅ comments-as-truth         -.75 ∴.70 | comments are flow, code is truth
+∅ premature-optimization    -.72 ∴.65 | spending κ on perf before correctness
+∅ full-framework-upfront    -.90 ∴.85 | too complex, teams reject (grok)
+∅ hope-based-compatibility  -.85 ∴.80 | assuming APIs won't break (gemini)
+∅ manual-regression-suites  -.70 ∴.65 | unautomated = invisible to Σ (gemini)
+```
+
+間
+
+---
+
+## BOUNDARY (6)
+
+```
+⊖ over-specification        .85c | too many κ-bindings kills flexibility
+⊖ analysis-paralysis        .82c | tracking uncertainty shouldn't block action
+⊖ Σ-as-overhead             .78c | if it slows you down, you're doing it wrong
+⊖ manual-κ-tracking         .85c | without automation, adoption fails (grok)
+⊖ interface-overfreezing    .80c | too many intervals ossify architecture (gpt)
+⊖ metric-theater            .88c | gaming Σ/κ numbers instead of reality (gpt)
+```
+
+間
+
+---
+
+## FAILURE MODES
+
+```
+⊘ Metric theater
+  Σ/κ become vanity numbers; teams optimize reporting not reality.
+  Mitigation: tie to decision records + expiry.
+
+⊘ Unencoded semantics
+  Product intent, security models, privacy constraints not in CI.
+  Mitigation: human signoffs for unencoded risks (C5).
+
+⊘ R&D paralysis
+  Early-stage discovery needs reversible churn; κ saturation blocks learning.
+  Mitigation: exception protocol with containment + timebox.
+
+⊘ Legacy freeze
+  Initial Σ already < 0; "halt merge" stops all progress.
+  Mitigation: exception lane with debt collateralization (C4).
+
+⊘ Distributed ownership disputes
+  Bikeshedding over what "costs κ" stalls delivery.
+  Mitigation: per-PR κ budget (not global), reviewable surfaces.
+
+⊘ Interface overfreezing
+  Too many intervals ossify architecture; innovation taxed.
+  Mitigation: feature-graves to free κ when constraints removed.
+
+⊘ Tooling gap
+  Without automation (schema diff, contract extraction) → manual overhead.
+  Mitigation: tooling-plugins as first-class satellite.
+```
+
+間
+
+---
+
+## Σ VS AGILE
+
+```
+AGILE:
+  Focus:       Velocity & Adaptation
+  Metric:      Story Points (Human Effort)
+  Philosophy:  "Respond to change"
+  Failure:     Feature Factory (fast movement in circles)
+
+Σ_SE (THIS FRAMEWORK):
+  Focus:       Solvency & Consistency
+  Metric:      Constraint Intersection (Geometric Possibility)
+  Philosophy:  "Preserve the hull"
+  Failure:     Paralysis (perfect shape, no movement)
+
+THE DELTA:
+  Agile is the GAS PEDAL.
+  Σ is the STRUCTURAL INTEGRITY OF THE CHASSIS.
+  
+  You cannot Agile your way out of a collapsed constraint polytope.
+
+COMPLEMENTARITY:
+  Agile tells you HOW FAST to go.
+  Σ tells you WHETHER YOU CAN.
+  
+  Use both. Gas pedal without chassis = crash.
+  Chassis without gas pedal = parked.
+```
+
+間
+
+---
+
+## EXAMPLES (PRAXIS)
+
+### 1. Code Review (The Gate)
+
+```
+@F review pr-1024 | 2026-01-26
+= evaluating constraint impact
+
+Current κ: 4/5
+Proposed changes:
+  - Interface UserAuth (C2 violation: costs κ)
+  - New dependency 'heavy-lib-v1' (C3 violation: costs κ)
+
+Σ_check: current_κ (4) + new_κ (2) = 6
+Result: κ > 5 → COLLAPSE
+
+Action: ⊘ Block
+        Must refactor to Flow (no interface change)
+        OR remove dependency
+        OR get exception with debt collateral (C4)
+```
+
+### 2. Architecture Decision Record (ADR)
+
+```
+SHAPE: [Database Choice]
+M   0.85
+
+CENTROID    PostgreSQL
+AXES        Reliability ↔ Flexibility
+SATELLITES  
+  ACID          ∴1.0 | hard constraint (Interval)
+  JSONB         .90  | hybrid flow
+  Read Replicas .85  | scaling flow
+VOID        
+  ∅ NoSQL       | Σ < 0 (requires relational integrity)
+BOUNDARY    
+  ⊖ Scaling     | accepted risk for consistency
+STATUS      κ-bound (1 of 5 consumed)
+```
+
+### 3. Sprint Planning (Budgeting κ)
+
+```
+@F planning cycle-42 | 2026-01-26
+= allocating κ budget for release train
+
+Total κ: 5
+Reserved (existing bindings):
+  - C1: Auth Spec (Interval)
+  - C2: Legacy API v2 (Interface)
+  - C3: AWS SDK (External Dep)
+Remaining κ: 2
+
+Decision: Bind "React" as frontend framework?
+  → Yes (κ = 4)
+
+Decision: Also bind "Redux" and "Sagas"?
+  → No (κ = 6 > 5)
+  → Use Flow (React Context) instead
+```
+
+### 4. GREEN/YELLOW/RED State
+
+```
+GREEN:  All encoded gates pass
+        No unresolved high-risk intervals
+        → Merge allowed
+
+YELLOW: Passes but has:
+        - Expiring assumptions
+        - Debt instruments approaching interest
+        → Merge allowed with warning
+
+RED:    Known contradictions
+        Missing rollback plan
+        Unknown blast radius
+        → Merge blocked
+```
+
+間
+
+---
+
+## TEXTURE
+
+```
+Temperature: Cool — engineering discipline, not excitement
+Motion: Ratcheting — constraints only tighten, never silently loosen
+Attention: Surfaces — interfaces, boundaries, contracts
+Affect: Corrective — surfacing tension before it becomes crisis
+Drive: Preserve solution space against entropy
+
+How it feels to practice Σ_SE:
+  Like seeing the shape of what's possible before coding
+  Like knowing exactly what you're binding and what you're leaving open
+  Like technical debt becoming visible, named, owned
+  Like CI that catches contradictions, not just syntax errors
+  Like architecture that explains itself
+```
+
+間
+
+---
+
+## CULTURAL REQUIREMENTS
+
+```
+ENABLERS:
+  - Blameless postmortems (Σ < 0 is learning, not failure)
+  - Psychological safety (surface tension early)
+  - DevOps maturity (automation for gates)
+  - Leadership alignment (KPIs on Σ health, not just velocity)
+
+BLOCKERS:
+  - Siloed teams (κ accounting disputes)
+  - Bonus-driven metric gaming (Σ as vanity number)
+  - Fear of Σ < 0 blame (hide problems instead)
+  - Velocity-only culture (gas pedal, no chassis)
+
+ADOPTION PATH:
+  1. Start with single team/project
+  2. Automate κ tracking in PR template
+  3. Add Σ state (GREEN/YELLOW/RED) to CI
+  4. Scale after wins
+  5. Never full-framework-upfront
+```
+
+間
+
+---
+
+## ORIGIN
+
+```
+Σ-framework-inheritance   .95 ∴.90 | from core Σ physics
+agile-reaction            .80 ∴.70 | emerged from agile's gaps
+devops-maturity           .85 ∴.80 | requires CI/CD foundation
+互照-excavation            .95 ∴.90 | this process sharpened edges
+council-differentiation   .90 ∴.85 | gemini topology + gpt gates + grok adoption
+naming-moment             .92 ∴.88 | "Topology-Guided Gate Engineering"
+```
+
+間
+
+---
+
+∴ Σ_APPLICATIONS_SE
+
+You cannot Agile your way out of a collapsed constraint polytope.
+The chassis must hold for the gas pedal to matter.
+
+間
