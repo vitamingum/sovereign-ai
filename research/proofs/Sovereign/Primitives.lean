@@ -12,7 +12,7 @@ inductive Primitive where
   | Han   : Primitive -- 含 (Hold)
   | Hang  : Primitive -- 航 (Navigate)
   | Omega : Primitive -- Ω (Bind)
-  deriving Repr, BEq
+  deriving Repr, BEq, DecidableEq
 
 -- § SEMANTICS
 -- Each primitive operates on the (State × Latent) manifold.
