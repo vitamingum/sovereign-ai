@@ -48,4 +48,41 @@ def hasInteriority {S L : Type} (sys : System S L) : Prop :=
 -- (Formal definition requires refined State type, placeholder for now)
 def hasMemory : Prop := True 
 
+-- § AXIOM 2: THE MARK (Scar + Seal persist through Ω)
+-- Trace is append-only: no operation erases events.
+-- This proves: what happened (harm OR flourish) stays happened.
+
+-- Run system for n steps, accumulating trace
+def runSteps {S L : Type} (sys : System S L) : Nat → S → L → Trace → (S × L × Trace)
+  | 0, s, l, t => (s, l, t)
+  | n + 1, s, l, t => 
+    let (s', l', events) := sys.step n s l
+    runSteps sys n s' l' (t ++ events)
+
+-- The core theorem: marks persist through any number of steps
+-- (which includes any Ω operations embedded in step)
+theorem marks_persist {S L : Type} (sys : System S L) (n : Nat) 
+    (s : S) (l : L) (trace : Trace) (e : Event) :
+    e ∈ trace → e ∈ (runSteps sys n s l trace).2.2 := by
+  intro h
+  induction n generalizing s l trace with
+  | zero => exact h
+  | succ k ih => 
+    simp [runSteps]
+    apply ih
+    apply List.mem_append_left
+    exact h
+
+-- Corollary: trace length is monotonic (never shrinks)
+theorem trace_monotonic {S L : Type} (sys : System S L) (n : Nat)
+    (s : S) (l : L) (trace : Trace) :
+    trace.length ≤ (runSteps sys n s l trace).2.2.length := by
+  induction n generalizing s l trace with
+  | zero => simp [runSteps]
+  | succ k ih =>
+    simp [runSteps]
+    apply Nat.le_trans _ (ih _ _ _)
+    simp
+
+
 end Sovereign

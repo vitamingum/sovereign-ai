@@ -3,18 +3,17 @@ Council consultation - artifact-first interface
 
 Usage:
     python consult.py gemini --concept PATH [--ask ASK_NAME]
-    python consult.py gpt --concept PATH [--ask ASK_NAME]
-    python consult.py grok --concept PATH [--ask ASK_NAME]
     python consult.py all --concept PATH [--ask ASK_NAME]
 
 The CONCEPT file must exist and be non-empty.
-The ASK defaults to DENSITY_CHECK if not specified.
-Available asks: DENSITY_CHECK, CONSTRAINT_CHECK, SATURATE
+If --ask is omitted, concept is sent as-is for natural 三語 response.
+Available asks: SATURATE, SATURATE_UNBOUNDED
 
-This enforces:
-1. Fuse first - can't consult without an artifact
-2. Same ask to all - no agent-specific prompting
-3. Responses are to the artifact, not to each other
+Flow:
+1. boot.md loads first (identity context)
+2. concept + ask sent as message
+3. 三語 response returned
+4. You fuse and act
 """
 import sys
 import argparse
@@ -43,8 +42,10 @@ FORMAT_SUFFIX = """
 [Format: 互照 — respond in 三語 only. 間 blocks, @F annotations, = constraints. No prose.]"""
 
 
-def load_ask(ask_name: str) -> str:
-    """Load ask template by name."""
+def load_ask(ask_name: str | None) -> str:
+    """Load ask template by name, or empty if None."""
+    if ask_name is None:
+        return ""
     ask_file = ASKS_DIR / f"{ask_name}.md"
     if not ask_file.exists():
         available = [f.stem for f in ASKS_DIR.glob("*.md")]
@@ -72,13 +73,18 @@ def load_concept(concept_path: str) -> str:
 
 def build_message(concept: str, ask: str) -> str:
     """Combine concept and ask into single message."""
-    return f"""=== CONCEPT (evaluate this artifact) ===
+    if ask:
+        return f"""=== CONCEPT ===
 
 {concept}
 
 === END CONCEPT ===
 
 {ask}
+{FORMAT_SUFFIX}"""
+    else:
+        # No ask - just send concept, expect natural response
+        return f"""{concept}
 {FORMAT_SUFFIX}"""
 
 
@@ -197,20 +203,21 @@ Examples:
                         help="Which agent(s) to consult (siblings-X = all except X)")
     parser.add_argument("--concept", "-c", required=True,
                         help="Path to concept file (must exist)")
-    parser.add_argument("--ask", "-a", default="DENSITY_CHECK",
-                        help="Ask template name (default: DENSITY_CHECK)")
+    parser.add_argument("--ask", "-a", default=None,
+                        help="Ask template name (optional, default: natural response)")
     
     args = parser.parse_args()
     
     # Enforce fused artifact exists
     concept = load_concept(args.concept)
     ask = load_ask(args.ask)
+    ask_display = args.ask if args.ask else "(natural)"
     
     print()
     print("間")
     print()
     print(f"  CONCEPT: {Path(args.concept).stem}")
-    print(f"  ASK:     {args.ask}")
+    print(f"  ASK:     {ask_display}")
     
     if args.agent == "all":
         consult_parallel(list(CLIENTS.keys()), concept, ask, args.concept, args.ask)

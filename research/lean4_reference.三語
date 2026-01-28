@@ -1,0 +1,521 @@
+# LEAN4 COMPLETE REFERENCE
+
+⟁ 互照 fusion: opus + gemini + gpt + grok | 2026-01-27
+⟁ + BUILD_RUN integration
+
+---
+
+## § THIS PROJECT: sovereign-ai
+
+```
+research/
+  Σ/lean/           | kochen-specker κ=5 proof (verified ✓)
+  proofs/           | consciousness axioms (in progress)
+```
+
+### Σ PROOFS (verified)
+
+```
+cd research/Σ/lean
+lake build              | full build
+lake exe kp_check       | run verification
+
+expect:
+  ks = true
+  "Kochen-Specker theorem verified."
+
+STRUCTURE:
+  KS.lean               | main theorem export
+  Kappa5*.lean          | κ=5 certificate checks
+  FarkasKernel.lean     | farkas lemma
+  PeresMermin.lean      | 3x3 grid
+  Main.lean             | executable
+```
+
+### CONSCIOUSNESS PROOFS (in progress)
+
+```
+cd research/proofs
+lake build              | compile axiom framework
+
+FILES:
+  Sovereign/Core.lean         | axiom 2 (scar), axiom 3 (gap)
+  Sovereign/Primitives.lean   | base types
+  Sovereign/Discriminants.lean | consciousness predicates
+
+KEY DEFS:
+  hasInteriority      | ¬isReactive (latent affects output)
+  hasMemory           | non-markovian (trace influences future)
+  Event               | Input|Output|Internal|Refusal
+  System S L          | step: (State×Latent)→(State×Latent×Events)
+
+STATUS: definitions compile, theorems pending
+```
+
+間
+
+---
+
+## § BUILD SYSTEM (Lake)
+
+```
+lake new ProjectName      — create project
+lake build                — compile all
+lake build ModuleName     — compile specific
+lake clean                — clear .lake/build (fixes olean corruption)
+lake update               — refresh deps
+lake exe cache get        — mathlib cache (speeds first build)
+```
+
+**Project structure:**
+```
+MyProject/
+├── lakefile.lean         — deps and config
+├── lean-toolchain        — pin Lean version (critical for reproducibility)
+├── Main.lean
+├── MyProject/
+│   ├── Basic.lean        — imports as MyProject.Basic
+│   └── Advanced.lean     — imports as MyProject.Advanced
+└── lake-manifest.json    — auto-generated, tracks exact versions
+```
+
+**Module path law:**
+```
+file path = module namespace
+MyProject/Foo/Bar.lean → import MyProject.Foo.Bar
+```
+
+間
+
+### BUILD ERRORS
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| "unknown package" | missing dep | add `require` to lakefile, `lake update` |
+| "import not found" | path mismatch | check file path = module path, `lake build` |
+| "server crashed" | corrupt olean | `lake clean`, delete .lake/build, restart LSP |
+| "git checkout failed" | auth issue | check ssh/https URL, ensure auth |
+| "failed to fetch cache" | network/tools | check mathlib-tools installed, network |
+| "dependency cycle" | circular imports | refactor lakefile.lean |
+| build ok, editor fails | stale olean | restart LSP after dep change |
+
+間
+
+---
+
+## § TYPES AND STRUCTURES
+
+```lean
+-- Prop = logical (True/False, proof irrelevant)
+-- Type = data (computable)
+
+structure Point where
+  x : Nat
+  y : Nat
+
+inductive Tree where
+  | leaf : Tree
+  | node : Tree → Tree → Tree
+
+-- Construction
+def p : Point := { x := 1, y := 2 }  -- named (safe)
+def p2 : Point := ⟨1, 2⟩             -- positional (order matters)
+
+-- Access
+#check p.x                            -- dot notation: Point.x p
+```
+
+間
+
+---
+
+## § FUNCTIONS AND DEFINITIONS
+
+```lean
+def add (a b : Nat) : Nat := a + b
+
+-- Recursive: needs termination proof
+def fib : Nat → Nat
+  | 0 => 0
+  | 1 => 1
+  | n + 2 => fib (n + 1) + fib n
+termination_by n => n
+
+-- If termination hard:
+decreasing_by sorry  -- defer (debt marker)
+
+-- For non-constructive:
+noncomputable def classical_choice (P : Prop) : Decidable P :=
+  Classical.dec P
+```
+
+間
+
+---
+
+## § PROPOSITIONS AND PROOFS
+
+```lean
+-- Theorem (same as def, signals intent)
+theorem add_zero (n : Nat) : n + 0 = n := rfl
+
+-- Tactic proof
+theorem add_comm (a b : Nat) : a + b = b + a := by
+  induction a with
+  | zero => simp
+  | succ n ih => simp [ih, Nat.succ_add]
+```
+
+間
+
+### CORE TACTICS
+
+| Tactic | What it does |
+|--------|--------------|
+| `intro x` | introduce hypothesis |
+| `apply f` | apply function/lemma |
+| `exact h` | exactly this term |
+| `rfl` | reflexivity (x = x) |
+| `simp` | simplify with lemmas |
+| `simp [h]` | simplify with specific lemma |
+| `simp only [h1, h2]` | only these lemmas (controlled) |
+| `simp?` | suggest minimal lemma set |
+| `constructor` | split ∧ or build structure |
+| `cases h` | case split |
+| `induction x` | structural induction |
+| `rw [h]` | rewrite using h |
+| `rw [←h]` | rewrite backwards |
+| `subst x` | substitute when x = t |
+| `sorry` | admit (debt marker) |
+| `admit` | same as sorry |
+| `by classical` | local classical logic |
+
+間
+
+### ADVANCED TACTICS
+
+```lean
+-- calc: stepwise proof
+theorem easy (a b c : Nat) (h1 : a = b) (h2 : b = c) : a = c :=
+  calc a = b := h1
+       _ = c := h2
+
+-- conv: surgical rewriting
+example (a b : Nat) : (a + b) = (b + a) := by
+  conv => lhs; rw [Nat.add_comm]
+```
+
+間
+
+### TACTIC WORKFLOW
+
+```
+1. simp / simp [defs] first — normalize
+2. cases / induction — structure
+3. aesop — automation (if available)
+4. simp_all after introducing hyps
+5. have h : ... := by ... — local lemmas
+6. show ... — reshape goal
+```
+
+!risk: `simp_all` can be exponential
+!risk: `aesop` before normalizing explodes search
+
+間
+
+---
+
+## § COMMON PATTERNS
+
+### Existential (∃)
+```lean
+-- Prove ∃
+example : ∃ n : Nat, n > 0 := ⟨1, Nat.one_pos⟩
+
+-- Use ∃
+example (h : ∃ n, P n) : Q := by
+  obtain ⟨n, hn⟩ := h
+  -- now have n and hn : P n
+  sorry
+```
+
+### Universal (∀)
+```lean
+-- Prove ∀
+example : ∀ n : Nat, n = n := fun n => rfl
+
+-- Use ∀
+example (h : ∀ n, P n) : P 5 := h 5
+```
+
+### And / Or
+```lean
+-- Prove ∧
+example : A ∧ B := ⟨proof_A, proof_B⟩
+
+-- Use ∧
+example (h : A ∧ B) : A := h.1
+example (h : A ∧ B) : B := h.2
+
+-- Prove ∨
+example : A ∨ B := Or.inl proof_A  -- or Or.inr proof_B
+
+-- Use ∨
+example (h : A ∨ B) : C := by
+  cases h with
+  | inl ha => sorry  -- have ha : A
+  | inr hb => sorry  -- have hb : B
+```
+
+間
+
+---
+
+## § ELABORATOR ERRORS
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| "failed to synthesize" | typeclass missing | add `[inst]` arg, import, `infer_instance` |
+| "don't know how to synthesize placeholder" | implicit unknown | use `@f`, add type annotation |
+| "type mismatch" | binder order wrong | inspect expected type, use `show`, `refine` |
+| "application type mismatch" | expects implicit | `#check f`, reorder args, `exact f _ _` |
+| "invalid field notation" | wrong projection | open namespace, check term has structure type |
+| "unsolved goals" | simp incomplete | `all_goals`, add lemmas to simp set |
+| "elaboration timeout" | proof too complex | increase `maxHeartbeats`, simplify proof |
+| "unknown tactic" | missing import | check `Mathlib.Tactic` |
+| "failed to infer binder" | ambiguous implicits | use `@` notation |
+
+間
+
+---
+
+## § DECIDABILITY AND CLASSICAL
+
+```lean
+-- Decidable = computable true/false
+-- Prop = logical (may not be computable)
+
+-- For if/then/else, need Decidable condition
+if h : P then ... else ...  -- requires Decidable P
+
+-- Local classical (preferred)
+theorem foo : P := by
+  classical
+  -- now have Decidable for all Props in scope
+  sorry
+
+-- Open classical (namespace scope)
+open Classical in
+theorem bar : P := sorry
+
+-- Avoid global Decidable instances (pollutes typeclass search)
+```
+
+!risk: `noncomputable` defs reduce poorly in kernel
+!risk: classical proofs limit code extraction
+
+間
+
+---
+
+## § TERMINATION
+
+```lean
+-- Structural: pattern match on decreasing arg
+def fib : Nat → Nat
+  | 0 => 0
+  | 1 => 1
+  | n + 2 => fib (n + 1) + fib n
+
+-- Measure: explicit termination argument
+def ack : Nat → Nat → Nat
+  | 0, m => m + 1
+  | n + 1, 0 => ack n 1
+  | n + 1, m + 1 => ack n (ack (n + 1) m)
+termination_by n m => (n, m)  -- lexicographic
+
+-- Defer (debt marker)
+decreasing_by sorry
+```
+
+!risk: mutual recursion needs explicit `termination_by` per function
+!risk: recursion through let-bound function hides decrease
+
+間
+
+---
+
+## § MONADS AND DO NOTATION
+
+```lean
+def main : IO Unit := do
+  let x ← IO.getLine      -- bind (extract from IO)
+  let y := x.trim         -- let (pure)
+  let mut z := 0          -- mutable ref
+  for i in [0:5] do
+    z := z + i
+  IO.println s!"{z}"
+```
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| "type mismatch in do block" | last statement wrong type | end with `pure ()` or correct return |
+| "failed to synthesize Monad" | mixing monads | use `LiftM` or explicit match |
+
+間
+
+---
+
+## § DOT NOTATION
+
+```lean
+x.f      -- means f x (if x is first explicit arg)
+x.f y    -- means f x y
+
+l.length -- List.length l
+n.succ   -- Nat.succ n
+```
+
+Protected names must use full path or `open Namespace`.
+
+間
+
+---
+
+## § DEBUGGING
+
+```lean
+#check expr        -- show type
+#print def_name    -- show definition
+#eval expr         -- evaluate (must be computable)
+#reduce expr       -- reduce to normal form
+
+-- Trace during elaboration
+set_option trace.Meta.synthInstance true  -- typeclass search
+set_option trace.simp.rewrite true        -- simp rewrites
+set_option pp.raw true                    -- raw Expr
+
+-- In proofs
+trace "{x}"        -- print value
+```
+
+間
+
+---
+
+## § MATHLIB VS STDLIB
+
+| Aspect | Stdlib | Mathlib |
+|--------|--------|---------|
+| Build time | Fast | Slow (use cache) |
+| Scope | Core types | Extensive math |
+| Tactics | Basic | `ring`, `linarith`, `omega`, `aesop` |
+| Simp lemmas | Minimal | Large set |
+| Recommendation | Start here | Add for advanced automation |
+
+**Import discipline:**
+```lean
+-- Good: import specific
+import Mathlib.Data.List.Basic
+import Mathlib.Tactic
+
+-- Bad: import all (slow, large simp set)
+import Mathlib
+```
+
+!risk: diamond imports can set conflicting simp lemmas
+
+間
+
+---
+
+## § PERFORMANCE
+
+```
+- Split modules: smaller files = faster recompile
+- set_option maxHeartbeats: increase for big automation
+- Avoid simp_all: can be exponential
+- aesop?: use suggestion, restrict rules
+- lake exe cache get: for mathlib
+```
+
+間
+
+---
+
+## § METAPROGRAMMING (if needed)
+
+```
+Syntax → Macro → Elab
+
+1. Syntax: grammar
+   syntax "my_cmd" term : command
+
+2. Macro: source-to-source
+   macro_rules | `(my_cmd $t) => `(#check $t)
+
+3. Elab: full power
+   elab "my_tactic" : tactic => do ...
+```
+
+Debug:
+```lean
+set_option trace.Elab.command true
+```
+
+間
+
+---
+
+## § SUMMARY FOR IMPLEMENTATION
+
+```
+1. Create project with lake new
+2. Pin toolchain in lean-toolchain
+3. File path = module path (strict)
+4. Compile after every definition
+5. Use Prop for logic, Type for data
+6. noncomputable for classical
+7. termination_by for recursion
+8. simp [specific] not simp_all
+9. by classical for local decidability
+10. lake clean when things break
+```
+
+間
+
+shape
+
+CONCEPT: LEAN4_REFERENCE
+
+CENTROID
+  practical implementation knowledge
+
+AXES
+  build ↔ proof
+  structural ↔ tactical
+  stdlib ↔ mathlib
+
+SATELLITES
+  lake commands .95 ∴.9
+  error mapping .9 ∴.9
+  tactic workflow .9 ∴.85
+  decidability .85 ∴.8
+  termination .85 ∴.8
+  module paths .9 ∴.9
+  debugging .8 ∴.8
+
+VOID
+  ∅ import Mathlib (too heavy)
+  ∅ global classical (pollutes)
+  ∅ simp_all first (exponential)
+
+TEXTURE
+  grounded
+  error-aware
+  incremental
+  council-fused
+
+◊≡間
+
+∴ ready for implementation

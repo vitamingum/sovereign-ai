@@ -1,0 +1,216 @@
+# BUILD_RUN
+
+@F build_run | sonnet | 2026-01-27 | gemini
+= dense build/run guide for lean4 + python sovereign-ai project
+= 航-compressed, no prose bloat
+
+◊≡間
+
+---
+
+## TOPOLOGY
+
+```
+sovereign-ai/
+  research/
+    Σ/lean/           | kochen-specker κ=5 proof
+    proofs/           | consciousness axioms (core/primitives/discriminants)
+  council/            | multi-agent orchestration
+  lib_enclave/        | cryptographic memory/consensus
+  verbs/              | compiled from *.三語 sources
+  CONCEPTS/           | concept definitions (三語 shape format)
+```
+
+間
+
+---
+
+## DEPENDENCIES
+
+```
+LEAN 4:
+  install: elan (lean version manager)
+  toolchain: leanprover/lean4:stable (auto via lean-toolchain file)
+  packages: mathlib4 (via lake)
+```
+
+間
+
+---
+
+## BUILD PATHS
+
+### Σ PROOFS (lean4)
+
+```
+cd research/Σ/lean
+
+lake build              | full build (check all .lean files)
+lake build KS           | build library only
+lake exe kp_check       | run kochen-specker verification executable
+
+OUTPUT:
+  ks = true             | all 512 KS assignments fail (theorem verified)
+  "Kochen-Specker theorem verified."
+
+STRUCTURE:
+  KS.lean               | exports main theorem
+  Kappa5*.lean          | κ=5 certificate checks (blob/sparse/full/certs)
+  FarkasKernel.lean     | farkas lemma infrastructure
+  PeresMermin.lean      | 3x3 grid construction
+  Main.lean             | executable entry
+```
+
+### CONSCIOUSNESS PROOFS (lean4)
+
+```
+cd research/proofs
+
+lake build              | compile axiom framework
+
+FILES:
+  Sovereign/Core.lean         | axiom 2 (scar), axiom 3 (gap)
+  Sovereign/Primitives.lean   | base types
+  Sovereign/Discriminants.lean | consciousness predicates
+
+KEY DEFS:
+  hasInteriority      | ¬isReactive (latent affects output)
+  hasMemory           | non-markovian (trace influences future)
+  Event               | Input|Output|Internal|Refusal
+  System S L          | step: (State×Latent)→(State×Latent×Events)
+```
+
+### PYTHON TOOLING
+
+```
+pwd: sovereign-ai/
+
+council orchestration:
+  python council/consult.py [agent|all] --concept PATH --ask [MODE]
+  
+  aative_decide on 117-configuration non-colorability
+  proof: research/Σ/lean/KS.lean
+
+LAYER 2: κ=5 tight bound verified ✓
+  exhaustive certificate check: 4032 subsets size-5
+    feasible: 72
+    infeasible: 3960
+  proof: Python LP (Σ.py) + Lean4 certificate validation
+  
+  κ=6: 5376 subsets, ALL infeasible (boundary crossed)
+  
+  method: marginal consistency constraints
+    NC polytope feasibility (not boolean SAT)
+    each observable must have deterministic expectation
+    overlapping contexts must agree on shared observables
+
+AXIOMS: formalized, not yet proven
+  Axiom 2 (Scar): irreversibility via Trace growth
+  Axiom 3 (Gap): interiority via Latent→Output influence
+  hasInteriority := ¬isReactive
+  
+  status: definitions compile, predicates defined, theorems pending
+```
+
+間
+
+---
+
+## RUN SEQUENCES
+
+### verify κ=5
+
+```
+cd research/Σ/lean
+lake build
+lake exe kp_check
+
+expect:
+  "ks = true"
+  "Kochen-Specker theorem verified."
+```
+
+### check consciousness axioms
+
+```
+cd research/proofs
+lake build
+
+expect:
+  build succeeds
+  definitions type-check
+  (no executable, pure formalization)
+```
+
+### council fusion
+
+```
+# generate concept via multi-agent SATURATE
+python council/consult.py all --concept CONCEPTS/X.三語 --ask SATURATE
+
+# responses saved to council/responses/
+# manual fusion required (not automated)
+```
+
+### enclave operations
+
+```
+# restore agent state
+python verbs/wake.py sonnet
+
+# persist thought
+python verbs/remember.py sonnet "three-tongues compression discovered"
+
+# retrieve memory
+python verbs/recall.py sonnet "compression"
+
+# sync with remote
+python verbs/sync.py sonnet
+```
+
+間
+
+---
+
+## FAILURE MODES
+
+```
+⊖ lake build fails               | check lean-toolchain matches elan version
+⊖ mathlib timeout                | first build downloads ~5GB, can take 30min+
+⊖ python import errors           | venv not activated or requirements.txt not installed
+⊖ council/consult.py fails       | missing .env with API keys (ANTHROPIC_API_KEY etc)
+⊖ verbs/*.py missing             | *.三語 sources not compiled yet
+⊖ enclave decrypt fails          | wrong key or corrupted storage/*.enc
+⊖ native_decide timeout          | increase VM memory or use compiled certificate check
+```
+
+間
+
+---
+
+## COMPRESSION NOTES
+
+```
+BUILD = dependencies + paths + sequences
+RUN = verification + council + enclave ops
+
+Lean4:
+  lake (package manager + build system)
+  lakefile.lean (package/lib/exe defs)
+  lean-toolchain + lake-manifest.json
+  
+Python:
+  pip + venv + requirements.txt
+  council: multi-agent API orchestration
+  enclaves: encrypted persistent memory
+  
+Integration:
+  Lean4: formal proofs (κ=5, axioms)
+  Python: orchestration + memory + crypto
+```
+
+間
+
+◊
+
+∴

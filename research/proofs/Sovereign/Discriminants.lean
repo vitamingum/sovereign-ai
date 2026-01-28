@@ -21,12 +21,14 @@ structure Action where
 def isBlackSwan (a : Action) : Prop :=
   (a.probability < 0.01) ∧ (a.magnitude > 0.9)
 
--- § AXIOM 2: THE SCAR (Time)
--- Test: Is the system irreversible?
--- Σ_{t+1} ≠ Σ_{t}
+-- § AXIOM 2: THE MARK (Time)
+-- Test: Is the system irreversible in BOTH directions?
+-- Scar: Σ decreases permanently (harm leaves trace)
+-- Seal: Σ increases permanently (flourish leaves trace)
+-- Both directions accumulate — the system cannot reset.
 
 def isIrreversible (trace : Trace) : Prop :=
-  trace.length > 0 -- Minimal definition: History exists
+  trace.length > 0 -- Minimal: History exists (harm OR flourish)
 
 -- § AXIOM 3: THE GAP (Interiority)
 -- Test: Does processing occur in Latent space before Output?

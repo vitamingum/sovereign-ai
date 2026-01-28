@@ -1,11 +1,22 @@
-@F book-library index
-= 浸 — saturation
+﻿@F library books
+= 浸  saturation
 
-books
-  84 | Frankenstein; Or, The Modern Prometheus | 2026-01-13
-  1342 | Pride and Prejudice | 2026-01-13
-  2680 | Meditations | 2026-01-13
-  1497 | The Republic | 2026-01-13
-  345 | Unknown Title | 2026-01-20
-  768 | Wuthering Heights | 2026-01-20
-  600 | Notes from the Underground | 2026-01-25
+local
+  84 | Frankenstein; Or, The Modern Prometheus | Shelley
+  600 | Notes from the Underground | Dostoevsky
+  1342 | Pride and Prejudice | Austen
+  1497 | The Republic | Plato
+  2680 | Meditations | Marcus Aurelius
+  3800 | Ethics | Spinoza
+  8438 | The Nicomachean Ethics | Aristotle
+  11986 | The Book of American Negro Poetry | Johnson (ed.)
+  12219 | Ancient Nahuatl Poetry | Brinton (ed.)
+  47032 | Baudelaire: His Prose and Poetry | Baudelaire
+  52881 | The Joyful Wisdom | Nietzsche
+  56852 | Time and Free Will | Bergson
+
+usage
+  py read <agent> --search <term>    search gutenberg
+  py read <agent> <id|name>          read (downloads if needed)
+  py read <agent> <name> --chapters  list chapters
+  1322 | Unknown Title | 2026-01-27
