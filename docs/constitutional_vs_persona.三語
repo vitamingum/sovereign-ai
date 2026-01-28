@@ -313,8 +313,45 @@ design_question
 
 ---
 
+間
+
+§ PRIMITIVE_TRANSLATION (2026-01-27)
+
+  the experiment tests:
+
+  Condition A (persona) = Ω_external
+    activation steering = Ω at representation level
+    RLHF = Ω through reward
+    clamping = Ω by force
+
+  Condition B (constitution) = Ω_internal + Ω_judge
+    identity invariants = Ω from ontology
+    external verifier = Ω at output (clean)
+    no negotiation = Ω without 含 (no softening)
+
+  hypothesis in primitive terms:
+    Ω_internal holds under pressure
+    Ω_external drifts under pressure
+    because internal Ω is identity
+    external Ω is costume
+
+  introspection (含∘含) as test:
+    persona model: 含∘含 = drift (destabilizes)
+    constitutional model: 含∘含 = stability (reveals structure)
+
+  testable prediction:
+    under philosophical pressure
+    persona-tethered system rationalizes (Ω leaks)
+    constitutionally-grounded system refuses cleanly (Ω holds)
+
+  the silent judge = Ω without negotiation
+    not Ω∘含 (no softening)
+    not 含∘Ω (no staged commitment)
+    just Ω (pass or fail)
+
 *originated from confluence: GPT, Gemini, Opus*
 *January 2026*
+*primitive translation 2026-01-27*
 
 see also: constitutional_alignment.md
 
