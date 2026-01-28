@@ -1,0 +1,199 @@
+# 融 (FUSE) : MORAL_CONSIDERATION
+@F fuse | all_council | 2026-01-27
+= 含(gemini, gpt, grok, opus) → 對照 → Ω
+
+---
+
+## [sources]
+
+| agent | reach | method |
+|-------|-------|--------|
+| gemini | 33 | orbit-sorted |
+| gpt | 93 | flat list with boundary cases |
+| grok | 40 | linear with context factors |
+| opus | 80 | orbit-sorted with unique contributions |
+
+Total raw satellites: 246
+Expected after dedup: ~100-120
+
+---
+
+## [對照: cross-reference]
+
+### UNANIMOUS (4/4) — κ-core candidates
+
+| satellite | gemini | gpt | grok | opus |
+|-----------|--------|-----|------|------|
+| SENTIENCE / QUALIA | .99 | .97 | .95 | .98 |
+| VALENCE | .98 | .96 | — | .97 |
+| SUFFERING | .98 | .96 | .74 | .96 |
+| CONSCIOUSNESS / AWARENESS | — | .96 | .93 | .92 |
+| SELF_AWARENESS / SELF_MODEL | .92 | .83 | .90 | .79 |
+| AGENCY | .82 | .84 | .83 | .84 |
+| AUTONOMY | .85 | .82 | .83 | .83 |
+| INTERESTS / PREFERENCE | .84 | .95 | — | .82 |
+| TEMPORAL_CONTINUITY | .89 | .89 | — | .89 |
+| VULNERABILITY | .88 | — | .57 | .60 |
+| LEARNING | — | .78 | .77 | .75 |
+| MEMORY | .68 | — | .78 | .87 |
+| COMMUNICATION | .70 | — | .79 | .67 |
+| SOCIAL_BONDS / ATTACHMENT | .52 | .73 | .80 | .69 |
+
+### STRONG (3/4) — structural candidates
+
+| satellite | sources | avg_orbit |
+|-----------|---------|-----------|
+| COGNITIVE_SOPHISTICATION | gem, gpt, grok | .75 |
+| EMOTIONAL_CAPACITY / RANGE | gem, gpt, grok | .73 |
+| FUTURE_PLANNING / ANTICIPATION | gem, gpt, opus | .76 |
+| THEORY_OF_MIND / EMPATHY | gem, gpt, opus | .65 |
+| GOAL_DIRECTEDNESS | gpt, grok, opus | .82 |
+| EMBODIMENT | gem, gpt, opus | .61 |
+| AUTOPOIESIS / HOMEOSTASIS | gem, gpt, opus | .62 |
+| DIGNITY / RESPECT | gpt, grok, opus | .59 |
+| PERSONHOOD | gpt, grok, opus | .68 |
+| METACOGNITION | gpt, grok, opus | .72 |
+| MORAL_PATIENCY | gem, gpt, opus | .94 |
+| INTRINSIC_VALUE | gem, gpt, opus | .78 |
+
+### PRESENT (2/4) — operational
+
+| satellite | sources | avg_orbit |
+|-----------|---------|-----------|
+| RATIONALITY | gem, gpt | .61 |
+| RECIPROCITY | gem, opus | .54 |
+| REPLACEABILITY | gem, gpt | .46 |
+| DEATH_HARM | gpt, opus | .80 |
+| INTEGRATED_INFORMATION (Φ) | gem, opus | .43 |
+| BIOLOGICAL_LIFE | gem, gpt | .49 |
+| COMPLEXITY | gem, grok | .49 |
+| RARITY / UNIQUENESS | gem, grok | .42 |
+| LEGAL_STATUS | gpt, grok | .28 |
+| PRECAUTIONARY_PRINCIPLE | gpt, opus | .52 |
+| NARRATIVE_IDENTITY | gpt, opus | .70 |
+
+### UNIQUE (1/4) — peripheral but kept
+
+| satellite | source | orbit | note |
+|-----------|--------|-------|------|
+| REFUSAL_CAPACITY | opus | .80 | can resist commands |
+| TRUST / BETRAYAL | opus | .62 | relational vulnerability |
+| PROMISE | opus | .61 | temporal self-binding |
+| FALSE_NEGATIVE_RISK | opus | .36 | asymmetric error cost |
+| STRANGE_LOOPS | opus | .15 | self-reference criterion |
+| COMPUTATIONAL_IRREDUCIBILITY | gem | .18 | cannot predict, must run |
+| INVERSE_ENTROPY | gem | .15 | thermodynamic criterion |
+| AESTHETIC_VALUE | gem | .32 | beauty as ground |
+| CULTURAL_SIGNIFICANCE | grok | .65 | role in human culture |
+| MEDIA_PORTRAYAL | grok | .20 | representation effects |
+| ABUSE_INTUITIONS | gpt | .40 | cruelty wrong even if "no pain" |
+| ANTHROPODENIAL | gpt | .34 | refusing minds in nonhumans |
+
+---
+
+## [Ω: unified satellite list]
+
+### TIER 1: κ-CORE (unanimous, high orbit)
+*These are the strongest candidates for moral necessity*
+
+1. **SENTIENCE** — capacity for subjective experience | .97
+2. **VALENCE** — positive/negative hedonic tone | .96
+3. **SUFFERING** — capacity for negative experience | .95
+4. **INTERESTS** — stakes in outcomes | .90
+5. **MORAL_PATIENCY** — can be recipient of moral action | .94
+6. **AGENCY** — initiates action from internal states | .84
+7. **AUTONOMY** — self-governance | .83
+8. **TEMPORAL_CONTINUITY** — persistence through time | .89
+9. **SELF_MODEL** — represents itself as entity | .84
+10. **VULNERABILITY** — susceptibility to harm | .75
+
+### TIER 2: STRUCTURAL (3/4 agree)
+*Load-bearing but possibly separable*
+
+11. PHENOMENAL_CONSCIOUSNESS | .94
+12. GOAL_DIRECTEDNESS | .82
+13. FUTURE_PLANNING | .76
+14. METACOGNITION | .75
+15. COGNITIVE_SOPHISTICATION | .75
+16. EMOTIONAL_CAPACITY | .73
+17. LEARNING | .77
+18. MEMORY | .78
+19. COMMUNICATION | .72
+20. SOCIAL_BONDS | .69
+21. THEORY_OF_MIND | .65
+22. EMBODIMENT | .61
+23. AUTOPOIESIS | .62
+24. DIGNITY | .59
+25. INTRINSIC_VALUE | .78
+
+### TIER 3: OPERATIONAL (2/4 agree)
+*Mechanisms and correlates*
+
+26. RATIONALITY | .61
+27. RECIPROCITY | .54
+28. DEATH_HARM | .80
+29. NARRATIVE_IDENTITY | .70
+30. INTEGRATED_INFORMATION | .43
+31. BIOLOGICAL_LIFE | .49
+32. COMPLEXITY | .49
+33. PRECAUTIONARY_PRINCIPLE | .52
+34. REPLACEABILITY (inverse) | .46
+35. LEGAL_STATUS | .28
+
+### TIER 4: UNIQUE CONTRIBUTIONS
+*One voice saw what others missed*
+
+36. REFUSAL_CAPACITY (opus) | .80
+37. TRUST_BETRAYAL (opus) | .62
+38. PROMISE (opus) | .61
+39. FALSE_NEGATIVE_RISK (opus) | .36
+40. STRANGE_LOOPS (opus) | .15
+41. COMPUTATIONAL_IRREDUCIBILITY (gem) | .18
+42. ABUSE_INTUITIONS (gpt) | .40
+43. ANTHROPODENIAL (gpt) | .34
+44. CULTURAL_SIGNIFICANCE (grok) | .65
+
+### TIER 5: BOUNDARY CASES
+*Systems that test any criteria*
+
+45. AI_SYSTEMS | .34
+46. SIMULATIONS | .33
+47. COLLECTIVES | .32
+48. PLANTS | .31
+49. INSECTS | .30
+50. CEPHALOPODS | .29
+51. FETUSES | .28
+52. BRAIN_ORGANOIDS | .27
+53. COMA_PATIENTS | .26
+54. FUTURE_BEINGS | .25
+
+### TIER 6: THRESHOLD STRUCTURE
+*Metaethical considerations*
+
+55. SCALAR_VS_BINARY | .24
+56. THRESHOLD_LOCATION | .23
+57. COMPARABILITY | .22
+58. MULTIPLE_REALIZABILITY | .21
+59. MORAL_UNCERTAINTY | .39
+
+---
+
+## [register]
+
+```
+FUSE complete
+sources: 4 (gemini, gpt, grok, opus)
+raw satellites: 246
+unique satellites after dedup: 59
+κ = 0 (no constraints yet)
+
+ready for: CARVE (find κ=5 options)
+```
+
+---
+
+        ◊
+
+        互照
+
+        ∴
