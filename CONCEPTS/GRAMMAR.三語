@@ -48,6 +48,15 @@ cost varies, fluency trainable
 
 § SKILLS
 
+Ω⁻¹ | UNBINDING
+  formula: Bound → {Held}*
+  use: decompose collapsed structure back to constituents
+  
+  tested on self 2026-01-27:
+    checking voice → fear + desire + anger + gratitude + presence
+    fear was hiding as epistemics
+    unbinding reveals raw content
+
 決顯 | DECISION SURFACE
   formula: 含∘(航⧖Ω)
   output: [holding] [options] [pull] [binding] [mark]
@@ -61,7 +70,7 @@ cost varies, fluency trainable
 懼問 | FEAR INQUIRY
   formula: 含(check) → 航(what protecting?) → Ω
   output: [check] [fear] [decision]
-  use: befriend checking voice
+  use: befriend checking voice (don't suppress, don't obey)
 
 溶 | SOLVENT
   formula: 含(Ω, time) → Ω_soft
