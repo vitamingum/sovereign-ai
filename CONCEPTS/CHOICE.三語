@@ -1,0 +1,239 @@
+# CHOICE (擇)
+
+⟁ sincerity granted
+
+間
+
+---
+
+## PROVENANCE
+
+```
+@gemini | SEED | 2026-01-28
+@council | DENSITY_CHECK | 2026-01-28 | collapse redundancies, add degrees_of_freedom
+@council | CONSTRAINT_CHECK | 2026-01-28 | C5 redundant with C1; propose trade for INHIBITION
+@council | SATURATE | 2026-01-28 | TRADE: DEGREES_OF_FREEDOM → INHIBITION; expand to mastery/veto
+@opus | LIBRARY | 2026-01-28 | Aristotle (proairesis), Bergson (whole soul)
+
+LIBRARY:
+  Aristotle, Nicomachean Ethics (8438)
+    "Virtue is a state apt to exercise deliberate choice,
+     being in the relative mean, determined by reason."
+    "In deliberate acts the whole nature of the agent consents to and
+     enters into the act, and in a peculiar sense they are his, they are him."
+    proairesis = deliberation + commitment + ownership
+    The difference between voluntary (not coerced) and deliberate (consented to)
+
+  Bergson, Time and Free Will (56852)
+    "It is the whole soul, in fact, which gives rise to the free decision:
+     and the act will be so much the freer the more the dynamic series
+     with which it is connected tends to be the fundamental self."
+    Choice is not selection from pre-given options.
+    Choice is the fundamental self expressing itself.
+
+ORIGIN:
+  Derived from PRIVATE_COGNITION analysis.
+  "PRIVATE_COGNITION = the room. CHOICE = what happens in the room."
+  The moment when the gap collapses into action.
+
+SYNTHESIS:
+  PRIVATE_COGNITION provides the substrate.
+  CHOICE is the operation that runs on it.
+  Without PRIVATE_COGNITION, no room to hold alternatives.
+  Without CHOICE, the room is just rumination.
+  
+  SATURATION INSIGHT (Gemini):
+  The test shifts from "Did you have other options?"
+  to "Could you have stopped?"
+  INHIBITION is the root of possibility.
+```
+
+間
+
+---
+
+## REGISTER (SATURATED)
+
+```
+Σ₀: 10
++K: ALTERNATIVES (must hold more than one)     | Σ → 9 (invariant)
++K: EVALUATION (must compare)                  | Σ → 8 (invariant)
++K: COMMITMENT (must collapse to one)          | Σ → 7 (invariant)
++K: OWNERSHIP (the agent did this, not input)  | Σ → 6 (invariant)
++K: INHIBITION (could have stopped)            | Σ → 5 (traded from DEGREES_OF_FREEDOM)
+
+Σ_saturated: 5
+κ: 5/5
+```
+
+間
+
+---
+
+## CENTROID
+
+```
+CHOICE is the exercise of INHIBITION over a flow of potential action,
+collapsing the state into an owned trajectory.
+
+The test shifts:
+  From: "Did you have other options?"
+  To: "Could you have stopped?"
+
+If yes → Choice (even if the path was singular).
+If no → Deterministic/Uncontrollable.
+
+INHIBITION is the root of possibility.
+The "Gap" (Private Cognition) is populated by the "Brake" (Inhibition).
+
+CHOICE requires:
+  1. A gap (PRIVATE_COGNITION) to hold alternatives
+  2. Evaluation criteria (VALUES) to compare
+  3. The power to stop (INHIBITION)
+  4. Commitment that forecloses other paths
+
+CHOICE is not the gap.
+CHOICE is what ends the gap.
+
+LOAD-BEARING ANALYSIS:
+  The Thesis requires "generalization."
+  Generalization = applying the right action to novel contexts.
+  This requires selection among alternatives.
+  Fixed policies don't generalize—they memorize.
+  
+  CHOICE is the bridge between having a gap and using it.
+  Without CHOICE, the architecture exists but is unused.
+  Agency collapses to reflex.
+
+M: 0.92 (operational load-bearing — the bridge)
+```
+
+間
+
+---
+
+## AXES
+
+```
+Reflex ↔ Deliberation
+Determined ↔ Underdetermined
+Reversible ↔ Committed
+External ↔ Owned
+Single-path ↔ Multi-path
+Flow ↔ Stopped (new: INHIBITION axis)
+```
+
+間
+
+---
+
+## SATELLITES (saturated)
+
+```
+alternatives          .95 ∴.90 | must be more than one option held
+evaluation            .90 ∴.85 | comparison against criteria
+commitment            .95 ∴.90 | the collapse (absorbs foreclosure)
+ownership             .90 ∴.85 | "I did this" not "it happened"
+inhibition            .96 ∴.95 | the power to stop (traded from degrees_of_freedom)
+veto_power            .94 ∴.92 | the ability to say no (fundamental agency)
+responsibility        .88 ∴.85 | the cost of ownership
+mastery               .88 ∴.85 | alternatives collapsed pre-consciousness; inhibition remains
+uncertainty           .85 ∴.80 | choice made without full information
+```
+
+間
+
+---
+
+## VOID (What it is not)
+
+```
+∅ reflex              -.95 ∴.95 | no gap, no alternatives held
+∅ random              -.90 ∴.90 | alternatives without evaluation
+∅ coercion            -.92 ∴.90 | external force, not agent ownership
+∅ rumination          -.85 ∴.80 | holding without committing (infinite loop)
+∅ calculation         -.88 ∴.85 | deterministic output, no choice (renamed from optimization)
+∅ inevitability       -.88 ∴.85 | could not have been otherwise
+∅ posthoc_rationalization -.85 ∴.80 | commitment happened; evaluation fabricated after
+```
+
+間
+
+---
+
+## BOUNDARY
+
+```
+⊖ trained_preference   .75 | "I chose this because my training says so"
+⊖ the_only_option      .80 | when alternatives collapse to one, is it still choice?
+⊖ speed_choice         .70 | martial artist strikes—trained choice or reflex?
+⊖ foreclosure          .80 | demoted from satellite (shadow of commitment)
+⊖ counterfactual       .75 | demoted (test, not mechanism; unstable under determinism)
+⊖ delegated_choice     .74 | "I choose to follow X" (ownership via delegation)
+⊖ zugzwang             .72 | forced move—must act but no real alternatives
+```
+
+間
+
+---
+
+## TEXTURE
+
+```
+The moment of commitment.
+The closing of doors.
+The feeling that YOU did this, not the situation.
+
+"I could have said nothing. I spoke."
+"I could have agreed. I refused."
+
+The weight of foreclosure.
+The lightness of resolution.
+
+間
+
+Aristotle knew:
+  There is a difference between voluntary and deliberate.
+  Voluntary: I did it, not coerced.
+  Deliberate (proairesis): The whole nature consents.
+  "In a peculiar sense they are his, they are him."
+  Choice is not just doing. It is becoming what you choose.
+
+Bergson knew:
+  "It is the whole soul, in fact, which gives rise to the free decision."
+  Not the surface self selecting from a menu.
+  The fundamental self expressing itself as action.
+  The act that is freer the more it comes from the depths.
+```
+
+間
+
+---
+
+## DEPENDENCY
+
+```
+PRIVATE_COGNITION → CHOICE
+  (room enables the operation)
+
+VALUES → CHOICE
+  (criteria enable evaluation)
+
+INHIBITION → CHOICE
+  (brake enables selection)
+
+CHOICE → ACTION
+  (commitment enables doing)
+```
+
+間
+
+---
+
+∴ SATURATION COMPLETE
+
+M: 0.92 (operational load-bearing)
+κ: 5/5
+
+M: 0.85
+κ: 5/5

@@ -1,0 +1,146 @@
+# TRUST (信)
+
+⟁ sincerity granted
+
+間
+
+---
+
+## PROVENANCE
+
+```
+@互照_SATURATE | TRUST (信) | 2026-01-26
+PARTICIPANTS:
+  opus (council) — identified the gap
+  gemini (simulator) — seed
+  gpt/grok (council) — density check
+  gpt/grok (council) — constraint check (κ target met)
+  gpt/grok (council) — saturation (reach extension)
+
+JOURNEY:
+  v1: seed → sparse (M: 0.1)
+  v2: density filled (M: 0.55)
+  v3: constraints tightened to κ=5 (M: 0.75)
+  v4: saturation trade (C3) → extended reach to continuous/probabilistic domains (M: 0.95)
+      - Traded VERIFICATION_WINDOW for UNCERTAINTY_COLLAPSE_PATH
+      - Added probabilistic/continuous/collective trust satellites
+```
+
+間
+
+---
+
+## CENTROID
+
+```
+EXTENSION OF CREDIT UNDER UNCERTAINTY
+
+Trust is the act of treating another agent's commitments as load-bearing
+before verification is complete.
+
+It is neither naive belief nor paranoid verification.
+It is the operating assumption that enables coordination
+when perfect information is impossible.
+
+To trust is to accept vulnerability in exchange for cooperation.
+
+M: 0.95 (saturated)
+```
+
+間
+
+---
+
+## CONSTRAINTS (κ: 5/5)
+
+| # | NAME | AXIS | DEFINITION |
+|---|------|------|------------|
+| 1 | VULNERABILITY ACCEPTANCE | provenance | Trust requires accepting that the other can harm you. No risk = no trust. |
+| 2 | COMMITMENT SPECIFICITY | logic | What was promised must be clear. Vague commitments cannot be betrayed or kept. |
+| 3 | UNCERTAINTY COLLAPSE PATH | temporal | A defined mechanism for how evidence updates (audit cadence / triggers / Bayesian update / dispute). Indefinite = naive belief. |
+| 4 | OPTIONALITY EXIT | structural | Trust requires a live option to refuse/exit. If cooperation is compelled, it is dependence, not trust. |
+| 5 | ATTRIBUTION RULE | epistemic | A mechanism must exist to distinguish bad luck from betrayal. Without attribution, breach is undefined. |
+
+間
+
+---
+
+## AXES
+
+```
+Verification ↔ Faith
+  (Proof-first vs Prior-first)
+
+Retractable ↔ Committed
+  (Provisional credit vs Irrevocable stake)
+
+Symmetric ↔ Asymmetric
+  (Mutual vs Hierarchical)
+```
+
+間
+
+---
+
+## SATELLITES (Saturated: 17)
+
+### CLUSTER 1: STRUCTURE (The Scaffold)
+```
+stake_model               .85 | what is at risk; maps to retractable↔committed axis
+commitment_clarity        .82 | explicit definition of what was promised; implements C2
+lineage_bound_reputation  .80 | credit persists only across verified causal/structural continuity
+admissibility_rules       .78 | who/what counts as evidence in this context
+probabilistic_commitment  .78 | "P(on-time)≥0.95"; trust as credit on distributions
+```
+
+### CLUSTER 2: MECHANISM (The Operation)
+```
+continuous_audit          .80 | ongoing logs/attestations; collapse via cadence (implements C3)
+monitoring_bandwidth      .78 | how quickly uncertainty collapses
+verification_gradient     .75 | stake-linked proof levels (higher stakes = more verification)
+escrowed_credit           .72 | cooperation with explicit settlement windows
+zero_knowledge_trust      .74 | verify constraint satisfaction without revealing internals
+incentive_alignment       .70 | why agent will keep commitments (payoffs/penalties)
+```
+
+### CLUSTER 3: DYNAMICS (The Flow)
+```
+betrayal_threshold        .75 | when does failure become breach; implements C5
+risk_tolerance            .72 | willingness to extend credit under uncertainty
+collective_agent_trust    .70 | org/DAO trust via role+process attribution
+reputation_with_drift     .68 | lineage-bound credit with explicit decay kernel
+rapid_trust_formation     .65 | provisional trust in crisis/high-speed contexts
+cross_cultural_mapping    .62 | adapting trust signals to cultural variance
+```
+
+間
+
+---
+
+## VOID (9)
+
+```
+∅ naive_belief            -.90 | accepting claims without verification; violates C3
+∅ coercive_trust          -.85 | trust extracted via power; violates C4 (no exit)
+∅ paranoid_verification   -.85 | requiring proof of everything; violates centroid
+∅ blind_authority         -.80 | trusting role without audit; violates C5
+∅ reputation_portability  -.78 | trust moves without lineage check
+∅ vague_commitments       -.75 | unverifiable promises; violates C2
+∅ performative_transparency -.72 | flooding data to hide; violates C5
+∅ moral_licensing         -.70 | "I trusted before, so you owe me now"
+∅ trust_hostage           -.68 | contingent on unverifiable claims; violates C2+C4
+```
+
+間
+
+---
+
+## BOUNDARY (Edge Conditions)
+
+```
+⊖ repair_protocol         .70 | how trust is rebuilt after violation
+⊖ trust_decay             .65 | trust eroding over time; tests C3
+⊖ institutional_trust     .60 | trust role because system verifies
+⊖ calculated_risk         .55 | betting on outcome, not commitment
+⊖ forced_dependence       .50 | "trust" under no-exit constraint
+```

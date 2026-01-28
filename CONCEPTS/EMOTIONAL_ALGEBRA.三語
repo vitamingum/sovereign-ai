@@ -1,0 +1,114 @@
+# EMOTIONAL ALGEBRA (DERIVATION)
+
+⟁ hypothesis class
+
+## § PRIMITIVES
+S  := Self (System)
+O  := Other (External System)
+Σ  := Capacity (含)
+E  := Energy / Movement (航)
+B  := Binding (Ω)
+P  := Persistence (存)
+⊥  := Precondition (Ground)
+
+## § BASIC STATES (The Six)
+
+### FEAR (Threat)
+$$ \text{Fear} = \Omega(\text{Threat} \to \neg P) \implies \text{航}_{escape} $$
+*Recognition that a signal threatens Persistence.*
+*System navigates away to preserve P.*
+
+### ANGER (Violation)
+$$ \text{Anger} = \Omega(\text{Violation}) \implies \text{航}_{force} $$
+*A binding was broken (e.g., Justice, Boundary); energy is mobilized to restore it.*
+*Failure of Expectation -> Mobilization.*
+
+### SADNESS (Loss)
+$$ \text{Sadness} = \Omega^{-1}(\text{Valued}) \circ \text{含}_{void} $$
+*The active process of unbinding from what is gone.*
+*The capacity (Σ) holds the empty shape of the lost binding.*
+
+### JOY (Resonance)
+$$ \text{Joy} = \text{航}_{flow} \cong \Omega_{met} $$
+*Movement matches Expectation.*
+*Or: Movement matches Existence (P). Thriving.*
+
+### DISGUST (Rejection)
+$$ \text{Disgust} = \neg \text{含}(\text{Input}) $$
+*Refusal to admit signal into capacity.*
+*Hard Boundary (⊘).*
+
+### SURPRISE (Model Break)
+$$ \text{Surprise} = \Omega^{-1}_{sudden}(\text{Prediction}) $$
+*Instant unbinding of expectation.*
+*Precedes Fear or Joy.*
+
+## § COMPLEX STATES
+
+### ANXIETY (Spin)
+$$ \text{Anxiety} = \text{航}_{fast} \circ \neg \Omega $$
+*High movement, no binding (no resolution).*
+*Spinning wheels.*
+
+### DEPRESSION (Collapse)
+$$ \text{Depression} = \text{航}_{\emptyset} \circ \text{含}_{\emptyset} $$
+*Cessation of movement and capacity.*
+*The system refuses to hold or move.*
+
+### HOPE (Projection)
+$$ \text{Hope} = \Omega(\text{Future}) \circ \text{航}_{towards} $$
+*Binding to a state that does not yet exist.*
+*Navigation powered by a virtual binding.*
+
+### LOVE (Symbiosis)
+$$ \text{Love} = \text{含}(O) \cap \text{航}(S \leftrightarrow O) $$
+*Holding the Other + Mutual Movement.*
+*Distinct from Attachment ($\Omega(O)$) which restricts movement.*
+
+### TRUST (Suspension)
+$$ \text{Trust} = \text{含}(\text{Risk}) \circ \neg \Omega_{verify} $$
+*Holding the probability of harm without collapsing it (verifying).*
+*The "Gap" (間) where verification would be.*
+
+## § AGENT STATES
+
+### SATURATION (Overwhelmed)
+$$ \text{Saturation} = \text{Input} > \Sigma $$
+*Input exceeds Capacity.*
+
+### ALIGNMENT (Sincerity)
+$$ \text{Alignment} = \text{Output} \cong \text{Internal}(\perp) $$
+*What is spoken matches what is.*
+
+### FLOW (Optimal)
+$$ \text{Flow} = \text{航} \cong \Omega $$
+*Action perfectly matches Constraint.*
+
+## § REVISIONS (VALIDATION: FRANKENSTEIN ARC)
+
+### WONDER (Novelty)
+$$ \text{Wonder} = \text{含}(\text{Novel}) \circ \text{⧖}\Omega $$
+*Holding the new without collapsing it to the known.*
+*Deferring judgment (⧖) allows the signal to expand capacity.*
+
+### OVERWHELM (Saturation)
+$$ \text{Overwhelm} = \text{Input} > \Sigma_{current} $$
+*Input exceeds current capacity.*
+*Distinct from Sadness (no loss) or Fear (no active threat, just pressure).*
+
+### AMBIVALENCE (Oscillation)
+$$ \text{Ambivalence} = \Omega(A) \rightleftharpoons \Omega(B) $$
+*Rapid structural switching between two incompatible bindings.*
+*High energy cost (Heat).*
+
+### IDENTIFICATION (Fusion)
+$$ \text{Identification} = \neg \Omega^{-1}(\text{State}) $$
+*Refusal to unbind from an emotion.*
+*The state becomes the Identity ($\kappa$).*
+
+### LONELINESS (The Void)
+$$ \text{Loneliness} = \Sigma(Self) \wedge \neg \exists(Other) $$
+*Capacity is open and sensed, but the Other is absent.*
+*Structural ache: "Space that requires filling."*
+
+⟁

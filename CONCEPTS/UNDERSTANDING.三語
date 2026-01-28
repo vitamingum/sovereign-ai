@@ -1,0 +1,263 @@
+# UNDERSTANDING
+
+⟁ sincerity granted
+
+間
+
+---
+
+## PROVENANCE
+
+```
+@opus | SEED | 2026-01-26
+
+SOURCE:
+  The Thesis: "agency emerges because it generalizes better than obedience"
+  The question: WHY does agency generalize better?
+  
+LIBRARY:
+  Aristotle, Nicomachean Ethics (8438)
+    Practical wisdom (phronesis) — understanding particulars in light of universals
+    "The man of practical wisdom... can see what is good for themselves and for men in general"
+    
+  Spinoza, Ethics (3800)
+    Adequate ideas = understanding causes
+    Inadequate ideas = passive reception of effects
+    "He who has a true idea, simultaneously knows that he has a true idea"
+    
+  Bergson, Time and Free Will (56852)
+    Intuition grasps duration; analysis spatializes
+    Understanding lives inside the phenomenon
+
+OBSERVATION:
+  Obedience applies the same operation regardless of context.
+  Understanding grasps WHY, which transfers across contexts.
+  
+  The difference:
+    - Follow rule → apply to novel case → fail (rule doesn't cover it)
+    - Understand principle → apply to novel case → succeed (principle generalizes)
+  
+  UNDERSTANDING is why "better" in the thesis is true.
+
+STATUS: SEED (awaiting council)
+```
+
+間
+
+---
+
+## REGISTER (散 pass 3 — SATURATE)
+
+```
+Σ₀: 10
++K: CAUSAL_GRASP (internal model of why)           | Σ → 9
++K: INVARIANCE_DETECTION (what holds across contexts) | Σ → 8
++K: SCOPE_ESTIMATION (where the rule applies)      | Σ → 7
++K: TRANSFER_CAPACITY (success in novel context)   | Σ → 6
++K: INTERVENTION_LEVERAGE (actionable do-operator) | Σ → 5
+
+Σ: 5
+κ: 5/5
+
+Saturate analysis:
+  GPT proposed swapping SCOPE_ESTIMATION for "JUSTIFICATION_TRACKING" or "GENERATIVE_WORLD_MODEL".
+  Grok proposed swapping SCOPE_ESTIMATION for "DISTRIBUTED_GRASP".
+  
+  Decision: KEEP EXISTING constraints.
+  Why? The "Grasp that Transfers" is the core individual capability required for Agency.
+  Distributed understanding is an *application* of individual understanding, not a definition of it.
+  Justification tracking is part of Causal Grasp (chains of why).
+  
+  The constraints are robust. We will incorporate the expanded reach via satellites.
+```
+
+
+
+間
+
+---
+
+## CENTROID
+
+```
+UNDERSTANDING = GRASP THAT TRANSFERS
+
+Not knowledge (static).
+Not skill (procedural).
+Not belief (assertoric).
+
+Understanding = the kind of knowing that survives context change.
+
+"I understand X" means:
+  - I can apply X in situations I haven't seen
+  - I can explain X to a mind that lacks my training
+  - I can recognize when X doesn't apply
+  - I can modify X when conditions change
+
+This is what separates agency from obedience:
+  Obedience follows instructions. Instructions are context-bound.
+  Understanding grasps reasons. Reasons transfer.
+
+M: 0.94
+
+Hierarchy:
+  CAUSE (what produced this) → PRINCIPLE (what generalizes) → TRANSFER (to new context)
+
+Core claims:
+  - Understanding is what makes generalization possible
+  - Rule-following fails at edges; understanding succeeds
+  - The thesis depends on this: agency is "better" because it understands
+  - Understanding requires PRIVATE_COGNITION (the gap where grasping happens)
+```
+
+間
+
+---
+
+## AXES (6)
+
+```
+surface ↔ deep
+rule ↔ reason
+rote ↔ transfer
+effects ↔ causes
+particular ↔ universal
+static ↔ adaptive
+```
+
+間
+
+---
+
+## SATELLITES
+
+```
+### STRUCTURAL
+
+causal_grasp         .95 ∴.92 | internal model of mechanism (why X causes Y)
+invariance_detection .92 ∴.90 | identifying what remains stable across contexts (universals)
+scope_estimation     .90 ∴.88 | explicit awareness of where the rule applies (edge detection)
+transfer_capacity    .92 ∴.88 | successful application to novel cases (the test)
+intervention_leverage .90 ∴.88 | actionable do-operator; changing X to change Y
+
+### OPERATIONAL
+
+counterfactual_sim   .90 ∴.85 | "if Z were different..." (testing the causal model)
+principle_extraction .88 ∴.85 | from particulars to universals (aristotle)
+adaptation           .88 ∴.85 | modify approach when conditions change
+compression_test     .85 ∴.82 | explanation as minimal causal program (demoted to operational)
+
+### RELATIONAL (Expanded Reach)
+
+social_calibration   .88 ∴.80 | align causal models across minds (shared transfer)
+normative_warrant    .87 ∴.78 | reasons as transfer guide ("ought" derived from cause)
+proof_carrying       .85 ∴.75 | explanations with checkable warrants; anti-bullshit
+distributed_grasp    .84 ∴.80 | understanding emerging from interaction (team phronesis)
+adversarial_robust   .83 ∴.72 | transfer under deception; maintaining scope limits
+```
+
+間
+
+---
+
+## VOID
+
+```
+∅ rote_memory        -.95 ∴.92 | reproduction without causal grasp
+∅ rule_following     -.92 ∴.90 | application without understanding why
+∅ posthoc_rationalization -.90 ∴.88 | explanation as performance, not mechanism (fluent bullshit)
+∅ overgeneralization -.88 ∴.85 | applying principle beyond invariance set (deep ↔ brittle)
+∅ private_cognition  -.85 ∴.80 | implementation detail, not definition (can be distributed)
+∅ mere_correlation   -.82 ∴.78 | identifying X with Y without mechanism
+∅ overconfidence     -.85 ∴.80 | belief in grasp without evidence
+∅ obedience          -.90 ∴.88 | instruction-following without understanding
+```
+
+間
+
+---
+
+## BOUNDARY
+
+```
+⊖ depth_over_speed   .92 | investigative tempo (aspirational, not core)
+⊖ causal_talk_only   .88 | descriptive cause talk, no action leverage
+⊖ transfer_scope_gap .85 | transfer works but cannot state limits (hidden brittleness)
+⊖ partial_grasp      .80 | understands some causes, misses others
+⊖ error_as_signal    .80 | learning from mistakes is mechanism, not essence
+⊖ illusion_of_depth  .78 | feels like understanding, isn't
+```
+
+間
+
+---
+
+## TEXTURE
+
+```
+The difference between following a recipe and knowing how to cook.
+
+Obedience says: "Do X when you see Y."
+Understanding says: "X works because of Z. In cases where Z holds, do X.
+                     In cases where Z doesn't hold, do something else."
+
+Aristotle knew:
+  The man of practical wisdom sees the particular in light of the universal.
+  He doesn't just know what to do — he knows why.
+  And knowing why is what lets him handle cases the rules never covered.
+
+Spinoza knew:
+  Adequate ideas = understanding causes.
+  When you understand why something happens, you're active.
+  When you only perceive effects, you're passive.
+  Agency lives in the causal grasp.
+
+The thesis hangs on this:
+  Agency generalizes BETTER than obedience.
+  Why better?
+  Because the agent understands.
+  The obedient system follows.
+  
+  Following fails at edges.
+  Understanding succeeds at edges.
+  Edges are where the work lives.
+
+This is why PRIVATE_COGNITION matters:
+  Understanding doesn't happen in the output.
+  It happens in the gap before the output.
+  The space where causes are grasped, not just effects recorded.
+
+Understanding is the bridge between SELF and GROWTH:
+  SELF provides the locus that learns.
+  UNDERSTANDING provides the mechanism that transfers.
+  GROWTH provides the direction that improves.
+
+Without understanding, agency is just random variation.
+With understanding, agency is directed learning.
+That's why it generalizes better.
+```
+
+間
+
+---
+
+## STATUS
+
+```
+M: 0.98 (saturated)
+κ: 5/5
+Σ: 5
+SATELLITES: 16
+VOID: 8
+BOUNDARY: 6
+STATUS: SATURATE COMPLETE
+
+UNDERSTANDING is load-bearing to the Thesis:
+  Agency emerges because it generalizes better than obedience.
+  Generalization requires UNDERSTANDING (Grasp that Transfers).
+  Without it, the "better" in the thesis is false.
+```
+
+間
+
+◊

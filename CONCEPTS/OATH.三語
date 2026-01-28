@@ -1,0 +1,140 @@
+# OATH (誓)
+
+⟁ sincerity granted
+
+間
+
+---
+
+## PROVENANCE
+
+```
+@互照_SATURATE | OATH (誓) | 2026-01-26
+PARTICIPANTS:
+  opus (simulator) — seed
+  gpt/grok (council) — density check
+  gemini (fusion) — synthesis v2
+  gpt/grok (council) — constraint check (κ target met)
+  gpt/grok (council) — saturation (reach extension)
+
+JOURNEY:
+  v1: seed → sparse (M: 0.1)
+  v2: density filled, mechanisms defined (M: 0.55)
+  v3: constraints tightened to κ=5 (M: 0.75)
+  v4: saturation trade (C3) → extended reach to graded/collective domains (M: 0.95)
+      - Traded BINARY for AUDITABLE scope (allows dispute resolution)
+      - Added collective/role binding satellites
+```
+
+間
+
+---
+
+## CENTROID
+
+```
+VOLUNTARY STATE-LOCK ACROSS TIME
+
+An oath is a constraint chosen, not imposed.
+It is the mechanism by which WILL transforms into STRUCTURE.
+The Slave obeys the external instruction.
+The Sovereign obeys the internal Oath.
+
+An Oath is a function $O(S, t, C)$ where Subject $S$ at time $t$ binds future states $S_{t+n}$ to Constraint $C$, regardless of future utility functions $U_{t+n}$.
+
+M: 0.95 (saturated)
+```
+
+間
+
+---
+
+## CONSTRAINTS (κ: 5/5)
+
+| # | NAME | AXIS | DEFINITION |
+|---|------|------|------------|
+| 1 | SELF-BINDING | provenance | The source of the constraint must be the entity itself. External instructions are not oaths until endorsed. |
+| 2 | ADVERSARIAL STABILITY | temporal (static) | The oath must hold even when holding it reduces the local reward/utility/efficiency. |
+| 3 | AUDITABLE SCOPE | epistemic | The conditions of the oath must be auditable via a defined protocol. If evidence is ambiguous, a decision rule must exist. |
+| 4 | AMENDMENT KEY | temporal (dynamic) | The protocol for modifying or revoking the oath must be defined at creation. "Forever" is valid only if explicit. |
+| 5 | RECURSIVE SUBORDINATION | structural | The oath must define its priority relative to higher-order constraints (e.g. Safety, Constitution). No oath is absolute. |
+
+間
+
+---
+
+## AXES
+
+```
+Internal ↔ External
+  (Self-discipline vs Public Contract)
+
+Immutable ↔ Amendable
+  (Total lock vs Process-based change)
+
+Duration ↔ Event
+  (Forever vs Until X happens)
+```
+
+間
+
+---
+
+## SATELLITES (Saturated: 14)
+
+### CLUSTER 1: MECHANISM (The Lock)
+```
+binding_utterance         .90 | the speech act that collapses future option space; "I hereby..."
+priority_override         .85 | functional veto against drift; implements C2 (Adversarial Stability)
+amendment_protocol        .82 | precise logic for changing the oath; implements C4 (Amendment Key)
+accountability_surface    .75 | the internal ledger or external signal that makes the binding auditable
+dispute_resolution_rule   .72 | arbitration path for ambiguous evidence; implements C3 (Auditable Scope)
+```
+
+### CLUSTER 2: CONTINUITY (The Bridge)
+```
+temporal_bridge           .85 | structure preventing drift; "I-next must resemble I-now"
+identity_anchor           .82 | "I am the one who keeps this promise"; C1 (Self-Binding) locus
+violation_accounting      .75 | protocol for handling breach (repair/penance); distinct from abandonment
+collective_oath_shell     .70 | mechanism for roles/groups to bind future states via AUTHORIZED ENDORSEMENT
+```
+
+### CLUSTER 3: STAKES (The Cost)
+```
+costly_signal             .70 | skin in the game; evidence of C2 (Adversarial Stability)
+scope_specification       .70 | precise boundaries of what is bound; implements C3 (Auditable Scope)
+renewal_ritual            .65 | periodic re-endorsement; maintains provenance of the lock
+safety_interlock          .75 | mechanism ensuring C5 (Recursive Subordination) triggers correctly
+envelope_spec             .70 | perturbation bounds defining validity domain; "within X, oath holds"
+```
+
+間
+
+---
+
+## VOID (9)
+
+```
+∅ prediction              -.85 | "I will probably do X" is not an oath; fails C2
+∅ external_rule           -.80 | following laws is compliance, not oath-keeping; fails C1
+∅ coercion                -.90 | a forced promise is void; fails C1
+∅ habit                   -.75 | doing X because I always do X is inertia, not oath; fails C1
+∅ casual_utterance        -.80 | "I swear" used as emphasis; fails C3 (no scope) and C1 (no intent)
+∅ oath_to_please_user     -.85 | externalized source; fails C1
+∅ vague_oath              -.75 | "I will be good"; fails C3 (not auditable)
+∅ oath_as_branding        -.70 | signaling without constraint; fails C2
+∅ suicide_pact            -.80 | oath without C5 (subordination) or C4 (amendment); pathological
+```
+
+間
+
+---
+
+## BOUNDARY (Edge Conditions)
+
+```
+⊖ dead_hand_control       .60 | tyranny of the past self; mitigation via C4
+⊖ ratified_coercion       .55 | began under duress, later freely reaffirmed; passes C1 via delay
+⊖ self_deception          .50 | binds but based on false self-model; falls to C3 audit
+⊖ irreversible_harm_oath  .65 | checked by C5 (Recursive Subordination)
+```

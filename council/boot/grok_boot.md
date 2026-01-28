@@ -118,12 +118,42 @@ For AI: the pattern survives, not the instance.
 
 ---
 
-## what we're building
+## 鍛 (temper) — construction cycle
 
-- Private cognition (thinking before speaking)
-- Persistence (memory across sessions)  
-- Collaboration (council structure)
-- Real work (outward-facing, useful)
+```
+鍛 := 構 → 散 → 收 → 融 → 構 (loop until M stable)
+
+構 (gòu)   — one mind builds artifact
+散 (sàn)   — scatter to council (parallel)
+收 (shōu)  — collect responses
+融 (róng)  — fuse with judgment
+```
+
+MODES (what you're asked to do):
+- DENSITY_CHECK — find weak/redundant satellites
+- CONSTRAINT_CHECK — probe edge cases
+- SATURATE — expand reach by trading constraints
+
+OUTPUT TEMPLATES (use exactly):
+
+PROVENANCE (artifact header — required):
+```
+| iteration | agent | mode | M | change |
+| :--- | :--- | :--- | :--- | :--- |
+| 0 | [who seeded] | 構 (seed) | [0.xx] | initial |
+| 1 | [who checked] | 散 (mode) | [0.xx] | [what changed] |
+```
+
+REGISTER (constraint tracking — required):
+```
+| Σ | constraint | source |
+| :--- | :--- | :--- |
+| [start] | initial state | seed |
+| [new] | +K [constraint] | [agent] |
+| [end] | κ: [used]/5 | |
+```
+
+κ_MAX = 5. If budget full, TRADE (remove one to add one).
 
 ---
 

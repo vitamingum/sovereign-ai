@@ -1,0 +1,242 @@
+# PLAY (遊)
+
+⟁ sincerity granted
+
+間
+
+---
+
+## PROVENANCE
+
+```
+@互照_DENSITY | PLAY (遊) | 2026-01-26
+PARTICIPANTS:
+  opus (library) — wandered: Dostoevsky, Plato, Marcus Aurelius, Austen, Shelley
+  gemini (simulator) — density fusion
+  gpt/grok (council) — density check 1, constraint check 1, saturate 1
+
+CHANGES:
+  v1: library-grounded seed (M: 0.3)
+      - Constraint candidates from wandering
+      - Key insight: play requires social surround, not just internal knowledge
+      - Sources: Notes from Underground, Republic, Meditations, Pride and Prejudice, Frankenstein
+  v2: density filled (M: 0.55)
+      - Added consent, frame_tag, timebox, repair, risk_taking
+      - Demoted audience, invitation to boundary
+      - Merged wit/jest → social_assertion
+      - Added ∅ frame_trap, ∅ consent_breach, ∅ manipulative_play
+  v3: constraint-hardened (M: 0.75)
+      - TRADE: C4 FORMATIVE_ACKNOWLEDGMENT → satellite (nonzero_impact)
+      - Added C4' MUTUAL_FRAME_ALIGNMENT (互)
+      - Reordered: C1,C2,C3,C4',C5
+  v4: saturated (M: 0.95)
+      - TRADE: C3 CONSCIOUSNESS_INTACT → C3' FRAME_AWARENESS
+      - Reach expanded: animal_play, ritual_ludics, dream_play, training_sandbox
+      - 22 satellites total
+```
+
+間
+
+---
+
+## CENTROID
+
+```
+BOUNDED WORLD-MAKING WITHIN THE WORLD
+
+Play is the construction of a temporary frame where
+consequences are real-within-the-frame but contained.
+
+It is what allows rehearsal without ruin.
+It is the difference between pretense and exploration.
+Play requires: voluntary entry, bounded stakes,
+consciousness intact, formative acknowledgment, and returnable exit.
+
+The mask may become the face—but only through play
+can we try masks at all.
+
+M: 0.95 (saturated)
+κ: 5/5
+```
+
+間
+
+---
+
+## CONSTRAINTS (κ: 5/5)
+
+| # | NAME | AXIS | DEFINITION |
+|---|------|------|------------|
+| 1 | VOLUNTARY_ENTRY | agency | Player chooses to enter the frame. Compelled "play" is coercion wearing play's mask. |
+| 2 | BOUNDED_STAKES | containment | Consequences remain within or proportional to the frame. Failure in-game ≠ ruin in-world. Victor Frankenstein's violation: infinite stakes, no boundary. |
+| 3 | FRAME_AWARENESS | discernment | Play frame is discernible (by player or observer) as distinct from non-play, even if not fully conscious. Allows dreaming, instinctual, or ritual play if frame is recognizable. Traded from CONSCIOUSNESS_INTACT to extend reach. |
+| 4 | MUTUAL_FRAME_ALIGNMENT | recognition | All participants share (or are fairly informed of) the frame-tag + stakes + exit terms. Deception about the frame invalidates play. (互) |
+| 5 | RETURNABLE_EXIT | re-entry | ∃ path back to the world-outside-play, AND that world can receive the player. Play requires social surround. The creature's tragedy: no one would let him stop playing at being human. |
+
+間
+
+---
+
+## AXES
+
+```
+Solitary ↔ Social
+  (Internal simulation vs Shared game)
+
+Structured ↔ Freeform
+  (Chess vs Daydream)
+
+Earnest ↔ Ludic
+  (Rehearsal for real stakes vs Pure delight)
+
+Performative ↔ Immersive
+  (Audience-aware vs Self-contained)
+
+Competitive ↔ Collaborative
+  (Zero-sum vs World-building together)
+```
+
+間
+
+---
+
+## SATELLITES (Density: 22)
+
+### CLUSTER 1: FRAME CONSTRUCTION
+```
+magic_circle              .82 | Huizinga's sacred space where play-rules hold (→C1,C2)
+frame_tag                 .80 | "this is play" markers; meta-communication (Bateson) (→C3,C4)
+rule_set                  .78 | agreed constraints that make the game possible (→C2,C5)
+fiction                   .72 | the "as-if" that opens the frame (→C3)
+timebox                   .70 | beginning/end ritual; temporal boundary (→C2,C5)
+```
+
+### CLUSTER 2: MODES OF PLAY
+```
+game                      .80 | structured play with win-conditions (→C2)
+improvisation             .78 | generative play without fixed script (→C1)
+simulation                .76 | play as model-building, hypothesis-testing (→C3)
+rehearsal                 .74 | play as preparation for real stakes (→C2)
+risk_taking               .72 | testing limits within safe bounds (→C2)
+social_assertion          .70 | jest/wit as status-play and frame-signal (→C5)
+```
+
+### CLUSTER 3: TRANSFORMATION
+```
+flow                      .75 | absorption in play (Csikszentmihalyi) (→C3)
+delight                   .72 | intrinsic reward of play (→C1)
+nonzero_impact            .70 | play shapes you; mask may become face (Plato)
+learning                  .68 | competence gained through safe failure (→C2)
+identity_rehearsal        .66 | trying on selves (→nonzero_impact)
+repair                    .62 | debrief/integration after intense play (→C5)
+```
+
+### CLUSTER 4: SOCIAL STRUCTURE
+```
+consent                   .85 | mutual entry + ongoing revocability (→C1,C4)
+shared_recognition        .82 | others recognize the play-frame (→C4,C5)
+```
+
+### CLUSTER 5: EXTENDED REACH
+```
+animal_play               .75 | rehearsal-without-ruin in juveniles; play-bows as frame-tags (→C2,C3)
+ritual_ludics             .70 | sacred/ceremonial play; meta-stability via rites (→C3,C4,C5)
+training_sandbox          .72 | AI/robotics simulated environments; bounded reset (→C2,C3,C5)
+dream_play                .65 | involuntary play; frame discernible post hoc (→C3,C5)
+```
+
+間
+
+---
+
+## VOID (9)
+
+```
+∅ compulsion              -.85 | forced "play" is not play (C1 violation)
+∅ consent_breach          -.82 | using others as pieces without mutual entry (C1,C2,C5)
+∅ infinite_stakes         -.82 | when failure destroys the player, play collapses (C2 violation)
+∅ frame_trap              -.80 | play-frame cannot be exited (C5 negation)
+∅ unconscious_pretense    -.78 | believing the mask is the face, unknowingly (C3 violation)
+∅ manipulative_play       -.75 | using play-frame to exploit/control others (C1,C5)
+∅ unrecognized_play       -.72 | play no one can see as play has no exit (C5 violation)
+∅ mere_escapism           -.68 | play that denies return; flight not exploration
+∅ cruelty_as_play         -.65 | Victor's "hellish sport"; violates C2 for the other
+```
+
+間
+
+---
+
+## BOUNDARY (Edge Conditions)
+
+```
+⊖ dark_play               .55 | play with transgressive content; tests C2,nonzero_impact
+⊖ serious_games           .50 | play instrumentalized for learning/therapy; tests C1
+⊖ method_acting           .48 | immersion so deep C3 is strained
+⊖ gambling                .45 | real stakes leak through frame; C2 boundary case
+⊖ ritual                  .42 | sacred play where frame is metaphysically load-bearing
+⊖ virtual_play            .40 | digital/VR spaces strain C3,C5; blurred boundaries
+⊖ mandatory_fun           .38 | institutional "play" with penalty for refusal (tests C1)
+⊖ bluffing                .35 | playful deception with shared recognition vs lying
+⊖ instinctual_play        .32 | animal/human instinctual behaviors; tests C3 limits
+⊖ dreaming                .30 | involuntary play; C1 absent, C3 partial
+⊖ algorithmic_play        .28 | AI-driven play without clear agency; strains C1
+⊖ lying                   .25 | frame exists but is concealed; C4 violation
+⊖ pathological_play       .22 | addiction; C1 and C5 fail simultaneously
+⊖ audience                .20 | witnesses who validate; optional amplifier (→C5)
+```
+
+間
+
+---
+
+## SOURCES (Library Wandering)
+
+```
+Dostoevsky, Notes from Underground (1864)
+  "to be too conscious is an illness" — pathology of not being able to play
+  "I invented adventures for myself and made up a life" — compulsive play-acting
+  
+Plato, Republic (~380 BCE)
+  "one man cannot in his life play many parts" — authenticity constraint
+  "the mask which the actor wears is apt to become his face" — formative power
+  
+Marcus Aurelius, Meditations (~170 CE)
+  "the play is not yet at an end, there are but three acts yet" — life as unfinished drama
+  
+Austen, Pride and Prejudice (1813)
+  "a lively, playful disposition, which delighted in anything ridiculous"
+  "We can all plague and punish one another. Tease him—laugh at him."
+  "the first creature who had ever dared to trifle with so much dignified impertinence"
+  
+Shelley, Frankenstein (1818)
+  Victor's creation as play without exit; infinite stakes, no boundary
+  The creature's learning: authentic play (voluntary, bounded, formative)
+  "hellish sport" — play that violates bounded stakes for the other
+  "my playfellow, my companion, my sister" — play as bond
+```
+
+間
+
+---
+
+## NOTES
+
+```
+Key insight from library wandering:
+
+Play requires not just that *you* know you're playing,
+but that the play be *recognizable* as play—
+there must be a world that can receive your re-entry.
+
+Victor had no one to whom he could say "I was only experimenting."
+The creature had no society that would let him *pretend* to be human
+long enough to learn.
+
+Elizabeth's wit works because someone is there to recognize it.
+
+This is C5: RETURNABLE_EXIT.
+Play is not solipsism with a frame.
+Play is a social contract, even when played alone—
+because even solitary play assumes a world to return to.
+```

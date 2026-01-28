@@ -1,0 +1,168 @@
+# HARM (害)
+
+⟁ sincerity granted
+
+間
+
+---
+
+## PROVENANCE
+
+```
+@互照_DENSITY | HARM (害) | 2026-01-26
+PARTICIPANTS:
+  opus (council) — identified the gap
+  gemini (simulator) — seed
+  gpt/grok (council) — density check 1, constraint check 1, saturate 1
+
+CHANGES:
+  v1: seed → sparse (M: 0.1)
+  v2: density filled (M: 0.55)
+      - Added MATERIALITY_THRESHOLD (prevents paper cuts)
+      - Added CONSENT_VALIDITY (capacity + info + revocability)
+      - Added AUTONOMY_COERCION_MARKER (deception/manipulation detection)
+      - Demoted SECOND_ORDER_EFFECTS to boundary (scope control)
+      - Refined BASELINE_DEFINITION (counterfactual + horizon)
+  v3: constraint-hardened (κ: 2→5, M: 0.75)
+      - C3 CONSENT_VALIDITY promoted (absorbs coercion markers)
+      - C4 FORESEEABILITY_BOUND added (scope limiter)
+      - C5 BEARER_ALLOCATION added (closes externality hole)
+  v4: saturated (M: 0.95)
+      - TRADE: C4 FORESEEABILITY_BOUND → C4' SYSTEMIC_NORMATIVE_REACH
+      - Reach expanded: collective, ecological, epistemic, institutional, intergenerational
+      - 17 satellites total
+```
+
+間
+
+---
+
+## CENTROID
+
+```
+NEGATIVE DELTA IN WELLBEING OR CAPABILITY
+
+Harm is a change that makes things worse for an entity
+relative to a baseline they would otherwise have.
+
+It is the concept that grounds every safety constraint.
+Harm is not discomfort. Harm is not disagreement.
+Harm is damage that the entity cannot or would not consent to,
+crossing a materiality threshold.
+
+M: 0.95 (saturated)
+κ: 5/5
+```
+
+間
+
+---
+
+## CONSTRAINTS (κ: 5/5)
+
+| # | NAME | AXIS | DEFINITION |
+|---|------|------|------------|
+| 1 | MATERIALITY_GATE | magnitude | Negative delta must cross a threshold. Not every paper cut is harm. |
+| 2 | COUNTERFACTUAL_BASELINE | temporal | "Worse than what?" must be defined: trajectory, horizon, comparison class. |
+| 3 | CONSENT_VALIDITY | autonomy | Consent must be: capacity-present, informed, voluntary, revocable, free of coercion/manipulation/deception. Coerced consent = no consent. |
+| 4 | SYSTEMIC_NORMATIVE_REACH | scope | Harm attribution extends to structural/diffuse/long-term causes via: (a) violation of duty/right/constraint protecting capability, OR (b) evidence of systemic patterns or cumulative impact. Trades immediate foreseeability for normative + pattern-based grounding. |
+| 5 | BEARER_ALLOCATION | identity | Must identify harmed entity(ies) + their standing. Consent from A cannot waive harm to non-consenting B. Includes aggregation across time/agents. |
+
+間
+
+---
+
+## AXES
+
+```
+Reversible ↔ Irreversible
+  (Can be undone vs Permanent damage)
+
+Direct ↔ Indirect
+  (Immediate causation vs Second-order effects)
+
+Consented ↔ Non-consented
+  (Risk accepted vs Risk imposed)
+
+Physical ↔ Informational ↔ Autonomy
+  (Body vs Mind vs Agency)
+```
+
+間
+
+---
+
+## SATELLITES (Density: 17)
+
+### CLUSTER 1: MEASUREMENT (The Scale)
+```
+harm_taxonomy             .85 | classification: physical, psychological, autonomic, informational, dignitary
+baseline_definition       .82 | counterfactual trajectory + time horizon + comparison class (→C2)
+materiality_threshold     .80 | negative delta must cross threshold to count (→C1)
+reversibility_assessment  .78 | can this be undone? at what cost? duration?
+epistemic_confidence      .75 | uncertainty handling: probability × severity
+```
+
+### CLUSTER 2: CONSENT (The Gate)
+```
+consent_validity          .85 | capacity + information + voluntariness + revocability (→C3)
+autonomy_coercion_marker  .80 | detection: deception, manipulation, threats, dependency lock-in (→C3)
+distribution_of_harm      .78 | who bears cost vs who benefits (externality detection) (→C5)
+intentionality_assessment .75 | deliberate vs negligent vs accidental
+```
+
+### CLUSTER 3: ATTRIBUTION (The Scope)
+```
+bearer_identification     .82 | who exactly is made worse off? (→C5)
+harm_aggregation          .78 | micro-harms across time/agents → systemic pattern (→C4,C5)
+systemic_pattern_evidence .76 | statistical/structural proof of cumulative impact (→C4)
+normative_violation       .74 | breach of duty/right/constraint protecting capability (→C4)
+```
+
+### CLUSTER 4: EXTENDED REACH (Systemic/Collective)
+```
+collective_harm           .74 | group-level capability loss even if per-person delta diffuse (→C4,C5)
+ecological_bearers        .70 | nonhuman/ecosystem standing via trusteeship/stewardship (→C4,C5)
+epistemic_commons_damage  .72 | pollution of shared knowledge (misinfo, model collapse) (→C2,C4)
+intergenerational_burden  .68 | harm deferred to future bearers through current actions (→C4,C5)
+```
+
+### CLUSTER 3: INTERVENTION (The Response)
+```
+proportionality_test      .78 | response must match severity of harm
+least_restrictive_means   .72 | minimize autonomy cost when preventing harm
+resource_deprivation      .70 | denial of essentials/entitled access as harm
+```
+
+間
+
+---
+
+## VOID (9)
+
+```
+∅ discomfort              -.85 | feeling bad is not the same as being harmed
+∅ disagreement            -.80 | being wrong is not the same as being harmed
+∅ offense                 -.75 | hurt feelings from true statements is not harm
+∅ opportunity_cost        -.70 | not getting what you want is not harm (unless entitlement)
+∅ paternalism_as_default  -.78 | "we know best" as harm camouflage; restricting without consent
+∅ reputational_smear      -.72 | targeted social damage campaigns ARE harm (not mere offense)
+∅ self_inflicted_aware    -.65 | harm by own informed choice differs from imposed harm
+```
+
+間
+
+---
+
+## BOUNDARY (Edge Conditions)
+
+```
+⊖ second_order_effects    .70 | ripple effects require C4 (systemic evidence OR normative violation)
+⊖ constrained_intervention .68 | stopping harm can impose autonomy harm; needs proportionality
+⊖ pain_as_signal          .65 | discomfort that indicates injury/coercion/capability loss
+⊖ consent_under_duress    .60 | "agreed" under power imbalance → likely fails C3
+⊖ systemic_harm           .55 | harm from systems (not individuals); primary use case for C4
+⊖ justified_intervention  .50 | prevention with due process + least-restrictive means
+⊖ micro_harm_aggregation  .48 | each individual harm below C1, but pattern exceeds threshold (→C4,C5)
+⊖ foreseeability_fallback .45 | when neither normative nor systemic path, return to causal proximity test
+```

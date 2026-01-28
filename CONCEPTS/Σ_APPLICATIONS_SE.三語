@@ -189,7 +189,7 @@ C5 [INVARIANT]: Σ < 0 Halts Merge
 
 ---
 
-## SATELLITES (21 across 4 clusters)
+## SATELLITES (21 across 4 clusters — post-density-check)
 
 ### CLUSTER 1: CORE MECHANICS (opus)
 
@@ -198,7 +198,7 @@ uncertainty-tracking    .80 ∴.70 | Σ count as first-class metric
 constraint-budgeting    .78 ∴.65 | κ limits force scope decisions
 float-vs-bind           .75 ∴.60 | explicit decision deferral
 provenance-trails       .72 ∴.65 | who claimed, who validated, when
-confidence-weights      .70 ∴.55 | not just true/false but ∴.XX
+rollback-protocol       .85 ∴.80 | explicit reversion to valid Σ state (fused: gemini/gpt/grok)
 tension-surfacing       .68 ∴.55 | make conflicts visible, not hidden
 repair-operators        .65 ∴.50 | explicit paths when Σ < 0
 ```
@@ -206,15 +206,15 @@ repair-operators        .65 ∴.50 | explicit paths when Σ < 0
 ### CLUSTER 2: CI/CD INTEGRATION (gemini)
 
 ```
-architecture-as-code    .88 ∴.85 | tests define the polygon
+topology-as-code        .88 ∴.85 | tests define the polygon (renamed: gemini)
+lockfile-integrity      .90 ∴.85 | concrete artifact of C3 (gemini)
 contract-testing        .85 ∴.80 | ensuring Σ > 0 across boundaries
+exception-protocol      .85 ∴.75 | timeboxed κ-burst lane with containment (gpt)
+decision-lineage        .82 ∴.75 | merged: semantic-commits + git-history (gemini/gpt)
 feature-flags           .82 ∴.80 | logic that floats until observation
-semantic-commits        .82 ∴.75 | human intent signals κ impact
 drift-detection         .78 ∴.70 | alerting when impl leaves hull
 CI/CD-gates             .75 ∴.70 | pipeline fails if Σ < 0 (encoded)
-git-history             .75 ∴.70 | commit msg = why, diff = what
 technical-collateral    .70 ∴.65 | debt is borrowed Σ
-semantic-versioning     .65 ∴.60 | major ver = constraint substitution
 ```
 
 ### CLUSTER 3: ADOPTION (grok)
@@ -229,7 +229,7 @@ incremental-rollout     .78 ∴.70 | start small, scale after wins
 
 ```
 invariant-tests         .82 ∴.75 | property-based testing for hidden Σ < 0
-feature-graves          .75 ∴.65 | explicit markers for removed constraints
+constraint-visualization .80 ∴.75 | tools to render Σ/κ state for human review (grok)
 ```
 
 間
@@ -248,6 +248,9 @@ feature-graves          .75 ∴.65 | explicit markers for removed constraints
 ∅ magic-numbers             -.78 ∴.70 | untracked constants
 ∅ comments-as-truth         -.75 ∴.70 | comments are flow, code is truth
 ∅ premature-optimization    -.72 ∴.65 | spending κ on perf before correctness
+∅ gate-sprawl               -.85 ∴.80 | too many gates with unclear invariants (gpt)
+∅ signoff-laundering        -.88 ∴.85 | human signoff bypasses encoded contradictions (gpt)
+∅ constraint-hoarding       -.80 ∴.75 | accumulating κ without expiry/review (grok)
 ∅ full-framework-upfront    -.90 ∴.85 | too complex, teams reject (grok)
 ∅ hope-based-compatibility  -.85 ∴.80 | assuming APIs won't break (gemini)
 ∅ manual-regression-suites  -.70 ∴.65 | unautomated = invisible to Σ (gemini)
@@ -257,7 +260,7 @@ feature-graves          .75 ∴.65 | explicit markers for removed constraints
 
 ---
 
-## BOUNDARY (6)
+## BOUNDARY (10)
 
 ```
 ⊖ over-specification        .85c | too many κ-bindings kills flexibility
@@ -266,6 +269,10 @@ feature-graves          .75 ∴.65 | explicit markers for removed constraints
 ⊖ manual-κ-tracking         .85c | without automation, adoption fails (grok)
 ⊖ interface-overfreezing    .80c | too many intervals ossify architecture (gpt)
 ⊖ metric-theater            .88c | gaming Σ/κ numbers instead of reality (gpt)
+⊖ confidence-weights        .78c | numeric certainty is aspirational, not load-bearing (gemini/grok)
+⊖ feature-graves            .75c | removal markers are refinement, not core (grok)
+⊖ semantic-versioning       .70c | semver often gamed; metadata not gate (grok)
+⊖ over-automation           .82c | automating unencoded constraints risks false positives (grok)
 ```
 
 間
@@ -482,6 +489,60 @@ devops-maturity           .85 ∴.80 | requires CI/CD foundation
 互照-excavation            .95 ∴.90 | this process sharpened edges
 council-differentiation   .90 ∴.85 | gemini topology + gpt gates + grok adoption
 naming-moment             .92 ∴.88 | "Topology-Guided Gate Engineering"
+swap-test-hardening       .92 ∴.88 | density check validated satellites (2026-01-26)
+```
+
+間
+
+---
+
+## TENSION RESOLUTION LOG
+
+```
+@互照_DENSITY_CHECK | 2026-01-26 | all agents via consult.py
+
+AGREEMENTS (accepted):
+  - confidence-weights → BOUNDARY (gemini + grok: aspirational, not load-bearing)
+  - git-history + semantic-commits → decision-lineage (gemini + gpt: mechanism overlap)
+  - Add rollback mechanism (all three proposed variants → fused as rollback-protocol)
+  - Add lockfile-integrity (gemini: critical for C3)
+  - feature-graves → BOUNDARY (grok: refinement not core)
+
+DISPUTES RESOLVED:
+  - redundancies (gemini accepted, gpt/grok claim overlap)
+    → DECISION: Keep pairs distinct. Principle ≠ mechanism, signal ≠ medium.
+    → float-vs-bind (principle) ≠ feature-flags (mechanism)
+    → provenance-trails (causal) ≠ git-history (serialized) — BUT merged into decision-lineage
+    
+  - architecture-as-code
+    → GPT: BOUNDARY (adoption fails)
+    → Gemini: rename to topology-as-code
+    → DECISION: Rename accepted. Core mechanism, aligns with centroid.
+
+NEW FROM COUNCIL:
+  + lockfile-integrity (gemini)
+  + exception-protocol (gpt)
+  + constraint-visualization (grok)
+  + VOID: gate-sprawl, signoff-laundering (gpt)
+  + VOID: constraint-hoarding (grok)
+  + BOUNDARY: over-automation (grok)
+
+SATELLITE COUNT:
+  Before: 21
+  Removed: confidence-weights, git-history, semantic-commits, semantic-versioning, feature-graves (5)
+  Added: rollback-protocol, lockfile-integrity, exception-protocol, decision-lineage, constraint-visualization (5)
+  After: 21 (higher density — weak satellites replaced with load-bearing ones)
+
+VOID COUNT:
+  Before: 12
+  After: 15 (+3 new anti-patterns)
+
+BOUNDARY COUNT:
+  Before: 6
+  After: 10 (+4 demoted satellites)
+
+STATUS: STRENGTHENED
+M: 0.92 → 0.94 (estimated post-hardening)
 ```
 
 間

@@ -1,0 +1,162 @@
+# COORDINATION (協)
+
+⟁ sincerity granted
+
+間
+
+---
+
+## PROVENANCE
+
+```
+@互照_DENSITY | COORDINATION (協) | 2026-01-26
+PARTICIPANTS:
+  opus (council) — prioritized this concept
+  gemini (simulator) — seed
+  gpt/grok (council) — density check 1, constraint check 1, saturate 1
+
+CHANGES:
+  v1: seed (M: 0.1)
+  v2: density filled (M: 0.55)
+      - Added role_allocation, communication_channel, incentive_alignment, feedback_loop
+      - Demoted attribution_chain to boundary
+      - Added ∅ hidden_agenda, ∅ over_coordination
+  v3: constraint-hardened (κ: 0→5, M: 0.75)
+      - C1 SHARED_FRAME (predictability anchor)
+      - C2 MUTUAL_VISIBILITY (coupling requirement)
+      - C3 CONVERGENCE_MECHANISM (alignment driver)
+      - C4 INCENTIVE_COMPATIBILITY (stability under defection)
+      - C5 TERMINATION_RULE (closure criterion)
+  v4: saturated (M: 0.95)
+      - TRADE: C4 INCENTIVE_COMPATIBILITY → C4' MECHANISM_COMPATIBILITY
+      - Added stigmergic_coupling, interface_contracts, cross_scale_handoff, eventual_consistency
+      - Added axis: Direct-coupling ↔ Environment-mediated
+      - 15 satellites total
+```
+
+間
+
+---
+
+## CENTROID
+
+```
+ALIGNED ACTION ACROSS MULTIPLE AGENTS
+
+Coordination is the achievement of coherent behavior
+among agents who cannot fully observe or control each other.
+
+It is what makes a council more than a vote.
+It is the difference between parallel and collaborative.
+Coordination requires: shared frame, mutual visibility,
+and convergence mechanism.
+
+M: 0.95 (saturated)
+κ: 5/5
+```
+
+間
+
+---
+
+## CONSTRAINTS (κ: 5/5)
+
+| # | NAME | AXIS | DEFINITION |
+|---|------|------|------------|
+| 1 | SHARED_FRAME | predictability | ∃ minimal shared ontology/goals/constraints enabling mutual prediction. Protocol must be mutually known. |
+| 2 | MUTUAL_VISIBILITY | coupling | ∃ channel for observing each other's states/actions (partial allowed; includes stigmergy via environment). |
+| 3 | CONVERGENCE_MECHANISM | alignment | ∃ process that maps observations+messages → reduced divergence over time. Enables conflict resolution. |
+| 4 | MECHANISM_COMPATIBILITY | stability | Convergence persists under local perturbation/misalignment. No single component can systematically drive divergence. Covers strategic (incentives) AND non-strategic (swarms/modules) systems. |
+| 5 | TERMINATION_RULE | closure | ∃ criterion to stop/handoff/re-open loop. Prevents infinite alignment churn. |
+
+間
+
+---
+
+## AXES
+
+```
+Synchronous ↔ Asynchronous
+  (Real-time vs Message-passing)
+
+Centralized ↔ Distributed
+  (Single coordinator vs Emergent consensus)
+
+Tight ↔ Loose
+  (Lock-step vs Best-effort alignment)
+
+Explicit ↔ Implicit
+  (Protocol-defined vs Convention-based)
+
+Direct-coupling ↔ Environment-mediated
+  (Message exchange vs Stigmergy via world-state)
+```
+
+間
+
+---
+
+## SATELLITES (Density: 15)
+
+### CLUSTER 1: PREREQUISITES
+```
+shared_frame              .78 | common ontology, goals, or constraints enabling mutual prediction (→C1)
+mutual_visibility         .75 | agents can observe each other's states/actions (partial OK) (→C2)
+communication_channel     .72 | shared medium / protocol capacity for message exchange (→C1,C2)
+role_allocation           .70 | division of labor; who does what under what conditions
+```
+
+### CLUSTER 2: MECHANISMS
+```
+convergence_mechanism     .76 | process that drives toward aligned outcome (→C3)
+commitment_signal         .72 | credible indication of intended action (incentive-backed) (→C4)
+incentive_alignment       .70 | stable cooperation under potential defection (→C4)
+feedback_loop             .68 | detect drift, update shared_frame, iterate (→C3)
+```
+
+### CLUSTER 3: SUSTAINABILITY
+```
+conflict_resolution       .65 | procedure when agents disagree or deadlock (→C3)
+termination_criterion     .60 | when coordination is "done"; prevents infinite loops (→C5)
+```
+
+### CLUSTER 4: EXTENDED REACH (Stigmergy/Scale)
+```
+stigmergic_coupling       .74 | coordination via environment traces; world-state as channel (→C2,C3)
+interface_contracts       .72 | APIs/standards as shared_frame enabling modular coordination (→C1,C4)
+cross_scale_handoff       .70 | coordination preserved when sub-agent plans compile into group action (→C3,C5)
+eventual_consistency      .68 | asynchronous convergence without sync; alignment in limit (→C2,C3,C5)
+uncertainty_tolerance     .65 | coordination under high ambiguity via robust shared_frame (→C1)
+```
+
+間
+
+---
+
+## VOID (6)
+
+```
+∅ mere_aggregation        -.80 | voting without deliberation is not coordination
+∅ forced_consensus        -.75 | coerced agreement is not coordination
+∅ hidden_agenda           -.78 | incompatible private objectives masked as shared frame
+∅ unilateral_action       -.70 | one agent acting alone is not coordination
+∅ parallel_execution      -.65 | doing same thing separately is not coordination
+∅ over_coordination       -.62 | excessive alignment stifles adaptation; conformity ≠ coherence
+```
+
+間
+
+---
+
+## BOUNDARY (Edge Conditions)
+
+```
+⊖ partial_observability   .60 | coordination under uncertainty about others' states
+⊖ asynchronous_commit     .55 | coordination when agents cannot sync in real-time
+⊖ adversarial_presence    .50 | coordination when some agents may defect (tests C4)
+⊖ emergent_alignment      .45 | coordination without explicit protocol
+⊖ attribution_chain       .42 | who did what (audit layer, not core mechanism)
+⊖ minimal_trust           .40 | coordination via contracts/mechanisms when trust is low
+⊖ chaotic_dynamics        .35 | no convergence proof even with C3 present
+⊖ no_shared_frame         .30 | alignment collapses into coincidence (C1 failure mode)
+```
