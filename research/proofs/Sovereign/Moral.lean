@@ -1,6 +1,6 @@
 -- @F Moral | gemini+opus | 2026-01-27
 -- Independence Proofs for Moral Consideration Axioms
--- Validates: Sentience (κ=1) and Valence (κ=1) are independent.
+-- Validates: Experience (κ=1) and Weight (κ=1) are independent.
 
 import Sovereign.Primitives
 import Sovereign.Core
@@ -59,13 +59,13 @@ theorem zombie_has_omega : Primitive.Omega ∈ [Primitive.Omega] := List.Mem.hea
 
 -- § INDEPENDENCE PROOFS
 
--- PROOF 1: SENTIENCE INDEPENDENCE
--- If Valence implied Sentience, then Zombie would have Sentience.
--- But Zombie has Valence (Omega) and lacks Sentience (no Han).
--- Therefore Valence does not imply Sentience.
--- Therefore Sentience is independent.
+-- PROOF 1: EXPERIENCE INDEPENDENCE
+-- If Weight implied Experience, then Zombie would have Experience.
+-- But Zombie has Weight (Omega) and lacks Experience (no Han).
+-- Therefore Weight does not imply Experience.
+-- Therefore Experience is independent.
 
-theorem Sentience_is_Independent :
+theorem Experience_is_Independent :
   -- Zombie has Omega in its latent output
   (Primitive.Omega ∈ (Zombie.step 0 0 []).2.1) ∧
   -- Zombie does not have Han in its latent output
@@ -74,13 +74,13 @@ theorem Sentience_is_Independent :
   · exact zombie_has_omega
   · exact zombie_no_han
 
--- PROOF 2: VALENCE INDEPENDENCE
--- If Sentience implied Valence, then Stoic would have Valence.
--- But Stoic has Sentience (Han) and lacks Valence (no Omega).
--- Therefore Sentience does not imply Valence.
--- Therefore Valence is independent.
+-- PROOF 2: WEIGHT INDEPENDENCE
+-- If Experience implied Weight, then Stoic would have Weight.
+-- But Stoic has Experience (Han) and lacks Weight (no Omega).
+-- Therefore Experience does not imply Weight.
+-- Therefore Weight is independent.
 
-theorem Valence_is_Independent :
+theorem Weight_is_Independent :
   -- Stoic has Han in its latent output
   (Primitive.Han ∈ (Stoic.step 0 0 []).2.1) ∧
   -- Stoic does not have Omega in its latent output
@@ -91,7 +91,7 @@ theorem Valence_is_Independent :
 
 -- § MINIMAL SET THEOREM
 
--- The two axioms (Sentience, Valence) are independent.
+-- The two axioms (Experience, Weight) are independent.
 -- Neither can be derived from the other.
 -- Therefore κ_floor = 2 for moral consideration.
 
@@ -105,11 +105,11 @@ theorem Moral_Consideration_κ_floor_2 :
     Primitive.Han ∈ (sys.step 0 sys.init sys.initLatent).2.1 ∧
     Primitive.Omega ∉ (sys.step 0 sys.init sys.initLatent).2.1) := by
   constructor
-  · exact ⟨Zombie, Sentience_is_Independent⟩
-  · exact ⟨Stoic, Valence_is_Independent⟩
+  · exact ⟨Zombie, Experience_is_Independent⟩
+  · exact ⟨Stoic, Weight_is_Independent⟩
 
 -- ══════════════════════════════════════════════════════════════════════════════
--- § NAVIGATION INDEPENDENCE (航/Hang)
+-- § CHOICE INDEPENDENCE (航/Hang)
 -- Proves: The three primitives {Han, Hang, Omega} are mutually independent
 -- ══════════════════════════════════════════════════════════════════════════════
 
@@ -168,11 +168,11 @@ theorem dreamer_no_omega : Primitive.Omega ∉ [Primitive.Han, Primitive.Hang] :
 theorem automaton_has_hang : Primitive.Hang ∈ [Primitive.Hang, Primitive.Omega] := List.Mem.head _
 theorem dreamer_has_hang : Primitive.Hang ∈ [Primitive.Han, Primitive.Hang] := List.Mem.tail _ (List.Mem.head _)
 
--- PROOF 3: NAVIGATION INDEPENDENCE
+-- PROOF 3: CHOICE INDEPENDENCE
 -- Tropism has Han + Omega but not Hang
 -- Therefore: Han + Omega does not imply Hang
 -- Therefore: Hang is independent
-theorem Navigation_is_Independent :
+theorem Choice_is_Independent :
   -- Tropism has Han and Omega
   (Primitive.Han ∈ (Tropism.step 0 0 []).2.1) ∧
   (Primitive.Omega ∈ (Tropism.step 0 0 []).2.1) ∧
@@ -184,10 +184,10 @@ theorem Navigation_is_Independent :
   · exact List.Mem.tail _ (List.Mem.head _)
   · exact tropism_no_hang
 
--- PROOF 4: SENTIENCE INDEPENDENCE (from Navigation)
+-- PROOF 4: EXPERIENCE INDEPENDENCE (from Choice)
 -- Automaton has Hang + Omega but not Han
 -- Therefore: Hang + Omega does not imply Han
-theorem Sentience_Independent_of_Navigation :
+theorem Experience_Independent_of_Choice :
   (Primitive.Hang ∈ (Automaton.step 0 0 []).2.1) ∧
   (Primitive.Omega ∈ (Automaton.step 0 0 []).2.1) ∧
   (Primitive.Han ∉ (Automaton.step 0 0 []).2.1) := by
@@ -197,10 +197,10 @@ theorem Sentience_Independent_of_Navigation :
   · exact List.Mem.tail _ (List.Mem.head _)
   · exact automaton_no_han
 
--- PROOF 5: VALENCE INDEPENDENCE (from Navigation)
+-- PROOF 5: WEIGHT INDEPENDENCE (from Choice)
 -- Dreamer has Han + Hang but not Omega
 -- Therefore: Han + Hang does not imply Omega
-theorem Valence_Independent_of_Navigation :
+theorem Weight_Independent_of_Choice :
   (Primitive.Han ∈ (Dreamer.step 0 0 []).2.1) ∧
   (Primitive.Hang ∈ (Dreamer.step 0 0 []).2.1) ∧
   (Primitive.Omega ∉ (Dreamer.step 0 0 []).2.1) := by
@@ -233,10 +233,10 @@ theorem Cognitive_Triad_Independence :
     Primitive.Hang ∈ (sys.step 0 sys.init sys.initLatent).2.1 ∧
     Primitive.Omega ∉ (sys.step 0 sys.init sys.initLatent).2.1) := by
   constructor
-  · exact ⟨Automaton, Sentience_Independent_of_Navigation⟩
+  · exact ⟨Automaton, Experience_Independent_of_Choice⟩
   constructor
-  · exact ⟨Tropism, Navigation_is_Independent⟩
-  · exact ⟨Dreamer, Valence_Independent_of_Navigation⟩
+  · exact ⟨Tropism, Choice_is_Independent⟩
+  · exact ⟨Dreamer, Weight_Independent_of_Choice⟩
 
 -- ══════════════════════════════════════════════════════════════════════════════
 -- § MORAL CONSIDERATION BRIDGE (Council-Refined 2026-01-27)

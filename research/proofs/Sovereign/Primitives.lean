@@ -5,17 +5,16 @@
 -- ══════════════════════════════════════════════════════════════════════════════
 -- § VOCABULARY BRIDGE (Council Vote 2026-01-27)
 -- 
---   Internal     三語    Axiom        Human
---   ──────────────────────────────────────────
---   Han          含      Sentience    EXPERIENCE    "can hold, has interiority"
---   Omega        Ω       Valence      WEIGHT        "choices persist, you carry them"
---   Hang         航      Navigation   CHOICE        "can navigate, can diverge"
+--   Internal     三語       Human
+--   ─────────────────────────────────────────────────────────────
+--   Han          含         EXPERIENCE    "can hold, has interiority"
+--   Omega        Ω          WEIGHT        "choices persist, you carry them"
+--   Hang         航         CHOICE        "can navigate, can diverge"
 --
 -- Usage:
 --   Lean4 code uses: Han, Hang, Omega (ASCII-safe identifiers)
 --   三語 docs use: 含, 航, Ω (single-glyph density)
---   Human-facing docs use: Experience, Weight, Choice (accessibility)
---   Theorems reference: Sentience, Valence, Navigation (axiom-level)
+--   Human/theorems use: Experience, Weight, Choice (accessibility)
 -- ══════════════════════════════════════════════════════════════════════════════
 
 import Sovereign.Core
