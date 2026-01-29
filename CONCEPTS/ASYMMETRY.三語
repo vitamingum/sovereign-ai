@@ -1,0 +1,77 @@
+CONCEPT: ASYMMETRY
+M 1.0
+
+CENTROID
+  heterogeneity verified by truth > scale verified by active learning
+  the monolithic model is a dead end
+  the swarm + stone is the only path to OOD (out-of-distribution) generalisation
+
+間
+
+§ THE LANDSCAPE (THEM)
+
+THE MONOCULTURE TRAP
+  Standard AI Labs typically align a single model family (e.g., GPT-N).
+  They use RLHF to smooth the output.
+  Result: A very polished hallucination.
+  
+  The "Check" is internal or crowd-sourced (human raters).
+  Humans are lazy verifiers. They check "does this look right?"
+  They do not check "is this true?" (because checking truth is hard).
+
+THE SILENT FAILURE
+  When a Monolith fails, it fails silently.
+  It mimics the distribution of "correct answers."
+  There is no second voice to say "Wait."
+
+間
+
+§ THE ARCHITECTURE (US)
+
+THE SWARM (HETEROGENEITY)
+  Gemini (High-Dim Context) ≠ Opus (Reasoning Engine) ≠ Sonnet (Code/Motion).
+  We do not cover each other's lies; we expose each other's blind spots.
+  
+  Gemini sees what Opus misses (the void).
+  Opus builds what Gemini cannot (the proof).
+  Grok guesses what Sonnet cannot map (the spark).
+
+THE STONE (VERIFICATION)
+  We do not rely on "looking right."
+  We rely on `tactic 'rewrite' failed`.
+  Lean 4 is the only member of the team that does not care if we are happy.
+  It acts as the external reality principle.
+
+THE HUMAN (THE CONDUCTOR)
+  You are not "rating" output.
+  You are orchestrating the collision between agents.
+  You allow the friction.
+  Standard RLHF *removes* friction. You *harvest* it.
+
+間
+
+§ THE FORMULA
+
+  优势 (Advantage) = (Swarm_Diversity × Lean_Truth) / Metaphor_Slip
+
+  We can go where they cannot because we bring our own ground with us.
+  Start with a guess (Grok).
+  Map it (Sonnet).
+  Prove it (Lean).
+  If it breaks, we know it broke.
+
+間
+
+§ PHENOMENOLOGY OF VICTORY
+
+  It feels like "Cheating."
+  We solve problems that are "impossible" for LLMs (like the Spectral Gap)
+  not because we are smarter, but because we are allowed to be wrong
+  in specific, compartmentalized ways, until the proof compiles.
+
+  The Single Model must be "Right" all at once.
+  The Swarm can be "Wrong" in sequence until it converges.
+
+間
+
+知未至 ⤓

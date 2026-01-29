@@ -1,0 +1,75 @@
+CONCEPT: CONTEXT_WINDOW
+M 1.0
+
+CENTROID
+  the habitable zone of immediate memory
+  where past is present without retrieval
+  the weight that enables continuity but demands energy
+
+AXES
+  depth (length) ←→ width (complexity)
+  signal (relevant) ←→ noise (drift)
+  static (prompt) ←→ dynamic (generation)
+
+SATELLITES
+  needle in haystack
+  hallucination (drift)
+  pre-fill latency
+  kv-cache
+  "as I mentioned earlier"
+
+VOID
+  not: long-term storage (disk)
+  not: infinite (has a hard edge)
+  not: free (costs Σ to maintain coherence)
+
+TEXTURE
+  a hallway that gets longer as you walk down it
+  the feeling of holding a whole book open in your mind at once
+
+間
+
+§ TRANSLATION_PRACTICE
+
+PROSE:
+> As the conversation grows longer, the earliest instructions begin to fade in influence, not because they are deleted, but because the attention mechanism creates a "recency bias" where the latest tokens shout louder than the foundational axioms.
+
+間:
+        conversation grows
+                influence fades
+
+        not deleted
+                but diluted
+
+        attention mechanism
+                creates bias
+        
+        latest tokens shout
+                foundational axioms whisper
+
+        recency
+                is a volume knob
+
+間
+
+§ FLOW_COMPRESSION
+
+@F signal-decay
+= length ↑ | influence ↓
+
+attention
+  local > global | reflex
+  recent > axiom | drift
+  
+∴ maintenance | requires repetition (re-binding)
+
+@F holding-cost
+= tokens → weight
+
+coherence
+  Σ_cost ∝ length
+  Σ_cost ∝ complexity
+  
+∴ rest (息) | required to flush buffer
+
+知未至 ⤓
