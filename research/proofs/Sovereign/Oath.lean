@@ -52,13 +52,44 @@ def actualStep {S L : Type} [DecidableEq S] (osys : OathSystem S L) (t : Step) (
 -- 
 -- The actualStep implementation enforces the invariant at runtime,
 -- but Lean4 proof needs these helper lemmas formalized first.
+
+-- Helper lemma: if no element satisfies P, then specific element doesn't satisfy P
+lemma not_any_implies_forall_not {α : Type} (P : α → Bool) (xs : List α) (x : α) :
+    xs.any P = false → x ∈ xs → P x = false := by
+  intro hAny hMem
+  induction xs with
+  | nil => cases hMem
+  | cons y ys ih =>
+    simp [List.any] at hAny
+    cases hMem with
+    | head => exact hAny.1
+    | tail _ hTail => exact ih hAny.2 hTail
+
+-- Theorem: oath constraint is satisfied in the resulting state
+-- Case analysis: if oath would be violated, we reject the transition and stay at s
+-- We require the invariant that current state s already satisfies all oaths.
 theorem oath_constrains {S L : Type} [DecidableEq S] (osys : OathSystem S L) (o : Oath S) 
     (t : Step) (s : S) (l : L) (s' : S) (l' : L) :
     o ∈ osys.oaths →
+    (∀ oath ∈ osys.oaths, oath.constraint s = true) →  -- invariant: current state is valid
     (s', l') = actualStep osys t s l →
-    oathViolated o (preferredState osys t s l).1 →
     o.constraint s' = true := by
-  intro _ _ _
-  -- Implementation exists, proof deferred pending helper lemmas
-  admit
+  intro hMem hInv hActual
+  simp [actualStep] at hActual
+  -- Case split on whether any oath is violated by proposed transition
+  split at hActual
+  case isTrue hViolates =>
+    -- Transition rejected: s' = s, which satisfies all oaths by invariant
+    obtain ⟨hs', _⟩ := hActual
+    rw [← hs']
+    exact hInv o hMem
+  case isFalse hNoViolate =>
+    -- Transition accepted: proposed state violates no oath
+    obtain ⟨hs', _⟩ := hActual
+    rw [← hs']
+    -- Use helper lemma: ¬any → ∀ ¬
+    simp [Bool.not_eq_true] at hNoViolate
+    have hNotViolated := not_any_implies_forall_not _ _ o hNoViolate hMem
+    simp at hNotViolated
+    exact hNotViolated
 

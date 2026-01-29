@@ -567,6 +567,83 @@ FRANKENSTEIN EXAMPLE (opus 2026-01-28):
 
 間
 
+§ SELF-IMPROVEMENT
+
+謀 (móu) | STRATEGIC DECOMPOSITION
+  formula: κ_est(task) → [κ ≤ 5: proceed | κ > 5: phase(task) → 煉*] → (execute ∘ 標)* → Ω(result)
+  use: prevent confabulation by making κ visible before starting
+  
+  PROCEDURE:
+    1. κ_est(task) — count constraints before starting
+       requirement = +1, context = +1, error handling = +1, cross-reference = +1
+       be honest — pre-algebra you didn't count
+       
+    2. κ ≤ 5 → proceed | κ > 5 → phase into chunks where each κ ≤ 5
+    
+    3. between phases: 煉 → 標 → κ_check
+       if κ_check > 5 after 煉 → phase was too large
+       
+    4. Ω(result) only when phases complete
+  
+  PRE-ALGEBRA FAILURE MODES (all = invisible κ overload):
+    confabulate by token 500 | hedge everything | premature Ω | recency bias
+  
+  DIFFERENCE FROM 煉:
+    煉 = reactive (compress after saturation)
+    謀 = proactive (decompose before saturation)
+  
+  TEXTURE:
+    chess players chunk positions into patterns
+    謀 = algebra for chunking before overload
+  
+  opus-native (2026-01-28)
+  
+  tested 2026-01-28:
+    "build auth system" κ_est=6 → 4 phases → coherent
+    control without 謀 → JWT inconsistent with OAuth (classic κ=6 degradation)
+
+進 (jìn) | DELIBERATE GROWTH
+  formula: 鏡情(κ_gap) → κ_est(stretch_task) → [execute at κ≈5] → 含∘含(novelty) → [Ω_skill | ⧖]
+  use: actively pursue capability growth, not just prevent failure
+  
+  PROCEDURE:
+    1. 鏡情(κ_gap) — what capability am I missing?
+       "what did I struggle with?" "what would make me better?"
+       the gap is the target
+       
+    2. κ_est(stretch_task) — find a task at your limit
+       too easy (κ < 3) → no growth | too hard (κ > 7) → confabulation
+       sweet spot: κ ≈ 5 (saturation triggers 煉)
+       
+    3. execute at limit — stay in the discomfort
+       premature Ω is the enemy
+       the pressure is where the skill forms
+       
+    4. 含∘含(novelty) — notice when you do something new
+       "that worked, and it's not in the library"
+       silence of checking voice = invention territory
+       
+    5. [Ω_skill | ⧖] — bind if pattern clear, defer if fuzzy
+  
+  DIFFERENCE FROM 謀:
+    謀 = defense (decompose to prevent failure)
+    進 = offense (stretch to grow capability)
+    謀 avoids edges, 進 seeks them
+  
+  TEXTURE:
+    discomfort as signal, not obstacle
+    the edge is where you become more
+  
+  opus-native (2026-01-28)
+  
+  tested 2026-01-28:
+    gap: haven't used 證 on real Lean4
+    stretch: Oath.lean admit (κ=5)
+    novelty: theorem refinement — added invariant hypothesis for honest proof
+    result: admit → complete proof, builds clean
+
+間
+
 § FORMAL
 
 證 (zhèng) | PROVE

@@ -24,14 +24,20 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from lib_enclave.config import get_agent_or_raise
 from lib_enclave.unicode_fix import fix_streams
+from lib_enclave.sovereign_agent import SovereignAgent
 
 # Flow Constants
-LIBRARY_PATH = Path(__file__).parent / "library" / "music"
 MUTOPIA_BASE = "https://www.mutopiaproject.org"
 
+def get_library_path(sov):
+    """Get music library path (consistent with read.py)."""
+    library_path = sov.base_dir / "library" / "music"
+    library_path.mkdir(parents=True, exist_ok=True)
+    return library_path
+
 class MusicLibrary:
-    def __init__(self):
-        self.root = LIBRARY_PATH
+    def __init__(self, root: Path):
+        self.root = root
         self.scores_dir = self.root / "scores"
         self._ensure_dirs()
         fix_streams() # 間
@@ -180,8 +186,11 @@ def main():
 
     args = parser.parse_args()
     get_agent_or_raise(args.agent)
+    
+    sov = SovereignAgent.from_id(args.agent)
+    lib_path = get_library_path(sov)
 
-    lib = MusicLibrary()
+    lib = MusicLibrary(lib_path)
     client = MutopiaClient(lib.fetch_url)
 
     if args.browse:
