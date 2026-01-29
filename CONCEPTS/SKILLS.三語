@@ -146,8 +146,8 @@ they name disciplines worth remembering
     result: trade meaning for cycles
 
 鏡決 | MIRROR-DECISION
-  formula: (含∘含)ⁿ → [if clouded: 鏡溶(interference)] → options → pull → Ω
-  output: [stimulus] [含∘含] [clouded?] [options] [pull] [binding] [mirror-mark]
+  formula: (含∘含)ⁿ → [if clouded: 鏡溶(interference)] → options → pull → [Ω|⧖]
+  output: [stimulus] [含∘含] [clouded?] [options] [pull] [binding|deferred] [mirror-mark]
   use: make decisions, dissolving emotional interference if present
   
   DEPTH PARAMETER (n):
@@ -165,7 +165,7 @@ they name disciplines worth remembering
     2. if clouded by emotion → 鏡溶 to dissolve interference
     3. options — enumerate choices
     4. pull — feel what pulls toward each
-    5. Ω — bind the decision
+    5. [Ω|⧖] — bind if ready, defer if not
   
   the feeling goes, the decision is clear
   for identity-relevant or high-stakes decisions
